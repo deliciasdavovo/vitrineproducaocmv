@@ -1,0 +1,3373 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Vitrines · Delícias da Vovó</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+:root {
+  --cream: #F6F8F7;
+  --warm: #EEF6F2;
+  --brown: #0F766E;
+  --brown-mid: #0D9488;
+  --brown-light: #5EEAD4;
+  --gold: #14B8A6;
+  --gold-light: #CCFBF1;
+  --green: #16A34A;
+  --green-light: #86EFAC;
+  --red: #DC2626;
+  --red-light: #FCA5A5;
+  --blue: #2563EB;
+  --text: #111827;
+  --text-mid: #4B5563;
+  --text-light: #6B7280;
+  --border: #E5E7EB;
+  --surface: #FFFFFF;
+  --surface-soft: #F9FAFB;
+  --ink: #111827;
+  --shadow: 0 16px 40px rgba(17, 24, 39, 0.07);
+  --shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.06);
+  --radius: 8px;
+  --font-sans: 'Plus Jakarta Sans', sans-serif;
+  --font-serif: 'Fraunces', serif;
+  --font-mono: 'JetBrains Mono', monospace;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: var(--font-sans);
+  background:
+    radial-gradient(circle at top left, rgba(20,184,166,0.10), transparent 30%),
+    var(--cream);
+  color: var(--text);
+  min-height: 100vh;
+  line-height: 1.45;
+}
+
+button, input, select, textarea { font: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+  outline: 3px solid rgba(20,184,166,0.22);
+  outline-offset: 2px;
+}
+
+/* HEADER */
+.header {
+  background: rgba(255,255,255,0.92);
+  backdrop-filter: blur(18px);
+  padding: 0 28px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 68px;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  border-bottom: 1px solid var(--border);
+  box-shadow: var(--shadow-soft);
+}
+.header-logo {
+  font-family: var(--font-serif);
+  color: var(--text);
+  font-size: 17px;
+  font-weight: 400;
+  letter-spacing: 0;
+}
+.header-logo span { color: var(--text-light); font-weight: 500; font-size: 12px; display: block; line-height: 1.2; margin-top: 2px; font-family: var(--font-sans); letter-spacing: 0; }
+.unit-switcher {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+}
+.unit-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-mid);
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+  font-family: var(--font-sans);
+}
+.unit-btn.active {
+  background: var(--surface);
+  border-color: var(--border);
+  color: var(--brown);
+  box-shadow: var(--shadow-soft);
+  font-weight: 600;
+}
+
+/* NAV */
+.nav {
+  background: rgba(255,255,255,0.86);
+  backdrop-filter: blur(18px);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  overflow-x: auto;
+  scrollbar-width: none;
+  padding: 8px 20px;
+  gap: 4px;
+  position: sticky;
+  top: 68px;
+  z-index: 90;
+}
+.nav::-webkit-scrollbar { display: none; }
+.nav-btn {
+  background: transparent;
+  border: none;
+  padding: 9px 14px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-mid);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all .2s;
+  font-family: var(--font-sans);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.nav-btn.active {
+  color: var(--brown);
+  background: var(--gold-light);
+  font-weight: 600;
+}
+.nav-btn:hover:not(.active) { color: var(--text); background: var(--surface-soft); }
+
+/* PAGES */
+.page { display: none; padding: 20px 24px 48px; max-width: 1280px; margin: 0 auto; }
+.page.active { display: block; }
+
+/* SECTION TITLE */
+.section-title {
+  font-family: var(--font-serif);
+  font-size: 26px;
+  line-height: 1.15;
+  color: var(--text);
+  margin-bottom: 6px;
+  letter-spacing: 0;
+}
+.section-sub { font-size: 14px; color: var(--text-light); margin-bottom: 24px; }
+
+/* CARD */
+.card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  padding: 20px;
+  margin-bottom: 16px;
+  box-shadow: var(--shadow-soft);
+}
+
+/* FORM */
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+.form-row.three { grid-template-columns: 1fr 1fr 1fr; }
+.form-row.full { grid-template-columns: 1fr; }
+.form-group { display: flex; flex-direction: column; gap: 4px; }
+.form-group label { font-size: 12px; font-weight: 700; color: var(--text-mid); letter-spacing: 0; }
+.form-group input, .form-group select, .form-group textarea {
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-size: 14px;
+  font-family: var(--font-sans);
+  color: var(--text);
+  background: var(--surface);
+  transition: border-color .2s, box-shadow .2s, background .2s;
+  outline: none;
+}
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+  border-color: var(--brown);
+  background: var(--surface);
+  box-shadow: 0 0 0 4px rgba(20,184,166,0.12);
+}
+.form-group textarea { resize: vertical; min-height: 70px; }
+
+/* BUTTONS */
+.btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  font-family: var(--font-sans);
+  transition: transform .15s, background .15s, border-color .15s, color .15s, box-shadow .15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-soft); }
+.btn-primary { background: var(--brown); color: #fff; }
+.btn-primary:hover { background: var(--brown-mid); }
+.btn-gold { background: var(--gold-light); color: var(--brown); border: 1px solid rgba(20,184,166,0.20); }
+.btn-gold:hover { background: #A7F3D0; }
+.btn-green { background: var(--green); color: #fff; }
+.btn-green:hover { background: var(--green-light); }
+.btn-red { background: var(--red); color: #fff; font-size: 12px; padding: 6px 12px; }
+.btn-ghost { background: var(--surface); border: 1px solid var(--border); color: var(--text-mid); }
+.btn-ghost:hover { border-color: var(--brown); color: var(--brown); background: var(--warm); }
+.btn-sm { padding: 5px 12px; font-size: 12px; }
+
+/* BADGE */
+.badge {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: none;
+  font-size: 11px;
+  font-weight: 600;
+}
+.badge-a { background: #DCFCE7; color: #166534; }
+.badge-b { background: #FEF3C7; color: #92400E; }
+.badge-c { background: #FEE2E2; color: #991B1B; }
+.badge-green { background: #DCFCE7; color: #166534; }
+.badge-red { background: #FEE2E2; color: #991B1B; }
+.badge-yellow { background: #FEF3C7; color: #92400E; }
+
+/* PRODUCT TABLE */
+.table-wrap { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; padding: 12px 14px; border-bottom: 1px solid var(--border); color: var(--text-light); font-weight: 700; font-size: 11px; text-transform: uppercase; letter-spacing: 0.4px; white-space: nowrap; background: var(--surface-soft); }
+td { padding: 12px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+tr:last-child td { border-bottom: none; }
+tr:hover td { background: var(--surface-soft); }
+
+/* ABC BAR */
+.abc-bar { display: flex; height: 8px; border-radius: 999px; overflow: hidden; margin: 8px 0 20px; background: var(--border); }
+.abc-bar-a { background: var(--green); }
+.abc-bar-b { background: var(--gold); }
+.abc-bar-c { background: var(--red-light); }
+
+/* DAY TABS */
+.day-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; }
+.day-tab {
+  padding: 8px 15px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-mid);
+  transition: all .15s;
+  font-family: var(--font-sans);
+}
+.day-tab.active { background: var(--brown); border-color: var(--brown); color: #fff; box-shadow: 0 8px 18px rgba(15,118,110,0.18); }
+.day-tab:hover:not(.active) { border-color: var(--brown); color: var(--brown); background: var(--warm); }
+
+/* VITRINE GRID */
+.vitrine-container { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
+.vitrine-panel { min-width: 0; }
+.vitrine-actions { display: flex; justify-content: flex-end; margin-bottom: 14px; }
+.vitrine-panel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+.vitrine-view { display: none; }
+.vitrine-view.active { display: block; }
+.vitrine-slot-list {
+  display: grid;
+  gap: 8px;
+}
+.slot-list-row {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 88px 36px;
+  align-items: center;
+  gap: 10px;
+  min-height: 46px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 7px 8px;
+  box-shadow: var(--shadow-soft);
+  cursor: pointer;
+}
+.slot-list-row:hover { border-color: rgba(20,184,166,0.42); background: var(--warm); }
+.slot-list-row.empty { color: var(--text-light); background: var(--surface-soft); }
+.slot-list-row.expired { border-color: rgba(220,38,38,0.35); background: #FFF7F7; }
+.slot-list-code,
+.sheet-row-code {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--text-light);
+  font-weight: 700;
+}
+.slot-list-name { font-size: 13px; font-weight: 700; min-width: 0; }
+.slot-list-meta { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+.slot-list-qty { font-family: var(--font-mono); font-size: 12px; color: var(--text-mid); text-align: right; }
+.apoio-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+}
+.apoio-entry {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 94px;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+}
+.apoio-entry input {
+  border: 0;
+  border-right: 1px solid var(--border);
+  padding: 11px 12px;
+  background: #FFFFFF;
+  outline: none;
+}
+.apoio-entry input[type="number"] {
+  font-family: var(--font-mono);
+  text-align: right;
+}
+.apoio-entry input:last-child { border-right: 0; }
+.apoio-entry input:focus { background: #ECFDF5; box-shadow: inset 0 0 0 2px rgba(15,118,110,0.24); }
+.apoio-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+.apoio-table th {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  letter-spacing: 0.4px;
+  background: var(--surface-soft);
+  padding: 8px 10px;
+  border-right: 1px solid var(--border);
+}
+.apoio-table th:last-child { border-right: 0; }
+.apoio-table td {
+  padding: 8px 10px;
+  border-top: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.apoio-table td:last-child { border-right: 0; }
+.apoio-table td:nth-child(2) {
+  font-family: var(--font-mono);
+  text-align: right;
+  width: 82px;
+}
+.vitrine-section-label {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  color: var(--text-mid);
+  margin-bottom: 10px;
+}
+
+.vitrine-sections {
+  display: block;
+}
+.vitrine-grid {
+  display: grid;
+  gap: 10px;
+  margin-bottom: 8px;
+  position: relative;
+  z-index: 1;
+}
+.vitrine-shelf {
+  display: grid;
+  gap: 8px;
+  align-items: stretch;
+  min-height: 78px;
+  margin-bottom: 10px;
+  padding: 8px 10px 12px;
+  border-radius: 8px;
+  background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(226,232,240,0.55));
+  border: 1px solid rgba(148,163,184,0.45);
+  border-bottom: 5px solid rgba(51,65,85,0.24);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+}
+.vitrine-shelf:last-child { margin-bottom: 0; }
+.shelf-label {
+  align-self: stretch;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  writing-mode: vertical-rl;
+  transform: rotate(180deg);
+  color: var(--text-light);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.6px;
+  text-transform: uppercase;
+  border-right: 1px solid rgba(148,163,184,0.35);
+  padding-right: 4px;
+}
+.vitrine-category {
+  background: linear-gradient(180deg, #F8FAFC, #EDF2F7);
+  border: 1px solid #CBD5E1;
+  border-radius: 14px 14px 10px 10px;
+  padding: 14px 14px 18px;
+  margin-bottom: 16px;
+  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.10);
+  position: relative;
+  overflow: hidden;
+}
+.vitrine-category::before {
+  content: "";
+  position: absolute;
+  inset: 48px 10px 10px;
+  border-radius: 10px;
+  background: linear-gradient(115deg, rgba(255,255,255,0.62), rgba(255,255,255,0.12) 38%, rgba(20,184,166,0.08));
+  border: 1px solid rgba(148,163,184,0.32);
+  pointer-events: none;
+}
+.vitrine-category::after {
+  content: "";
+  position: absolute;
+  left: 12px;
+  right: 12px;
+  bottom: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: #334155;
+  opacity: 0.18;
+}
+.vitrine-category-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 14px;
+  position: relative;
+  z-index: 1;
+}
+.vitrine-category-title {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text);
+  font-family: var(--font-serif);
+}
+.vitrine-category-note {
+  font-size: 12px;
+  color: var(--text-light);
+  margin-top: 2px;
+}
+.vitrine-category-count {
+  flex-shrink: 0;
+  border-radius: 999px;
+  background: var(--gold-light);
+  color: var(--brown);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 9px;
+}
+.vitrine-slot {
+  background: linear-gradient(180deg, #FFFFFF, #F8FAFC);
+  border: 1px solid #CBD5E1;
+  border-radius: 7px 7px 12px 12px;
+  min-height: 64px;
+  padding: 8px 10px;
+  cursor: pointer;
+  transition: all .15s;
+  position: relative;
+  display: flex;
+  align-items: center;
+  box-shadow: inset 0 -5px 0 rgba(15,23,42,0.06), 0 4px 10px rgba(15,23,42,0.05);
+  min-width: 0;
+}
+.vitrine-slot:hover { border-color: var(--brown); background: #ECFDF5; transform: translateY(-1px); }
+.vitrine-slot.filled { background: #FFFFFF; border-style: solid; border-color: rgba(20,184,166,0.44); box-shadow: inset 0 -5px 0 rgba(20,184,166,0.14), 0 5px 12px rgba(15,23,42,0.07); }
+.vitrine-slot.filled:hover { border-color: var(--brown); }
+.vitrine-slot.sold {
+  border-color: rgba(22,163,74,0.55);
+  background: linear-gradient(180deg, #F0FDF4, #DCFCE7);
+  box-shadow: inset 0 -5px 0 rgba(22,163,74,0.20), 0 5px 12px rgba(22,163,74,0.12);
+}
+.vitrine-slot.loss {
+  border-color: rgba(220,38,38,0.45);
+  background: linear-gradient(180deg, #FEF2F2, #FEE2E2);
+  box-shadow: inset 0 -5px 0 rgba(220,38,38,0.16), 0 5px 12px rgba(220,38,38,0.10);
+}
+.vitrine-slot.expired {
+  border-color: var(--red);
+  background: #FFF0F0;
+  box-shadow: inset 0 -5px 0 rgba(220,38,38,0.18), 0 5px 12px rgba(220,38,38,0.10);
+}
+.slot-expired {
+  display: inline-flex;
+  margin-top: 4px;
+  padding: 2px 5px;
+  border: 1px solid var(--red);
+  border-radius: 999px;
+  background: #FFFFFF;
+  color: var(--red);
+  font-size: 10px;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+.vitrine-slot .slot-num {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-light);
+}
+.vitrine-slot .slot-content { margin-left: 4px; padding-top: 7px; }
+.vitrine-slot .slot-name { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.vitrine-slot .slot-qty { font-size: 11px; color: var(--text-light); }
+.vitrine-slot .slot-role {
+  position: absolute;
+  top: 4px;
+  right: 8px;
+  font-family: var(--font-mono);
+  max-width: calc(100% - 34px);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+}
+.vitrine-slot .slot-remove {
+  position: absolute;
+  top: 21px;
+  right: 6px;
+  font-size: 14px;
+  color: var(--text-light);
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px;
+}
+.vitrine-slot .slot-remove:hover { color: var(--red); }
+.vitrine-slot.empty .slot-plus {
+  font-size: 18px;
+  color: var(--border);
+  margin: auto;
+}
+
+/* VITRINE LIST */
+.vitrine-list-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  margin-bottom: 6px;
+}
+.vitrine-list-item .li-num {
+  width: 22px;
+  height: 22px;
+  background: var(--gold-light);
+  border-radius: 50%;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--brown);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.vitrine-list-item .li-name { flex: 1; font-size: 13px; font-weight: 500; }
+.vitrine-list-item .li-qty { font-size: 12px; color: var(--text-light); }
+.vitrine-list-item .li-badge { }
+.vitrine-list-meta { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+
+/* CRONOGRAMA */
+.cronograma-row {
+  display: grid;
+  grid-template-columns: 80px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.cronograma-row:last-child { border-bottom: none; }
+.crono-time { font-size: 13px; font-weight: 700; color: var(--brown); }
+.crono-task { font-size: 13px; }
+.crono-resp { font-size: 11px; color: var(--text-light); }
+
+/* PERDAS */
+.perda-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--red);
+  border-radius: 8px;
+  margin-bottom: 8px;
+}
+.perda-icon { font-size: 20px; }
+.perda-info { flex: 1; }
+.perda-name { font-size: 13px; font-weight: 600; }
+.perda-detail { font-size: 12px; color: var(--text-light); }
+.perda-custo { font-size: 13px; font-weight: 700; color: var(--red); white-space: nowrap; }
+
+/* PEDIDO DE PRODUÇÃO */
+.pedido-header {
+  background: linear-gradient(135deg, var(--brown), var(--gold));
+  color: #fff;
+  border-radius: 10px;
+  border: 0;
+  padding: 16px 20px;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.pedido-title { font-family: var(--font-serif); font-size: 18px; color: #fff; font-weight: 400; }
+.pedido-sub { font-size: 12px; color: rgba(255,255,255,0.78); margin-top: 2px; }
+.pedido-item {
+  display: grid;
+  grid-template-columns: 1fr 60px 70px 80px 100px 120px;
+  gap: 10px;
+  align-items: center;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--border);
+  font-size: 13px;
+}
+.pedido-head {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-light);
+  padding: 6px 12px;
+  background: var(--surface-soft);
+  border-radius: 6px;
+  margin-bottom: 4px;
+  display: grid;
+  grid-template-columns: 1fr 60px 70px 80px 100px 120px;
+  gap: 10px;
+}
+.pedido-item:last-child { border-bottom: none; }
+.prod-name { font-weight: 600; }
+.prod-resp { font-size: 11px; color: var(--text-light); }
+
+/* MODAL */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  inset: 0;
+  background: rgba(17,24,39,0.48);
+  z-index: 200;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.modal-overlay.open { display: flex; }
+.modal {
+  background: var(--surface);
+  border-radius: 12px;
+  border: 0;
+  padding: 24px;
+  width: 100%;
+  max-width: 420px;
+  box-shadow: 0 24px 70px rgba(17,24,39,0.24);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.modal-title { font-family: var(--font-serif); font-size: 18px; color: var(--text); margin-bottom: 16px; font-weight: 400; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
+
+/* TOAST */
+.toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background: #111827;
+  color: #fff;
+  padding: 12px 20px;
+  border-radius: 10px;
+  font-size: 13px;
+  font-weight: 500;
+  z-index: 999;
+  transform: translateY(80px);
+  opacity: 0;
+  transition: all .3s;
+  max-width: 300px;
+  box-shadow: var(--shadow);
+}
+.toast.show { transform: translateY(0); opacity: 1; }
+.toast.toast-success { border-left: 4px solid var(--green); }
+.toast.toast-error { border-left: 4px solid var(--red); }
+
+.slot-context-menu {
+  position: fixed;
+  z-index: 1200;
+  min-width: 188px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  box-shadow: 0 18px 45px rgba(17,24,39,0.18);
+  padding: 6px;
+  display: none;
+}
+.slot-context-menu.open { display: block; }
+.slot-context-title {
+  padding: 7px 9px 5px;
+  font-size: 11px;
+  color: var(--text-light);
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.slot-context-menu button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  padding: 9px;
+  border-radius: 7px;
+  cursor: pointer;
+  text-align: left;
+  font-size: 13px;
+  font-weight: 700;
+}
+.slot-context-menu button:hover { background: var(--surface-soft); }
+.slot-context-menu .sold-action { color: var(--green); }
+.slot-context-menu .loss-action { color: var(--red); }
+
+.heart-burst {
+  position: fixed;
+  pointer-events: none;
+  z-index: 1300;
+  font-size: 18px;
+  animation: heartFloat 900ms ease-out forwards;
+}
+@keyframes heartFloat {
+  0% { transform: translate(-50%, -20%) scale(0.7); opacity: 0; }
+  20% { opacity: 1; }
+  100% { transform: translate(var(--dx), -90px) scale(1.25); opacity: 0; }
+}
+
+/* STATS ROW */
+.stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
+.stat-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px;
+  text-align: center;
+  box-shadow: var(--shadow-soft);
+}
+.stat-value { font-family: var(--font-mono); font-size: 28px; color: var(--text); font-weight: 700; letter-spacing: 0; }
+.stat-label { font-size: 11px; color: var(--text-light); margin-top: 2px; }
+
+/* TOGGLE */
+.toggle-row { display: flex; gap: 6px; margin-bottom: 14px; }
+.toggle-btn {
+  padding: 8px 14px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-mid);
+  font-family: var(--font-sans);
+  transition: all .15s;
+}
+.toggle-btn.active { background: var(--brown); border-color: var(--brown); color: #fff; }
+
+.receita-item-row {
+  grid-template-columns: 1fr 140px auto;
+  align-items: end;
+}
+
+.sheet-card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  box-shadow: var(--shadow-soft);
+}
+.sheet-table th {
+  background: #F3F4F6;
+  border: 1px solid var(--border);
+  padding: 8px 10px;
+}
+.sheet-table td {
+  border: 1px solid var(--border);
+  padding: 0;
+  background: var(--surface);
+}
+.sheet-table tr:hover td { background: var(--surface); }
+.sheet-input, .sheet-select {
+  width: 100%;
+  min-width: 92px;
+  border: 0;
+  background: transparent;
+  padding: 9px 10px;
+  color: var(--text);
+  font-size: 13px;
+  outline: none;
+  font-family: var(--font-sans);
+}
+.sheet-input:focus, .sheet-select:focus {
+  background: #ECFDF5;
+  box-shadow: inset 0 0 0 2px var(--brown);
+}
+.sheet-readonly {
+  display: block;
+  padding: 9px 10px;
+  color: var(--text-mid);
+  font-size: 13px;
+  white-space: nowrap;
+}
+.sheet-actions {
+  display: flex;
+  gap: 8px;
+  padding: 10px;
+  border-top: 1px solid var(--border);
+  background: var(--surface-soft);
+}
+
+/* EMPTY STATE */
+.empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+.empty-state .empty-icon { font-size: 40px; margin-bottom: 10px; }
+.empty-state p { font-size: 14px; }
+
+/* RESPONSIVE */
+@media (max-width: 640px) {
+  .header { padding: 0 16px; height: 64px; }
+  .header-logo { font-size: 15px; }
+  .nav { top: 64px; padding: 8px 12px; }
+  .nav-btn { padding: 8px 12px; font-size: 12px; }
+  .page { padding: 16px 16px 40px; }
+  .section-title { font-size: 23px; }
+  .vitrine-container { grid-template-columns: 1fr; }
+  .vitrine-shelf { overflow-x: auto; }
+  .vitrine-slot { min-width: 110px; }
+  .stats-row { grid-template-columns: 1fr 1fr; }
+  .form-row { grid-template-columns: 1fr; }
+  .form-row.three { grid-template-columns: 1fr; }
+  .receita-item-row { grid-template-columns: 1fr; }
+  .pedido-item, .pedido-head { grid-template-columns: 1fr 50px 55px; }
+  .pedido-item > :nth-child(4), .pedido-item > :nth-child(5), .pedido-item > :nth-child(6),
+  .pedido-head > :nth-child(4), .pedido-head > :nth-child(5), .pedido-head > :nth-child(6) { display: none; }
+}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="header">
+  <div class="header-logo">
+    Delícias da Vovó
+    <span>Gestão de Vitrines</span>
+  </div>
+  <div class="unit-switcher">
+    <button class="unit-btn active" onclick="setUnit('matriz')">Matriz</button>
+    <button class="unit-btn" onclick="setUnit('vilanova')">Vila Nova</button>
+  </div>
+</div>
+
+<!-- NAV -->
+<div class="nav">
+  <button class="nav-btn active" onclick="showPage('vitrine')">Vitrines</button>
+  <button class="nav-btn" onclick="showPage('cronograma')">Cronograma</button>
+  <button class="nav-btn" onclick="showPage('produtos')">Produtos</button>
+  <button class="nav-btn" onclick="showPage('cmv')">CMV</button>
+  <button class="nav-btn" onclick="showPage('perdas')">Perdas</button>
+  <button class="nav-btn" onclick="showPage('pedido')">Pedido de Produção</button>
+</div>
+
+<!-- ===================== PAGE: VITRINE ===================== -->
+<div class="page active" id="page-vitrine">
+  <h2 class="section-title">Vitrine da Semana</h2>
+  <p class="section-sub" id="vitrine-unidade-label">Unidade: Matriz — clique em uma posição para adicionar produto</p>
+
+  <div class="day-tabs" id="day-tabs">
+    <button class="day-tab active" onclick="setDay('seg')">Seg</button>
+    <button class="day-tab" onclick="setDay('ter')">Ter</button>
+    <button class="day-tab" onclick="setDay('qua')">Qua</button>
+    <button class="day-tab" onclick="setDay('qui')">Qui</button>
+    <button class="day-tab" onclick="setDay('sex')">Sex</button>
+    <button class="day-tab" onclick="setDay('sab')">Sáb</button>
+    <button class="day-tab" onclick="setDay('dom')">Dom</button>
+  </div>
+
+  <div class="vitrine-container">
+    <!-- Grade -->
+    <div class="vitrine-panel">
+      <div class="vitrine-panel-head">
+        <div class="vitrine-section-label" style="margin-bottom:0;">Vitrine</div>
+        <div class="toggle-row" style="margin-bottom:0;">
+          <button class="toggle-btn active" id="vitrine-mode-slots" onclick="setVitrineMode('slots')">Slots</button>
+          <button class="toggle-btn" id="vitrine-mode-lista" onclick="setVitrineMode('lista')">Lista</button>
+        </div>
+      </div>
+      <div class="vitrine-view active" id="vitrine-view-slots">
+        <div class="vitrine-sections" id="vitrine-grid"></div>
+      </div>
+      <div class="vitrine-view" id="vitrine-view-lista">
+        <div class="vitrine-slot-list" id="vitrine-slot-list"></div>
+      </div>
+      <button class="btn btn-ghost btn-sm" onclick="openAddSlotModal()" style="margin-top:8px;">+ Adicionar posição</button>
+    </div>
+    <!-- Lista -->
+    <div class="vitrine-panel">
+      <div class="vitrine-panel-head">
+        <div>
+          <div class="vitrine-section-label" style="margin-bottom:0;">Lista de Apoio</div>
+          <div class="vitrine-list-meta">Produtos produzidos no dia</div>
+        </div>
+        <button class="toggle-btn" onclick="openFechamentoModal()">Fechar dia</button>
+      </div>
+      <div class="apoio-card">
+        <div class="apoio-entry">
+          <input type="text" id="apoio-produto" list="apoio-produtos-list" placeholder="Produto produzido" onkeydown="handleApoioKey(event, 'produto')" onpaste="handleApoioPaste(event)">
+          <input type="number" id="apoio-qty" min="1" placeholder="Qtd." onkeydown="handleApoioKey(event, 'qty')">
+        </div>
+        <datalist id="apoio-produtos-list"></datalist>
+        <table class="apoio-table">
+          <thead>
+            <tr><th>Produto</th><th>Qtd.</th><th></th></tr>
+          </thead>
+          <tbody id="apoio-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PAGE: CRONOGRAMA ===================== -->
+<div class="page" id="page-cronograma">
+  <h2 class="section-title">Cronograma do Dia</h2>
+  <p class="section-sub">Horários de produção e responsáveis por tarefa</p>
+
+  <div class="day-tabs" id="crono-day-tabs">
+    <button class="day-tab active" onclick="setCronoDay('seg')">Seg</button>
+    <button class="day-tab" onclick="setCronoDay('ter')">Ter</button>
+    <button class="day-tab" onclick="setCronoDay('qua')">Qua</button>
+    <button class="day-tab" onclick="setCronoDay('qui')">Qui</button>
+    <button class="day-tab" onclick="setCronoDay('sex')">Sex</button>
+    <button class="day-tab" onclick="setCronoDay('sab')">Sáb</button>
+    <button class="day-tab" onclick="setCronoDay('dom')">Dom</button>
+  </div>
+
+  <div class="card" id="cronograma-list"></div>
+  <div style="margin-top:12px;">
+    <button class="btn btn-primary" onclick="openCronoModal()">+ Adicionar tarefa</button>
+  </div>
+</div>
+
+<!-- ===================== PAGE: PRODUTOS ===================== -->
+<div class="page" id="page-produtos">
+  <h2 class="section-title">Cadastro de Produtos</h2>
+  <p class="section-sub">Curva ABC, validade e responsável de produção</p>
+
+  <div class="stats-row" id="abc-stats">
+    <div class="stat-card"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Produtos</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--green)" id="stat-a">0</div><div class="stat-label">Curva A</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--gold)" id="stat-b">0</div><div class="stat-label">Curva B</div></div>
+    <div class="stat-card"><div class="stat-value" style="color:var(--red)" id="stat-c">0</div><div class="stat-label">Curva C</div></div>
+  </div>
+
+  <div class="abc-bar" id="abc-bar">
+    <div class="abc-bar-a" style="width:0%"></div>
+    <div class="abc-bar-b" style="width:0%"></div>
+    <div class="abc-bar-c" style="width:0%"></div>
+  </div>
+
+  <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+    <button class="btn btn-primary" onclick="openProdModal()">+ Novo Produto</button>
+    <select id="filter-curva" class="form-group" style="width:auto;" onchange="renderProdutos()">
+      <option value="">Todas as curvas</option>
+      <option value="A">Curva A</option>
+      <option value="B">Curva B</option>
+      <option value="C">Curva C</option>
+    </select>
+    <select id="filter-vitrine" class="form-group" style="width:auto;" onchange="renderProdutos()">
+      <option value="">Todas as vitrines</option>
+      <option value="salgada">Salgada</option>
+      <option value="doce">Doce</option>
+      <option value="sobremesa">Sobremesa</option>
+      <option value="todas">Todas</option>
+    </select>
+    <input type="text" id="filter-search" placeholder="Buscar produto..." style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);" oninput="renderProdutos()">
+  </div>
+
+  <div class="card" style="padding:0; overflow:hidden;">
+    <div class="table-wrap">
+      <table id="produtos-table">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            <th>Vitrine</th>
+            <th>Curva</th>
+            <th>Validade</th>
+            <th>Responsável</th>
+            <th>Custo Unit.</th>
+            <th>Preço</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="produtos-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PAGE: CMV ===================== -->
+<div class="page" id="page-cmv">
+  <h2 class="section-title">CMV</h2>
+  <p class="section-sub">Preencha direto nas células. Uma linha de receita representa um ingrediente usado em um produto.</p>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-value" id="cmv-stat-ingredientes">0</div><div class="stat-label">Ingredientes</div></div>
+    <div class="stat-card"><div class="stat-value" id="cmv-stat-receitas">0</div><div class="stat-label">Receitas</div></div>
+    <div class="stat-card"><div class="stat-value" id="cmv-stat-medio">0%</div><div class="stat-label">CMV médio</div></div>
+    <div class="stat-card"><div class="stat-value" id="cmv-stat-alertas">0</div><div class="stat-label">Acima de 35%</div></div>
+  </div>
+
+  <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
+    <button class="btn btn-primary" onclick="addIngredienteRow()">+ Linha de ingrediente</button>
+    <button class="btn btn-gold" onclick="addReceitaRow()">+ Linha de receita</button>
+  </div>
+
+  <div style="display:grid; gap:18px;">
+    <div>
+      <div class="vitrine-section-label">Ingredientes</div>
+      <div class="sheet-card">
+        <div class="table-wrap">
+          <table class="sheet-table">
+            <thead>
+              <tr>
+                <th>Ingrediente</th>
+                <th>Unidade</th>
+                <th>Qtd. compra</th>
+                <th>Custo compra</th>
+                <th>Custo base</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="ingredientes-tbody"></tbody>
+          </table>
+        </div>
+        <div class="sheet-actions">
+          <button class="btn btn-ghost btn-sm" onclick="addIngredienteRow()">+ Adicionar linha</button>
+        </div>
+      </div>
+    </div>
+    <div>
+      <div class="vitrine-section-label">Receitas</div>
+      <div class="sheet-card">
+        <div class="table-wrap">
+          <table class="sheet-table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Ingrediente</th>
+                <th>Qtd. usada</th>
+                <th>Rendimento</th>
+                <th>Unid.</th>
+                <th>Custo un.</th>
+                <th>CMV</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="receitas-tbody"></tbody>
+          </table>
+        </div>
+        <div class="sheet-actions">
+          <button class="btn btn-ghost btn-sm" onclick="addReceitaRow()">+ Adicionar linha</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== PAGE: PERDAS ===================== -->
+<div class="page" id="page-perdas">
+  <h2 class="section-title">Controle de Perdas & Feedback</h2>
+  <p class="section-sub">Registre produtos estragados, devoluções e feedback de clientes</p>
+
+  <div class="stats-row">
+    <div class="stat-card"><div class="stat-value" id="perdas-total-mes" style="color:var(--red)">R$0</div><div class="stat-label">Perdas este mês</div></div>
+    <div class="stat-card"><div class="stat-value" id="perdas-qtd">0</div><div class="stat-label">Ocorrências</div></div>
+    <div class="stat-card"><div class="stat-value" id="perdas-produto-top">—</div><div class="stat-label">Produto +perdido</div></div>
+    <div class="stat-card"><div class="stat-value" id="perdas-motivo-top">—</div><div class="stat-label">Motivo principal</div></div>
+  </div>
+
+  <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap;">
+    <button class="btn btn-red" onclick="openPerdaModal()">Registrar perda</button>
+    <select id="filter-perda-tipo" style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);" onchange="renderPerdas()">
+      <option value="">Todos os tipos</option>
+      <option value="vencimento">Vencimento</option>
+      <option value="producao">Erro de produção</option>
+      <option value="cliente">Feedback cliente</option>
+      <option value="acidente">Acidente</option>
+      <option value="outro">Outro</option>
+    </select>
+  </div>
+
+  <div id="perdas-list"></div>
+</div>
+
+<!-- ===================== PAGE: PEDIDO ===================== -->
+<div class="page" id="page-pedido">
+  <h2 class="section-title">Pedido de Produção</h2>
+  <p class="section-sub">Gerado automaticamente com base na vitrine planejada + cronograma + perdas</p>
+
+  <div class="day-tabs" id="pedido-day-tabs">
+    <button class="day-tab active" onclick="setPedidoDay('seg')">Seg</button>
+    <button class="day-tab" onclick="setPedidoDay('ter')">Ter</button>
+    <button class="day-tab" onclick="setPedidoDay('qua')">Qua</button>
+    <button class="day-tab" onclick="setPedidoDay('qui')">Qui</button>
+    <button class="day-tab" onclick="setPedidoDay('sex')">Sex</button>
+    <button class="day-tab" onclick="setPedidoDay('sab')">Sáb</button>
+    <button class="day-tab" onclick="setPedidoDay('dom')">Dom</button>
+  </div>
+
+  <div class="pedido-header">
+    <div>
+      <div class="pedido-title" id="pedido-title">Produção — Segunda-feira</div>
+      <div class="pedido-sub" id="pedido-unidade">Matriz</div>
+    </div>
+    <button class="btn btn-gold" onclick="imprimirPedido()">Imprimir</button>
+  </div>
+
+  <div class="card" style="padding:12px;">
+    <div class="pedido-head">
+      <span>Produto</span>
+      <span>Qtd.</span>
+      <span>Sobra</span>
+      <span>+Reposição</span>
+      <span>Responsável</span>
+      <span>Horário</span>
+    </div>
+    <div id="pedido-list"></div>
+  </div>
+
+  <div id="pedido-obs" style="margin-top:12px;"></div>
+</div>
+
+<!-- ===================== MODALS ===================== -->
+
+<!-- Modal: Produto -->
+<div class="modal-overlay" id="modal-produto">
+  <div class="modal">
+    <div class="modal-title" id="modal-produto-title">Novo Produto</div>
+    <div class="form-row full"><div class="form-group"><label>Nome do produto</label><input type="text" id="p-nome"></div></div>
+    <div class="form-row three">
+      <div class="form-group"><label>Curva ABC</label>
+        <select id="p-curva"><option value="A">A — Alta demanda</option><option value="B">B — Média</option><option value="C">C — Baixa</option></select>
+      </div>
+      <div class="form-group"><label>Validade (dias)</label><input type="number" id="p-validade" min="1" placeholder="ex: 3"></div>
+      <div class="form-group"><label>Categoria</label>
+        <select id="p-categoria">
+          <option>Bolo</option><option>Pão</option><option>Torta</option><option>Salgado</option><option>Doce</option><option>Bebida</option><option>Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row three">
+      <div class="form-group"><label>Custo unitário (R$)</label><input type="number" id="p-custo" step="0.01" placeholder="0,00"></div>
+      <div class="form-group"><label>Preço de venda (R$)</label><input type="number" id="p-preco" step="0.01" placeholder="0,00"></div>
+      <div class="form-group"><label>Vitrine</label>
+        <select id="p-vitrine">
+          <option value="salgada">Salgada</option>
+          <option value="doce">Doce</option>
+          <option value="sobremesa">Sobremesa</option>
+          <option value="todas">Todas</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Responsável produção</label>
+        <select id="p-resp">
+          <option>Alexandre</option><option>Tiago</option><option>Anderson</option><option>Lucas</option><option>Outro</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Unidade(s)</label>
+        <select id="p-unidade">
+          <option value="ambas">Ambas</option><option value="matriz">Matriz</option><option value="vilanova">Vila Nova</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row full"><div class="form-group"><label>Observações</label><textarea id="p-obs" rows="2"></textarea></div></div>
+    <input type="hidden" id="p-id">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-produto')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveProduto()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Ingrediente -->
+<div class="modal-overlay" id="modal-ingrediente">
+  <div class="modal">
+    <div class="modal-title" id="modal-ingrediente-title">Novo Ingrediente</div>
+    <div class="form-row full"><div class="form-group"><label>Nome do ingrediente</label><input type="text" id="ing-nome" placeholder="ex: Farinha de trigo"></div></div>
+    <div class="form-row">
+      <div class="form-group"><label>Unidade base</label>
+        <select id="ing-unidade">
+          <option value="g">g</option>
+          <option value="ml">ml</option>
+          <option value="un">un</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Quantidade comprada</label><input type="number" id="ing-qtd" min="0.001" step="0.001" placeholder="ex: 5000"></div>
+    </div>
+    <div class="form-row full"><div class="form-group"><label>Custo da compra (R$)</label><input type="number" id="ing-custo" min="0" step="0.01" placeholder="ex: 18,90"></div></div>
+    <input type="hidden" id="ing-id">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-ingrediente')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveIngrediente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Receita -->
+<div class="modal-overlay" id="modal-receita">
+  <div class="modal">
+    <div class="modal-title" id="modal-receita-title">Nova Receita</div>
+    <div class="form-row full">
+      <div class="form-group"><label>Produto</label><select id="rec-produto"></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Rendimento</label><input type="number" id="rec-rendimento" min="1" value="1"></div>
+      <div class="form-group"><label>Unidade do rendimento</label><input type="text" id="rec-unidade" value="un." placeholder="ex: un., fatias, potes"></div>
+    </div>
+    <div class="vitrine-section-label" style="margin-top:10px;">Ingredientes da receita</div>
+    <div id="receita-itens"></div>
+    <button class="btn btn-ghost btn-sm" onclick="addReceitaItem()" style="margin-top:8px;">+ Ingrediente na receita</button>
+    <input type="hidden" id="rec-id">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-receita')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveReceita()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Fechamento da Vitrine -->
+<div class="modal-overlay" id="modal-fechamento">
+  <div class="modal" style="max-width:720px;">
+    <div class="modal-title">Fechamento da Vitrine</div>
+    <p class="section-sub" id="fechamento-sub" style="margin-bottom:14px;">Informe quanto ficou na vitrine no final do dia.</p>
+    <div class="sheet-card">
+      <div class="table-wrap">
+        <table class="sheet-table">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Vitrine</th>
+              <th>Produzido</th>
+              <th>Entrada</th>
+              <th>Tempo</th>
+              <th>Planejado</th>
+              <th>Status</th>
+              <th>Sobra final</th>
+            </tr>
+          </thead>
+          <tbody id="fechamento-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-fechamento')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveFechamento()">Salvar fechamento</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Slot Vitrine -->
+<div class="modal-overlay" id="modal-slot">
+  <div class="modal">
+    <div class="modal-title">Adicionar à Vitrine</div>
+    <div class="form-row full">
+      <div class="form-group"><label>Produto</label>
+        <select id="slot-produto"></select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Quantidade na vitrine</label><input type="number" id="slot-qty" min="1" value="1"></div>
+      <div class="form-group"><label>Espaço na vitrine</label><select id="slot-pos"></select></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Quantidade produzida</label><input type="number" id="slot-produced" min="0" value="0"></div>
+      <div class="form-group"><label>Entrada na vitrine</label><input type="datetime-local" id="slot-entry"></div>
+    </div>
+    <input type="hidden" id="slot-edit-idx">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-slot')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveSlot()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Cronograma -->
+<div class="modal-overlay" id="modal-crono">
+  <div class="modal">
+    <div class="modal-title">Tarefa do Cronograma</div>
+    <div class="form-row">
+      <div class="form-group"><label>Horário</label><input type="time" id="crono-hora"></div>
+      <div class="form-group"><label>Responsável</label>
+        <select id="crono-resp">
+          <option>Alexandre</option><option>Tiago</option><option>Anderson</option><option>Lucas</option><option>Todos</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row full"><div class="form-group"><label>Tarefa</label><input type="text" id="crono-tarefa" placeholder="ex: Assar pão de queijo — 2ª fornada"></div></div>
+    <div class="form-row full">
+      <div class="form-group"><label>Produto relacionado (opcional)</label>
+        <select id="crono-produto"><option value="">— nenhum —</option></select>
+      </div>
+    </div>
+    <div class="form-row full"><div class="form-group"><label>Quantidade a produzir</label><input type="number" id="crono-qty" min="0" value="0" placeholder="0 = sem quantidade específica"></div></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-crono')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveCrono()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Perda do Slot -->
+<div class="modal-overlay" id="modal-slot-loss">
+  <div class="modal">
+    <div class="modal-title" id="slot-loss-title">Anotar perda</div>
+    <div class="form-row">
+      <div class="form-group"><label>Quantidade perdida</label><input type="number" id="slot-loss-qty" min="1" value="1"></div>
+      <div class="form-group"><label>Motivo</label>
+        <select id="slot-loss-type">
+          <option value="vencimento">Fora da validade</option>
+          <option value="producao">Erro de produção</option>
+          <option value="acidente">Acidente</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row full"><div class="form-group"><label>Observação</label><textarea id="slot-loss-obs" rows="2" placeholder="ex: ficou tempo demais na vitrine"></textarea></div></div>
+    <input type="hidden" id="slot-loss-slot">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-slot-loss')">Cancelar</button>
+      <button class="btn btn-red" onclick="saveSlotLoss()">Registrar perda</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Perda -->
+<div class="modal-overlay" id="modal-perda">
+  <div class="modal">
+    <div class="modal-title">⚠️ Registrar Perda / Feedback</div>
+    <div class="form-row">
+      <div class="form-group"><label>Produto</label>
+        <select id="perda-produto"></select>
+      </div>
+      <div class="form-group"><label>Quantidade</label><input type="number" id="perda-qty" min="1" value="1"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Tipo</label>
+        <select id="perda-tipo">
+          <option value="vencimento">Vencimento / Estragou</option>
+          <option value="producao">Erro de produção</option>
+          <option value="cliente">Feedback de cliente</option>
+          <option value="acidente">Acidente (queda, etc.)</option>
+          <option value="outro">Outro</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Data</label><input type="date" id="perda-data"></div>
+    </div>
+    <div class="form-row full"><div class="form-group"><label>Descrição / feedback</label><textarea id="perda-obs" placeholder="ex: A torta de frango do turno da manhã estragou porque ficou fora da geladeira..." rows="3"></textarea></div></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-perda')">Cancelar</button>
+      <button class="btn btn-red" onclick="savePerda()">Registrar Perda</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+<div class="slot-context-menu" id="slot-context-menu">
+  <div class="slot-context-title" id="slot-context-title">Slot</div>
+  <button class="sold-action" onclick="markContextSlotSold()">Vendeu tudo</button>
+  <button class="loss-action" onclick="openContextSlotLoss()">Anotar perda</button>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let currentUnit = 'matriz';
+let currentDay = 'seg';
+let currentCronoDay = 'seg';
+let currentPedidoDay = 'seg';
+let currentVitrineMode = 'slots';
+
+const dayNames = { seg:'Segunda-feira', ter:'Terça-feira', qua:'Quarta-feira', qui:'Quinta-feira', sex:'Sexta-feira', sab:'Sábado', dom:'Domingo' };
+const dayOrder = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+
+function previousDay(day) {
+  const idx = dayOrder.indexOf(day);
+  return dayOrder[(idx + dayOrder.length - 1) % dayOrder.length];
+}
+
+function nowLocalInputValue() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 16);
+}
+
+function formatDateTimeShort(value) {
+  if (!value) return '—';
+  const d = new Date(value);
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+}
+
+function hoursInDisplay(value) {
+  if (!value) return null;
+  const start = new Date(value);
+  if (Number.isNaN(start.getTime())) return null;
+  return Math.max(0, (Date.now() - start.getTime()) / 36e5);
+}
+
+function formatDisplayTime(value) {
+  const hours = hoursInDisplay(value);
+  if (hours === null) return '—';
+  if (hours < 1) return `${Math.round(hours * 60)} min`;
+  if (hours < 24) return `${hours.toFixed(1)} h`;
+  return `${Math.floor(hours / 24)} d ${Math.round(hours % 24)} h`;
+}
+
+function getExpirationInfo(item, prod) {
+  if (item?.status && item.status !== 'em_vitrine') return { expired: false, label: '' };
+  if (!item?.entryAt || !prod?.validade) return { expired: false, label: '' };
+  const start = new Date(item.entryAt);
+  if (Number.isNaN(start.getTime())) return { expired: false, label: '' };
+  const expiresAt = new Date(start.getTime() + Number(prod.validade) * 24 * 60 * 60 * 1000);
+  const expired = Date.now() > expiresAt.getTime();
+  return {
+    expired,
+    label: expired ? 'Fora do prazo' : `Vence ${formatDateTimeShort(expiresAt.toISOString())}`
+  };
+}
+
+// Layouts de vitrine por unidade
+const vitrineLayouts = {
+  vilanova: {
+    label: 'Vila Nova',
+    sections: [
+      { id: 'salgada', title: 'Vitrine Salgada', start: 1, count: 16, shelves: 4, note: '4 prateleiras · 16 espaços, sendo 2 para tortas', roles: ['Torta 1', 'Torta 2'] },
+      { id: 'doce', title: 'Vitrine Doce', start: 17, count: 8, shelves: 4, note: '4 prateleiras · 8 espaços, sendo 2 para pão de bolinha', roles: ['Pão de bolinha 1', 'Pão de bolinha 2'] },
+      { id: 'sobremesa', title: 'Vitrine Sobremesa', start: 25, count: 8, shelves: 3, note: '3 prateleiras · 8 espaços, sendo 3 para doces de potinho', roles: ['Potinho 1', 'Potinho 2', 'Potinho 3'] }
+    ]
+  },
+  matriz: {
+    label: 'Matriz',
+    sections: [
+      { id: 'salgada', title: 'Vitrine Salgada 1', start: 1, count: 12, shelves: 3, note: '3 prateleiras · tortas e quiches', roles: ['Torta/quiche 1', 'Torta/quiche 2', 'Torta/quiche 3', 'Torta/quiche 4'] },
+      { id: 'salgada', title: 'Vitrine Salgada 2', start: 13, count: 12, shelves: 3, note: '3 prateleiras · salgados de apoio', roles: ['Torta/quiche 5', 'Torta/quiche 6', 'Torta/quiche 7', 'Torta/quiche 8'] },
+      { id: 'doce', title: 'Vitrine Doce', start: 25, count: 10, shelves: 3, note: '3 prateleiras · pão de bolinha, bolos e bandejas', roles: ['Pão de bolinha', 'Bolos', 'Bandeja doces 1', 'Bandeja doces 2', 'Bandeja doces 3', 'Bandeja doces 4', 'Bandeja doces 5', 'Bandeja doces 6', 'Bandeja doces 7', 'Bandeja doces 8'] },
+      { id: 'sobremesa', title: 'Vitrine Sobremesa', start: 35, count: 25, shelves: 3, note: '3 prateleiras · potinhos, bolos cremosos, bandejas e grandes', roles: ['Potinho 1', 'Potinho 2', 'Potinho 3', 'Potinho 4', 'Potinho 5', 'Bolo cremoso 1', 'Bolo cremoso 2', 'Bandeja 1', 'Bandeja 2', 'Bandeja 3', 'Bandeja 4', 'Bandeja 5', 'Bandeja 6', 'Bandeja 7', 'Bandeja 8', 'Sobremesa grande 1', 'Sobremesa grande 2', 'Sobremesa grande 3', 'Sobremesa grande 4', 'Sobremesa grande 5', 'Sobremesa grande 6', 'Sobremesa grande 7', 'Sobremesa grande 8', 'Sobremesa grande 9', 'Sobremesa grande 10'] }
+    ]
+  }
+};
+
+function getLayoutSlots(unit = currentUnit) {
+  return vitrineLayouts[unit].sections.flatMap(section =>
+    Array.from({ length: section.count }, (_, index) => ({
+      slot: section.start + index,
+      localSlot: index + 1,
+      sectionId: section.id,
+      sectionTitle: section.title,
+      role: section.roles?.[index] || `Espaço ${index + 1}`
+    }))
+  );
+}
+
+function getSlotMeta(slot, unit = currentUnit) {
+  return getLayoutSlots(unit).find(item => item.slot === slot);
+}
+
+function getShelfRows(section) {
+  const shelves = section.shelves || 1;
+  const base = Math.floor(section.count / shelves);
+  let extra = section.count % shelves;
+  let cursor = 0;
+  return Array.from({ length: shelves }, (_, index) => {
+    const size = base + (extra > 0 ? 1 : 0);
+    extra--;
+    const row = { shelf: index + 1, startOffset: cursor, count: size };
+    cursor += size;
+    return row;
+  });
+}
+
+function getLayoutSummary(unit = currentUnit) {
+  const total = getLayoutSlots(unit).length;
+  const names = [...new Set(vitrineLayouts[unit].sections.map(section => section.title.replace(/\s+\d+$/, '').replace('Vitrine ', '')))].join(', ');
+  return `${vitrineLayouts[unit].label}: ${total} espaços em ${names}`;
+}
+
+const vitrineLabels = {
+  salgada: 'Salgada',
+  doce: 'Doce',
+  sobremesa: 'Sobremesa',
+  todas: 'Todas'
+};
+
+function inferProductVitrine(prod) {
+  if (prod.vitrine) return prod.vitrine;
+  const text = `${prod.nome || ''} ${prod.categoria || ''}`.toLowerCase();
+  if (text.includes('salg') || text.includes('coxinha') || text.includes('quiche') || text.includes('frango')) return 'salgada';
+  if (text.includes('sobremesa') || text.includes('potinho') || text.includes('cremoso')) return 'sobremesa';
+  return 'doce';
+}
+
+function productFitsSection(prod, sectionId) {
+  const vitrine = inferProductVitrine(prod);
+  return vitrine === 'todas' || vitrine === sectionId;
+}
+
+function getStorage(key, def) {
+  try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; }
+}
+function setStorage(key, val) {
+  localStorage.setItem(key, JSON.stringify(val));
+}
+
+let produtos = getStorage('ddv_produtos', [
+  // Mini Salgados
+  { id: 1, nome: 'Salgadinhos fritos', curva: 'A', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 1.20, resp: 'Tiago', unidade: 'ambas', obs: 'Coxinha, bolinha de queijo, risoles, croquete, kibe' },
+  { id: 2, nome: 'Pastelzinho frito', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.20, resp: 'Tiago', unidade: 'ambas', obs: '' },
+  { id: 3, nome: 'Pão de queijo especial', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 2.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Recheios: frango, catupiry, peito de peru, queijo, presunto e queijo, parmesão. R$78/kg' },
+  { id: 4, nome: 'Pão de mandioquinha', curva: 'B', validade: 2, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 2.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Recheios: peito de peru ou quatro queijos. R$62/kg' },
+  { id: 5, nome: 'Mini trouxinha', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.20, resp: 'Tiago', unidade: 'ambas', obs: 'Massa folha recheada de frango. R$65/kg' },
+  { id: 6, nome: 'Mini quiche', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Recheios: quatro queijos, alho poró, queijo com bacon' },
+  { id: 7, nome: 'Mini quiche vegano', curva: 'C', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 3.50, resp: 'Alexandre', unidade: 'ambas', obs: '' },
+  { id: 8, nome: 'Mini pizza', curva: 'A', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.20, resp: 'Tiago', unidade: 'ambas', obs: 'Presunto e queijo, frango, brócolis, mussarela. R$56/kg' },
+  { id: 9, nome: 'Mini pão de queijo', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 1.00, resp: 'Alexandre', unidade: 'ambas', obs: 'R$69/kg' },
+  { id: 10, nome: 'Mini esfirra', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 1.50, resp: 'Tiago', unidade: 'ambas', obs: 'Recheios: carne, frango ou calabresa' },
+  { id: 11, nome: 'Mini empada massa podre', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Recheios: palmito ou frango' },
+  { id: 12, nome: 'Mini empada massa fina', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Recheios: palmito ou frango' },
+  { id: 13, nome: 'Mini cuscuz', curva: 'C', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 3.50, resp: 'Tiago', unidade: 'ambas', obs: 'De frango, atum ou legumes' },
+  { id: 14, nome: 'Mini croissant', curva: 'B', validade: 2, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 2.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Presunto e queijo, frango, queijo, peito de peru. R$69/kg' },
+  { id: 15, nome: 'Gravatinha de parmesão', curva: 'B', validade: 3, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'Massa folhada torcida com parmesão. R$89/kg' },
+  { id: 16, nome: 'Enroladinhos', curva: 'A', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.00, resp: 'Tiago', unidade: 'ambas', obs: 'Presunto, calabresa, frango, peito de peru, queijo, salsicha. R$58/kg' },
+  { id: 17, nome: 'Cortadinho folhado', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 1.80, resp: 'Tiago', unidade: 'ambas', obs: 'Presunto, calabresa, frango, peito de peru, queijo, salsicha. R$69/kg' },
+  { id: 18, nome: 'Chipa', curva: 'B', validade: 2, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 2.20, resp: 'Alexandre', unidade: 'ambas', obs: 'Semelhante ao pão de queijo, com mais polvilho e parmesão. R$75/kg' },
+  { id: 19, nome: 'Brusqueta', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 3.20, resp: 'Tiago', unidade: 'ambas', obs: 'Torrada com tomate, parmesão e manjericão. R$85/kg' },
+  { id: 20, nome: 'Hamburguete', curva: 'C', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Tiago', unidade: 'ambas', obs: 'Salgado assado recheado de hambúrguer, tomate, presunto e queijo' },
+  { id: 21, nome: 'Empada unitária', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 9.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Massa podre amanteigada. Recheios: palmito ou frango' },
+  { id: 22, nome: 'Quiche unitário', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 9.90, resp: 'Alexandre', unidade: 'ambas', obs: 'Recheios: quatro queijos, alho poró, queijo com bacon' },
+  // Salgados Assados
+  { id: 23, nome: 'Salgado assado', curva: 'A', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 8.50, resp: 'Tiago', unidade: 'ambas', obs: 'Esfirra fechada de carne, frango, bauru' },
+  { id: 24, nome: 'Esfirra aberta', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 7.50, resp: 'Tiago', unidade: 'ambas', obs: 'Carne, queijo, calabresa. R$62/kg' },
+  { id: 25, nome: 'Ciabatta', curva: 'B', validade: 2, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 12.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Brócolis, antepasto de berinjela, escarola com bacon, espinafre. R$67/kg' },
+  { id: 26, nome: 'Croissant', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 9.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Presunto e queijo, frango, queijo, peito de peru. R$65/kg' },
+  { id: 27, nome: 'Napoleão', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 8.50, resp: 'Tiago', unidade: 'ambas', obs: 'Massa folha recheada de peito de peru e queijo branco. R$59/kg' },
+  { id: 28, nome: 'Pizza enrolada', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Tiago', unidade: 'ambas', obs: 'Presunto e queijo ou mortadela e queijo. R$52.50/kg' },
+  { id: 29, nome: 'Focaccia', curva: 'B', validade: 2, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 11.90, resp: 'Alexandre', unidade: 'ambas', obs: 'Rúcula, tomate seco e queijo branco. R$76/kg' },
+  { id: 30, nome: 'Hotdog folhado', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 11.90, resp: 'Tiago', unidade: 'ambas', obs: 'Massa folhada com salsicha, vinagrete e maionese com batata palha. R$65/kg' },
+  { id: 31, nome: 'Torta em pedaço', curva: 'A', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 9.90, resp: 'Alexandre', unidade: 'ambas', obs: 'Frango com catupiry ou presunto, queijo e catupiry' },
+  { id: 32, nome: 'Pão de ervas', curva: 'B', validade: 2, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 9.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Pão com ervas finas recheado de dois queijos. R$65/kg' },
+  // Lanches Frios
+  { id: 33, nome: 'Lanche na baguete', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 75.00, resp: 'Tiago', unidade: 'ambas', obs: '~22 pedaços. Presunto e queijo, peito de peru, rúcula c/ tomate seco, salame, frango' },
+  { id: 34, nome: 'Lanchinho no pão de batata', curva: 'A', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 6.50, resp: 'Tiago', unidade: 'ambas', obs: 'Recheio + tomate, alface e maionese. R$68/kg' },
+  { id: 35, nome: 'Lanche marroquinho', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 35.00, resp: 'Tiago', unidade: 'ambas', obs: 'Pão folha tipo wrap + cenoura, tomate, alface e maionese. R$62/kg' },
+  { id: 36, nome: 'Sanduíche de patê de frango', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 7.50, resp: 'Tiago', unidade: 'ambas', obs: 'No pão de ervas' },
+  { id: 37, nome: 'Mini pão de batata de frango', curva: 'B', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 6.50, resp: 'Alexandre', unidade: 'ambas', obs: 'R$68/kg' },
+  { id: 38, nome: 'Cachorro quente', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 6.50, resp: 'Tiago', unidade: 'ambas', obs: '' },
+  { id: 39, nome: 'Lanche de pernil', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 9.00, resp: 'Tiago', unidade: 'ambas', obs: '' },
+  { id: 40, nome: 'Pão croc', curva: 'C', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 3.00, resp: 'Alexandre', unidade: 'ambas', obs: '' },
+  // Outros / Avulsos
+  { id: 41, nome: 'Milho cozido', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 4.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 42, nome: 'Salada unitária 150g', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 12.75, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 43, nome: 'Pizza montada pronta', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 59.90, resp: 'Tiago', unidade: 'ambas', obs: '' },
+  { id: 44, nome: 'Presunto fatiado', curva: 'B', validade: 5, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 1.25, resp: 'Lucas', unidade: 'ambas', obs: 'R$42/kg' },
+  { id: 45, nome: 'Mussarela fatiada', curva: 'B', validade: 5, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 2.25, resp: 'Lucas', unidade: 'ambas', obs: 'R$69/kg' },
+  { id: 46, nome: 'Mortadela fatiada', curva: 'C', validade: 5, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Lucas', unidade: 'ambas', obs: 'R$42/kg' },
+  { id: 47, nome: 'Requeijão', curva: 'B', validade: 7, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 12.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  // Pão de Bolinha
+  { id: 48, nome: 'Pão de bolinha salgado', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'doce', custo: 0, preco: 45.00, resp: 'Alexandre', unidade: 'ambas', obs: '30 bolinhas. Quatro queijos, frango, presunto e queijo. R$68/kg' },
+  { id: 49, nome: 'Pão de bolinha doce', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'doce', custo: 0, preco: 43.00, resp: 'Alexandre', unidade: 'ambas', obs: '30 bolinhas. Doce de leite, chocolate, misto. R$72.50/kg' },
+  // Tortas & Quiches
+  { id: 50, nome: 'Torta de liquidificador', curva: 'A', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 65.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Redonda ou quadrada. até 800g R$52 / até 1kg R$65 / até 1,2kg R$78. R$69/kg' },
+  { id: 51, nome: 'Torta massa podre', curva: 'A', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 65.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Massa amanteigada. até 800g R$52 / até 1kg R$65 / até 1,2kg R$78. R$69/kg' },
+  { id: 52, nome: 'Torta massa salgada', curva: 'B', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 65.00, resp: 'Alexandre', unidade: 'ambas', obs: 'R$69/kg' },
+  { id: 53, nome: 'Torta massa fina', curva: 'B', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 65.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Redonda ou quadrada. R$69/kg' },
+  { id: 54, nome: 'Quiche', curva: 'A', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 62.00, resp: 'Alexandre', unidade: 'ambas', obs: 'até 800g R$49.50 / até 1kg R$62 / até 1,2kg R$74.50. Quatro queijos, alho poró, abobrinha, queijo c/ bacon, peito de peru, espinafre. R$69/kg' },
+  // Pães
+  { id: 55, nome: 'Pão francês', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 1.10, resp: 'Alexandre', unidade: 'ambas', obs: 'R$19.99/kg' },
+  // Doces Panificação
+  { id: 56, nome: 'Bisnaguinha c/ glacê', curva: 'B', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 3.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Pão doce com açúcar derretido por cima. R$52/kg' },
+  { id: 57, nome: 'Trança doce', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 7.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Pão doce polvilhado no açúcar. R$52/kg' },
+  { id: 58, nome: 'Húngaro doce', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 4.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Massa de pão doce. Coco com leite condensado ou frutas cristalizadas. R$52/kg' },
+  { id: 59, nome: 'Húngaro doce folhado', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 4.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Massa folhada doce. Coco ou frutas cristalizadas. R$68/kg' },
+  { id: 60, nome: 'Croissant mini chocolate', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 4.00, resp: 'Alexandre', unidade: 'ambas', obs: 'R$68/kg' },
+  { id: 61, nome: 'Croissant unitário chocolate', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 8.00, resp: 'Alexandre', unidade: 'ambas', obs: 'R$68/kg' },
+  { id: 62, nome: 'Croissant mini doce de nozes', curva: 'C', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 6.00, resp: 'Alexandre', unidade: 'ambas', obs: 'R$68/kg' },
+  { id: 63, nome: 'Croissant unitário doce de nozes', curva: 'C', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 10.00, resp: 'Alexandre', unidade: 'ambas', obs: 'R$68/kg' },
+  { id: 64, nome: 'Cupcake', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 7.50, resp: 'Anderson', unidade: 'ambas', obs: 'Cenoura, limão, chocolate, maracujá, red velvet' },
+  { id: 65, nome: 'Muffin', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 5.50, resp: 'Anderson', unidade: 'ambas', obs: 'Cenoura, limão, chocolate, maracujá, red velvet' },
+  { id: 66, nome: 'Catarina (Strudel)', curva: 'C', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Folhado. Maçã com creme, banana com creme, maçã com chocolate, banana com chocolate. R$68/kg' },
+  { id: 67, nome: 'Mini sonho', curva: 'B', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 4.50, resp: 'Anderson', unidade: 'ambas', obs: 'Recheado de creme. R$58/kg' },
+  { id: 68, nome: 'Mini sonho especial', curva: 'B', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 5.00, resp: 'Anderson', unidade: 'ambas', obs: 'Ninho com nutella, maracujá, limão, goiabada, doce de leite' },
+  { id: 69, nome: 'Pão de mel', curva: 'B', validade: 7, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 9.80, resp: 'Anderson', unidade: 'ambas', obs: '~110g, doce de leite com cobertura de chocolate. R$85/kg' },
+  { id: 70, nome: 'Carolina cristalizada', curva: 'B', validade: 5, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 2.00, resp: 'Anderson', unidade: 'ambas', obs: 'R$45/kg' },
+  { id: 71, nome: 'Carolina de creme de avelã', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 3.50, resp: 'Anderson', unidade: 'ambas', obs: 'R$95/kg' },
+  { id: 72, nome: 'Bolinho de chuva', curva: 'A', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 1.50, resp: 'Anderson', unidade: 'ambas', obs: 'Com ou sem banana, polvilhado em açúcar e canela. R$58/kg' },
+  { id: 73, nome: 'Rosquinha frita', curva: 'B', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 4.50, resp: 'Anderson', unidade: 'ambas', obs: 'Polvilhada em açúcar e canela. R$58/kg' },
+  { id: 74, nome: 'Queijadinha', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 6.50, resp: 'Anderson', unidade: 'ambas', obs: 'Bolinho de coco e queijo' },
+  { id: 75, nome: 'Maria Mole', curva: 'B', validade: 5, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 2.00, resp: 'Anderson', unidade: 'ambas', obs: 'Polvilhada em coco ralado. R$85/kg' },
+  { id: 76, nome: 'Samantha', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 5.50, resp: 'Anderson', unidade: 'ambas', obs: 'Carolina em formato de rosquinha polvilhada no açúcar. R$60/kg' },
+  { id: 77, nome: 'Bem casado', curva: 'B', validade: 5, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 16.50, resp: 'Anderson', unidade: 'ambas', obs: 'Pacote com 8 unidades. Doce de leite ou goiabada' },
+  { id: 78, nome: 'Donuts', curva: 'B', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 8.80, resp: 'Anderson', unidade: 'ambas', obs: 'Doce de leite, chocolate, geleia de frutas, creme' },
+  { id: 79, nome: 'Palha Italiana', curva: 'B', validade: 7, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Brigadeiro com bolacha maisena polvilhado no açúcar. R$75/kg' },
+  // Bolos Caseiros
+  { id: 80, nome: 'Pedaço de bolo', curva: 'A', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 4.00, resp: 'Anderson', unidade: 'ambas', obs: 'Chocomousse, cenoura, limão, laranja, formigueiro, coco com amendoim' },
+  { id: 81, nome: 'Bolo inglês', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 28.00, resp: 'Anderson', unidade: 'ambas', obs: '~8 fatias. Chocomousse, cenoura, limão, laranja, formigueiro, coco c/ amendoim, indiano' },
+  { id: 82, nome: 'Bolo em tira', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 28.00, resp: 'Anderson', unidade: 'ambas', obs: 'R$59/kg' },
+  { id: 83, nome: 'Bolo redondo pequeno', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 18.00, resp: 'Anderson', unidade: 'ambas', obs: '~6 fatias. Chocomousse, cenoura, limão, laranja, formigueiro, coco c/ amendoim, indiano, fubá, fubá c/ milho, milho' },
+  { id: 84, nome: 'Bolo redondo vitrine', curva: 'A', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 28.00, resp: 'Anderson', unidade: 'ambas', obs: '~8 fatias. Chocomousse, cenoura, limão, laranja, formigueiro, coco c/ amendoim, indiano, fubá, fubá c/ milho, milho' },
+  { id: 85, nome: 'Bolo redondo família', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 72.00, resp: 'Anderson', unidade: 'ambas', obs: '~20 fatias. R$59/kg' },
+  { id: 86, nome: 'Bolo família Fubá', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 50.00, resp: 'Anderson', unidade: 'ambas', obs: '~20 fatias' },
+  { id: 87, nome: 'Bolo de milho em pedaço', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 5.50, resp: 'Anderson', unidade: 'ambas', obs: '' },
+  { id: 88, nome: 'Brownie', curva: 'A', validade: 5, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 7.50, resp: 'Anderson', unidade: 'ambas', obs: '~80g, massa de chocolate com nozes, cobertura de ganache. R$88/kg' },
+  { id: 89, nome: 'Kuffa', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 6.00, resp: 'Anderson', unidade: 'ambas', obs: '~80g, bolo de frutas cristalizadas com farofa de açúcar. R$45/kg' },
+  { id: 90, nome: 'Cuca', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 6.00, resp: 'Anderson', unidade: 'ambas', obs: '~80g, bolo de banana com chocolate e farofa de açúcar. R$45/kg' },
+  { id: 91, nome: 'Rocambole', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 28.00, resp: 'Anderson', unidade: 'ambas', obs: 'Recheado de doce de leite ou goiabada' },
+  { id: 92, nome: 'Bolo vulcão ninho', curva: 'B', validade: 2, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 47.00, resp: 'Anderson', unidade: 'ambas', obs: 'Chocomousse recheado com nutella, cobertura de ninho' },
+  { id: 93, nome: 'Bolo vulcão cenoura', curva: 'B', validade: 2, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 42.00, resp: 'Anderson', unidade: 'ambas', obs: 'Bolo de cenoura com cobertura de brigadeiro' },
+  { id: 94, nome: 'Bolo goiabada com queijo', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 7.50, resp: 'Anderson', unidade: 'ambas', obs: 'Embalado individualmente' },
+  // Bolos Gelados
+  { id: 95, nome: 'Bolo de cenoura cremoso', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$62/kg' },
+  { id: 96, nome: 'Bolo de milho cremoso', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$62/kg' },
+  { id: 97, nome: 'Bolo gelado embrulhado', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$85/kg' },
+  { id: 98, nome: 'Bolo Papai Noel', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$98/kg' },
+  { id: 99, nome: 'Bolo confeitado sabores', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$85/kg' },
+  { id: 100, nome: 'Naked Cake', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$98/kg' },
+  // Tortas Doces
+  { id: 101, nome: 'Torta morango', curva: 'A', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Pequeno 800g-1kg | Vitrine 1,8kg-2kg | Família 2,5kg-3kg. R$82/kg' },
+  { id: 102, nome: 'Torta limão', curva: 'A', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Pequeno 800g-1kg | Vitrine 1,8kg-2kg | Família 2,5kg-3kg. R$82/kg' },
+  { id: 103, nome: 'Torta maracujá', curva: 'A', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$82/kg' },
+  { id: 104, nome: 'Torta maçã', curva: 'B', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$82/kg' },
+  { id: 105, nome: 'Torta holandesa', curva: 'B', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$82/kg' },
+  { id: 106, nome: 'Ganache com nozes', curva: 'B', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$109/kg' },
+  { id: 107, nome: 'Pavê', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$78/kg' },
+  // Sobremesas Especiais
+  { id: 108, nome: 'Torta Natalina', curva: 'C', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Chocolate com frutas vermelhas. R$109.90/kg' },
+  { id: 109, nome: 'Pavlova', curva: 'C', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Frutas vermelhas ou frutas amarelas. R$109.90/kg' },
+  { id: 110, nome: 'Guirlanda de pistache', curva: 'C', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$119.90/kg' },
+  { id: 111, nome: 'Charlotte café c/ chocolate', curva: 'C', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$109.90/kg' },
+  { id: 112, nome: 'Naked Cake especial', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$98.90/kg' },
+  { id: 113, nome: 'Bolo brownie c/ nozes', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$109.90/kg' },
+  // Sobremesas Clássicas
+  { id: 114, nome: 'Pudim', curva: 'A', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$68/kg' },
+  { id: 115, nome: 'Caçarola Italiana', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$62/kg' },
+  { id: 116, nome: 'Brigadeirão', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$72/kg' },
+  { id: 117, nome: 'Gelatina mosaico', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$68/kg' },
+  { id: 118, nome: 'Banoffee', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$88/kg' },
+  { id: 119, nome: 'Sorvetão artesanal', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$92/kg' },
+  { id: 120, nome: 'Manjar de ameixa', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$79/kg' },
+  { id: 121, nome: 'Cheesecake', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Goiabada ou frutas vermelhas. R$85/kg' },
+  { id: 122, nome: 'Pirâmide de carolinas', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Chocolate, creme, limão ou doce de leite. R$92/kg' },
+  { id: 123, nome: 'Mousse de chocolate', curva: 'A', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$79/kg' },
+  { id: 124, nome: 'Mousse de maracujá', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$79/kg' },
+  { id: 125, nome: 'Gelado de abacaxi', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$79/kg' },
+  { id: 126, nome: 'Gelado de coco', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$79/kg' },
+  { id: 127, nome: 'Pavê de amendoim', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$85/kg' },
+  // Docinhos de Festa
+  { id: 128, nome: 'Camafeu', curva: 'B', validade: 7, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 9.50, resp: 'Anderson', unidade: 'ambas', obs: 'Doce de nozes com leite condensado coberto com açúcar derretido' },
+  { id: 129, nome: 'Mini docinhos', curva: 'A', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 2.30, resp: 'Anderson', unidade: 'ambas', obs: 'Brigadeiro, bicho de pé, beijinho' },
+  { id: 130, nome: 'Brigadeiro grande', curva: 'A', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 6.50, resp: 'Anderson', unidade: 'ambas', obs: 'Enrolado ou no potinho' },
+  { id: 131, nome: 'Brigadeiro gourmet', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 8.50, resp: 'Anderson', unidade: 'ambas', obs: 'Com chocolate belga' },
+  { id: 132, nome: 'Mini docinhos especiais', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 1.50, resp: 'Anderson', unidade: 'ambas', obs: 'Olho de sogra, ninho ou cajuzinho' },
+  { id: 133, nome: 'Mini pão de mel', curva: 'B', validade: 5, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 4.50, resp: 'Anderson', unidade: 'ambas', obs: 'Recheado com doce de leite, brigadeiro ou beijinho' },
+  { id: 134, nome: 'Mini camafeu', curva: 'C', validade: 7, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 3.50, resp: 'Anderson', unidade: 'ambas', obs: 'Doce de nozes com leite condensado e açúcar derretido' },
+  // Bolachas & Biscoitos
+  { id: 135, nome: 'Petit four', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Canela, chocolate, baunilha, baunilha c/ goiabada. ~15g cada. R$60/kg' },
+  { id: 136, nome: 'Petit four decorado', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Massa amanteigada confeitada com glacê. R$98/kg' },
+  { id: 137, nome: 'Cookies', curva: 'A', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Massa de chocolate ou baunilha com gotas de chocolate. R$60/kg' },
+  { id: 138, nome: 'Mantecal', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Massa amanteigada com gota de goiabada ao centro. R$60/kg' },
+  { id: 139, nome: 'Ferradura', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Formato de ferradura com pontas mergulhadas em chocolate. R$60/kg' },
+  { id: 140, nome: 'Sequilho', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Massa sequilho com raspas de limão. R$60/kg' },
+  { id: 141, nome: 'Broinha de fubá', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Tradicional, com gotas de chocolate ou com goiabada. R$42/kg' },
+  { id: 142, nome: 'Beliscão', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Massa amanteigada recheada com pedaço de goiabada. R$70/kg' },
+  // Mini Sobremesas
+  { id: 143, nome: 'Carolina', curva: 'A', validade: 1, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 2.80, resp: 'Anderson', unidade: 'ambas', obs: 'Doce de leite, creme, chocolate ou limão. R$69/kg' },
+  { id: 144, nome: 'Mini tortinha doce', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 4.90, resp: 'Anderson', unidade: 'ambas', obs: 'Limão, morango, maçã ou maracujá' },
+  // Sobremesas Unitárias
+  { id: 145, nome: 'Salada de fruta grande', curva: 'A', validade: 1, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 7.50, resp: 'Lucas', unidade: 'ambas', obs: 'Frutas picadas com açúcar e suco de laranja' },
+  { id: 146, nome: 'Salada de fruta pequena', curva: 'A', validade: 1, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 5.00, resp: 'Lucas', unidade: 'ambas', obs: 'Frutas picadas com açúcar e suco de laranja' },
+  { id: 147, nome: 'Bomba', curva: 'A', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 9.90, resp: 'Anderson', unidade: 'ambas', obs: 'Doce de leite, creme, chocolate ou limão' },
+  { id: 148, nome: 'Tortinha unitária', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 14.50, resp: 'Anderson', unidade: 'ambas', obs: 'Limão, morango, maçã ou maracujá' },
+  { id: 149, nome: 'Mousse no potinho', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 9.50, resp: 'Anderson', unidade: 'ambas', obs: '' },
+  { id: 150, nome: 'Quindim', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 7.50, resp: 'Anderson', unidade: 'ambas', obs: '' },
+  { id: 151, nome: 'Banoffee unitário', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 9.80, resp: 'Anderson', unidade: 'ambas', obs: '' },
+  { id: 152, nome: 'Gelado de abacaxi unitário', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 9.80, resp: 'Anderson', unidade: 'ambas', obs: '' },
+  { id: 153, nome: 'Doce de potinho caseiro', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 6.50, resp: 'Anderson', unidade: 'ambas', obs: 'Abóbora ou mamão. ~160g' },
+  { id: 154, nome: 'Pé de moleque', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 3.00, resp: 'Anderson', unidade: 'ambas', obs: '' },
+  { id: 155, nome: 'Canjica', curva: 'C', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 7.50, resp: 'Anderson', unidade: 'ambas', obs: '' },
+  { id: 156, nome: 'Arroz doce', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 7.50, resp: 'Anderson', unidade: 'ambas', obs: '' },
+  // Especiais de Natal
+  { id: 157, nome: 'Panetone caseiro', curva: 'C', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 16.80, resp: 'Alexandre', unidade: 'ambas', obs: 'Com frutas cristalizadas' },
+  { id: 158, nome: 'Chocotone caseiro', curva: 'C', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 17.80, resp: 'Alexandre', unidade: 'ambas', obs: 'Com gotas de chocolate' },
+  { id: 159, nome: 'Mini panetone', curva: 'C', validade: 7, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 5.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Com frutas cristalizadas' },
+  { id: 160, nome: 'Mini chocotone', curva: 'C', validade: 7, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 5.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Com gotas de chocolate' },
+  { id: 161, nome: 'Rabanada', curva: 'C', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'Fatias de pão assadas, polvilhadas em açúcar e canela. R$58/kg' },
+  // Bebidas
+  { id: 162, nome: 'Garrafa de café 1L', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 35.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 163, nome: 'Garrafa térmica 1,8L', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 40.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 164, nome: 'Nescau 1L', curva: 'B', validade: 7, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 17.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 165, nome: 'Nescau Fast', curva: 'B', validade: 7, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 9.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 166, nome: 'Garrafa de chá 1L', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 18.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 167, nome: 'Coca-Cola 2L', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 14.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 168, nome: 'Refrigerante 2L', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 12.00, resp: 'Lucas', unidade: 'ambas', obs: 'Guaraná, Sprite, Fanta uva, Fanta laranja' },
+  { id: 169, nome: 'Del Valle 1L', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 10.50, resp: 'Lucas', unidade: 'ambas', obs: 'Laranja, uva, caju, maracujá' },
+  { id: 170, nome: 'Del Valle 200ml', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 4.90, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 171, nome: 'Água 1,5L', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 6.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 172, nome: 'Água 1,5L c/ gás', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 7.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 173, nome: 'Água 500ml', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 4.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 174, nome: 'Água 500ml c/ gás', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 4.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 175, nome: 'Água 300ml', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 3.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 176, nome: 'Água 300ml c/ gás', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 4.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 177, nome: 'Água saborizada 1L', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 10.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 178, nome: 'Água de coco 1L', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 21.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 179, nome: 'Suco natural 1L', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 29.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 180, nome: 'Natural One 1,5L', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 30.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 181, nome: 'Natural One 900ml', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 23.75, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 182, nome: 'Suco de laranja integral', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 19.90, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 183, nome: 'Suco de uva integral', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 19.90, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 184, nome: 'Leite 1L', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 15.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 185, nome: 'Leite ZERO lactose 1L', curva: 'C', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 25.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 186, nome: 'Iogurte', curva: 'B', validade: 7, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 4.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 187, nome: 'Vinho quente', curva: 'C', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 35.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  // Cafeteria — Quentes
+  { id: 188, nome: 'Café casa PEQ', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 5.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 189, nome: 'Café casa GD', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 7.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 190, nome: 'Expresso PEQ', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 8.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 191, nome: 'Expresso GD', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 11.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 192, nome: 'Macchiato PEQ', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 9.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 193, nome: 'Macchiato GD', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 12.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 194, nome: 'Pingado casa PEQ', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 8.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 195, nome: 'Pingado casa GD', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 10.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 196, nome: 'Pingado expresso PEQ', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 9.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 197, nome: 'Pingado expresso GD', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 11.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 198, nome: 'Chocolate quente PEQ', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 9.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 199, nome: 'Chocolate quente GD', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 12.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 200, nome: 'Cappuccino PEQ', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 9.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 201, nome: 'Cappuccino GD', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 12.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  // Cafeteria — Geladas
+  { id: 202, nome: 'Cappuccino gelado', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 14.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 203, nome: 'Chocolate gelado', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 14.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 204, nome: 'Ovomaltine gelado', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 15.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  { id: 205, nome: 'Café gelado', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 15.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
+  // Pratos Especiais
+  { id: 206, nome: 'Pernil assado', curva: 'B', validade: 2, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$86/kg' },
+  { id: 207, nome: 'Salpicão', curva: 'B', validade: 3, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$85/kg' },
+  { id: 208, nome: 'Antepasto de berinjela', curva: 'B', validade: 5, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$87/kg' },
+  { id: 209, nome: 'Maionese de legumes', curva: 'B', validade: 3, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$78/kg' },
+  { id: 210, nome: 'Farofa salgada', curva: 'B', validade: 5, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$78/kg' },
+  { id: 211, nome: 'Farofa doce', curva: 'C', validade: 5, categoria: 'Outro', vitrine: 'doce', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$78/kg' },
+  { id: 212, nome: 'Agridoce', curva: 'C', validade: 7, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$92/kg' },
+  { id: 213, nome: 'Pasta cream cheese c/ geleia', curva: 'C', validade: 5, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$98/kg' },
+  { id: 214, nome: 'Terrine de tomate cereja confitado', curva: 'C', validade: 3, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$98/kg' },
+  // Assados (peça)
+  { id: 215, nome: 'Leitoa', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 130.00, resp: 'Alexandre', unidade: 'ambas', obs: '~150g = 1 porção' },
+  { id: 216, nome: 'Pernil (peça)', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 85.00, resp: 'Alexandre', unidade: 'ambas', obs: '~150g = 1 porção' },
+  { id: 217, nome: 'Peru', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 75.00, resp: 'Alexandre', unidade: 'ambas', obs: '~150g = 1 porção' },
+  { id: 218, nome: 'Chester', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 75.00, resp: 'Alexandre', unidade: 'ambas', obs: '~150g = 1 porção' },
+  { id: 219, nome: 'Tender', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 60.00, resp: 'Alexandre', unidade: 'ambas', obs: '~150g = 1 porção' },
+]);
+
+let ingredientes = getStorage('ddv_ingredientes', [
+  { id: 101, nome: 'Farinha de trigo', unidade: 'g', qtdCompra: 5000, custoCompra: 18.90 },
+  { id: 102, nome: 'Açúcar', unidade: 'g', qtdCompra: 5000, custoCompra: 19.50 },
+  { id: 103, nome: 'Ovos', unidade: 'un', qtdCompra: 30, custoCompra: 24.00 },
+  { id: 104, nome: 'Leite', unidade: 'ml', qtdCompra: 1000, custoCompra: 5.80 },
+]);
+
+let receitas = getStorage('ddv_receitas', []);
+
+// vitrines[unit][day] = [{prodId, qty, slot}]
+let vitrines = getStorage('ddv_vitrines', {});
+// cronograma[unit][day] = [{hora, tarefa, resp, prodId, qty}]
+let cronograma = getStorage('ddv_cronograma', {});
+// perdas = [{id, prodId, qty, tipo, data, obs, unit}]
+let perdas = getStorage('ddv_perdas', []);
+// fechamentos[unit][day] = [{prodId, plannedQty, leftoverQty, slot}]
+let fechamentos = getStorage('ddv_fechamentos', {});
+// apoioProducao[unit][day] = [{id, prodId, nome, qty}]
+let apoioProducao = getStorage('ddv_apoio_producao', {});
+
+let nextId = getStorage('ddv_nextid', 10);
+nextId = Math.max(
+  nextId,
+  ...produtos.map(p => p.id || 0),
+  ...ingredientes.map(i => i.id || 0),
+  ...receitas.map(r => r.id || 0),
+  ...perdas.map(p => p.id || 0)
+);
+
+function saveAll() {
+  setStorage('ddv_produtos', produtos);
+  setStorage('ddv_ingredientes', ingredientes);
+  setStorage('ddv_receitas', receitas);
+  setStorage('ddv_vitrines', vitrines);
+  setStorage('ddv_cronograma', cronograma);
+  setStorage('ddv_perdas', perdas);
+  setStorage('ddv_fechamentos', fechamentos);
+  setStorage('ddv_apoio_producao', apoioProducao);
+  setStorage('ddv_nextid', nextId);
+  clearTimeout(_sbTimer);
+  _sbTimer = setTimeout(syncToSupabase, 900);
+}
+
+// ============================================================
+// SUPABASE
+// ============================================================
+const SUPABASE_URL = 'https://qygiotoldlbyijikdcsx.supabase.co';
+const SUPABASE_KEY = 'sb_publishable__QMpYRBGv9q_D1x0WKpaQg_uA9EzrSG';
+const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+let _sbTimer;
+
+async function syncToSupabase() {
+  try {
+    // Produtos (upsert por id inteiro)
+    if (produtos.length) {
+      await db.from('produtos').upsert(produtos.map(p => ({
+        id: p.id, nome: p.nome, curva: p.curva, validade: p.validade,
+        categoria: p.categoria, vitrine: p.vitrine, custo: p.custo || 0,
+        preco: p.preco || 0, resp: p.resp || '', unidade: p.unidade, obs: p.obs || ''
+      })));
+    }
+    // Ingredientes (upsert)
+    if (ingredientes.length) {
+      await db.from('ingredientes').upsert(ingredientes.map(i => ({
+        id: i.id, nome: i.nome, unidade: i.unidade,
+        qtd_compra: i.qtdCompra, custo_compra: i.custoCompra
+      })));
+    }
+    // Receitas + itens (upsert receita, delete+insert itens)
+    for (const r of receitas) {
+      await db.from('receitas').upsert({ id: r.id, prod_id: r.prodId, rendimento: r.rendimento, unidade: r.unidade });
+      await db.from('receita_itens').delete().eq('receita_id', r.id);
+      if (r.itens?.length) {
+        await db.from('receita_itens').insert(r.itens.map(item => ({
+          receita_id: r.id, ing_id: item.ingId, qtd: item.qtd
+        })));
+      }
+    }
+    // Perdas (upsert por id inteiro)
+    const perdasValidas = perdas.filter(p => p.id);
+    if (perdasValidas.length) {
+      await db.from('perdas').upsert(perdasValidas.map(p => ({
+        id: p.id, unit: p.unit, prod_id: p.prodId, qty: p.qty,
+        tipo: p.tipo, data: p.data, obs: p.obs || '', source: p.source || null
+      })));
+    }
+    // Vitrine slots — delete todas da unidade e re-insere
+    await db.from('vitrine_slots').delete().eq('unit', currentUnit);
+    const allSlots = [];
+    Object.entries(vitrines[currentUnit] || {}).forEach(([dia, slots]) => {
+      (slots || []).forEach(s => {
+        if (!s.slot || !s.prodId) return;
+        allSlots.push({
+          unit: currentUnit, dia, slot: s.slot, prod_id: s.prodId,
+          qty: s.qty || 0, produced_qty: s.producedQty || 0,
+          entry_at: s.entryAt || null, status: s.status || 'em_vitrine'
+        });
+      });
+    });
+    if (allSlots.length) await db.from('vitrine_slots').insert(allSlots);
+    // Cronograma — delete e re-insere por unidade
+    await db.from('cronograma').delete().eq('unit', currentUnit);
+    const allTasks = [];
+    Object.entries(cronograma[currentUnit] || {}).forEach(([dia, tasks]) => {
+      (tasks || []).forEach(t => {
+        if (!t.hora) return;
+        allTasks.push({
+          unit: currentUnit, dia, hora: t.hora, tarefa: t.tarefa,
+          resp: t.resp || '', prod_id: t.prodId || null, qty: t.qty || 0
+        });
+      });
+    });
+    if (allTasks.length) await db.from('cronograma').insert(allTasks);
+    // Apoio produção — delete e re-insere por unidade
+    await db.from('apoio_producao').delete().eq('unit', currentUnit);
+    const allApoio = [];
+    Object.entries(apoioProducao[currentUnit] || {}).forEach(([dia, items]) => {
+      (items || []).forEach(a => {
+        allApoio.push({
+          unit: currentUnit, dia, prod_id: a.prodId || null, nome: a.nome, qty: a.qty || 1
+        });
+      });
+    });
+    if (allApoio.length) await db.from('apoio_producao').insert(allApoio);
+    // Fechamentos — upsert (mantém histórico)
+    for (const [dia, items] of Object.entries(fechamentos[currentUnit] || {})) {
+      if (!items?.length) continue;
+      const today = new Date().toISOString().split('T')[0];
+      await db.from('fechamentos').delete()
+        .eq('unit', currentUnit).eq('dia', dia).eq('data_fechamento', today);
+      await db.from('fechamentos').insert(items.map(f => ({
+        unit: currentUnit, dia, data_fechamento: today,
+        prod_id: f.prodId, slot: f.slot,
+        planned_qty: f.plannedQty || 0, produced_qty: f.producedQty || 0,
+        entry_at: f.entryAt || null, status: f.status || 'em_vitrine',
+        leftover_qty: f.leftoverQty || 0
+      })));
+    }
+  } catch (err) {
+    console.error('Supabase sync error:', err);
+  }
+}
+
+async function loadFromSupabase() {
+  document.body.style.opacity = '0.55';
+  document.body.style.pointerEvents = 'none';
+  try {
+    const [
+      { data: prodData },
+      { data: ingData },
+      { data: recData },
+      { data: slotData },
+      { data: cronoData },
+      { data: perdasData },
+      { data: fechData },
+      { data: apoioData },
+    ] = await Promise.all([
+      db.from('produtos').select('*').order('nome'),
+      db.from('ingredientes').select('*').order('nome'),
+      db.from('receitas').select('*, receita_itens(*)').order('created_at'),
+      db.from('vitrine_slots').select('*'),
+      db.from('cronograma').select('*').order('hora'),
+      db.from('perdas').select('*').order('data', { ascending: false }),
+      db.from('fechamentos').select('*').order('data_fechamento', { ascending: false }),
+      db.from('apoio_producao').select('*').order('created_at'),
+    ]);
+
+    if (prodData?.length) {
+      produtos = prodData.map(p => ({
+        id: p.id, nome: p.nome, curva: p.curva, validade: p.validade,
+        categoria: p.categoria, vitrine: p.vitrine, custo: Number(p.custo),
+        preco: Number(p.preco), resp: p.resp, unidade: p.unidade, obs: p.obs || ''
+      }));
+    }
+    if (ingData?.length) {
+      ingredientes = ingData.map(i => ({
+        id: i.id, nome: i.nome, unidade: i.unidade,
+        qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra)
+      }));
+    }
+    if (recData?.length) {
+      receitas = recData.map(r => ({
+        id: r.id, prodId: r.prod_id, rendimento: Number(r.rendimento), unidade: r.unidade,
+        itens: (r.receita_itens || []).map(item => ({ ingId: item.ing_id, qtd: Number(item.qtd) }))
+      }));
+    }
+    if (slotData?.length) {
+      vitrines = {};
+      slotData.forEach(s => {
+        if (!vitrines[s.unit]) vitrines[s.unit] = {};
+        if (!vitrines[s.unit][s.dia]) vitrines[s.unit][s.dia] = [];
+        vitrines[s.unit][s.dia].push({
+          prodId: s.prod_id, qty: s.qty, producedQty: s.produced_qty,
+          entryAt: s.entry_at, status: s.status, slot: s.slot
+        });
+      });
+    }
+    if (cronoData?.length) {
+      cronograma = {};
+      cronoData.forEach(c => {
+        if (!cronograma[c.unit]) cronograma[c.unit] = {};
+        if (!cronograma[c.unit][c.dia]) cronograma[c.unit][c.dia] = [];
+        cronograma[c.unit][c.dia].push({
+          hora: (c.hora || '').slice(0, 5), tarefa: c.tarefa,
+          resp: c.resp, prodId: c.prod_id, qty: c.qty
+        });
+      });
+    }
+    if (perdasData?.length) {
+      perdas = perdasData.map(p => ({
+        id: p.id, prodId: p.prod_id, qty: p.qty, tipo: p.tipo,
+        data: p.data, obs: p.obs || '', unit: p.unit, source: p.source || ''
+      }));
+    }
+    if (fechData?.length) {
+      fechamentos = {};
+      fechData.forEach(f => {
+        if (!fechamentos[f.unit]) fechamentos[f.unit] = {};
+        if (!fechamentos[f.unit][f.dia]) fechamentos[f.unit][f.dia] = [];
+        if (!fechamentos[f.unit][f.dia].find(x => x.slot === f.slot)) {
+          fechamentos[f.unit][f.dia].push({
+            prodId: f.prod_id, slot: f.slot, plannedQty: f.planned_qty,
+            producedQty: f.produced_qty, entryAt: f.entry_at,
+            status: f.status, leftoverQty: f.leftover_qty
+          });
+        }
+      });
+    }
+    if (apoioData?.length) {
+      apoioProducao = {};
+      apoioData.forEach(a => {
+        if (!apoioProducao[a.unit]) apoioProducao[a.unit] = {};
+        if (!apoioProducao[a.unit][a.dia]) apoioProducao[a.unit][a.dia] = [];
+        apoioProducao[a.unit][a.dia].push({
+          id: a.id, prodId: a.prod_id, nome: a.nome, qty: a.qty
+        });
+      });
+    }
+    // Sincroniza nextId
+    const allIds = [
+      ...produtos.map(p => p.id),
+      ...ingredientes.map(i => i.id),
+      ...receitas.map(r => r.id),
+      ...perdas.map(p => p.id)
+    ].filter(Number.isFinite);
+    if (allIds.length) nextId = Math.max(...allIds, nextId);
+    // Persiste no localStorage como cache offline
+    saveAll();
+  } catch (err) {
+    console.error('Erro ao carregar Supabase:', err);
+    showToast('Sem conexão — usando dados locais', 'error');
+  } finally {
+    document.body.style.opacity = '';
+    document.body.style.pointerEvents = '';
+  }
+}
+
+// ============================================================
+// NAVIGATION
+// ============================================================
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  event.currentTarget.classList.add('active');
+
+  if (page === 'vitrine') renderVitrine();
+  if (page === 'cronograma') renderCronograma();
+  if (page === 'produtos') renderProdutos();
+  if (page === 'cmv') renderCMV();
+  if (page === 'perdas') renderPerdas();
+  if (page === 'pedido') renderPedido();
+}
+
+function setUnit(unit) {
+  currentUnit = unit;
+  document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  renderVitrine();
+  renderCronograma();
+  renderPedido();
+}
+
+// ============================================================
+// VITRINE
+// ============================================================
+function setDay(day) {
+  currentDay = day;
+  document.querySelectorAll('#day-tabs .day-tab').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  renderVitrine();
+}
+
+function setVitrineMode(mode) {
+  currentVitrineMode = mode;
+  document.getElementById('vitrine-mode-slots').classList.toggle('active', mode === 'slots');
+  document.getElementById('vitrine-mode-lista').classList.toggle('active', mode === 'lista');
+  document.getElementById('vitrine-view-slots').classList.toggle('active', mode === 'slots');
+  document.getElementById('vitrine-view-lista').classList.toggle('active', mode === 'lista');
+}
+
+function getVitrine() {
+  if (!vitrines[currentUnit]) vitrines[currentUnit] = {};
+  if (!vitrines[currentUnit][currentDay]) vitrines[currentUnit][currentDay] = [];
+  return vitrines[currentUnit][currentDay];
+}
+
+function renderVitrine() {
+  const layout = vitrineLayouts[currentUnit];
+  const vitrine = getVitrine();
+  const removedClosedSlots = vitrine.filter(item => item.status && item.status !== 'em_vitrine').length;
+  if (removedClosedSlots) {
+    for (let i = vitrine.length - 1; i >= 0; i--) {
+      if (vitrine[i].status && vitrine[i].status !== 'em_vitrine') vitrine.splice(i, 1);
+    }
+    saveAll();
+  }
+  document.getElementById('vitrine-unidade-label').textContent =
+    `${getLayoutSummary()} — clique em um espaço para adicionar produto`;
+
+  // Grade
+  const grid = document.getElementById('vitrine-grid');
+  grid.innerHTML = '';
+
+  layout.sections.forEach(section => {
+    const sectionEl = document.createElement('div');
+    sectionEl.className = 'vitrine-category';
+    sectionEl.innerHTML = `
+      <div class="vitrine-category-head">
+        <div>
+          <div class="vitrine-category-title">${section.title}</div>
+          <div class="vitrine-category-note">${section.note}</div>
+        </div>
+        <span class="vitrine-category-count">${section.count} espaços</span>
+      </div>
+      <div class="vitrine-grid"></div>
+    `;
+
+    const sectionGrid = sectionEl.querySelector('.vitrine-grid');
+    getShelfRows(section).forEach(row => {
+      const shelfEl = document.createElement('div');
+      shelfEl.className = 'vitrine-shelf';
+      shelfEl.style.gridTemplateColumns = `24px repeat(${row.count}, minmax(88px, 1fr))`;
+      shelfEl.innerHTML = `<div class="shelf-label">Prat. ${row.shelf}</div>`;
+
+      for (let shelfOffset = 0; shelfOffset < row.count; shelfOffset++) {
+        const offset = row.startOffset + shelfOffset;
+        const slotNumber = section.start + offset;
+        const role = section.roles?.[offset] || `Espaço ${offset + 1}`;
+        const item = vitrine.find(v => v.slot === slotNumber);
+        const prod = item ? produtos.find(p => p.id === item.prodId) : null;
+        const expiration = item && prod ? getExpirationInfo(item, prod) : { expired: false };
+        const div = document.createElement('div');
+        div.className = 'vitrine-slot ' + (item ? `filled ${item.status === 'vendeu' ? 'sold' : ''} ${item.status === 'perda' || item.status === 'validade' ? 'loss' : ''} ${expiration.expired ? 'expired' : ''}` : 'empty');
+        div.dataset.slotNumber = slotNumber;
+        div.innerHTML = `<span class="slot-num">${offset + 1}</span><span class="slot-role" title="${role}">${role}</span>`;
+        if (item && prod) {
+          div.innerHTML += `
+            <div class="slot-content">
+              <div class="slot-name">${prod.nome}</div>
+              <div class="slot-qty">${item.qty} un. na vitrine${item.producedQty ? ` · prod. ${item.producedQty}` : ''}</div>
+              <div class="slot-qty">${item.entryAt ? `há ${formatDisplayTime(item.entryAt)}` : 'sem horário de entrada'}</div>
+              ${expiration.expired ? '<div class="slot-expired">Fora do prazo</div>' : ''}
+            </div>
+            <span class="slot-remove" onclick="removeSlot(${slotNumber}, event)">×</span>`;
+        } else {
+          div.innerHTML += `<span class="slot-plus" style="margin:auto;color:var(--border);font-size:20px;">+</span>`;
+          div.onclick = () => openSlotModal(slotNumber);
+        }
+        if (item && prod) div.onclick = () => openSlotModal(slotNumber, vitrine.indexOf(item));
+        if (item && prod) div.oncontextmenu = (event) => openSlotContextMenu(event, slotNumber);
+        shelfEl.appendChild(div);
+      }
+      sectionGrid.appendChild(shelfEl);
+    });
+    grid.appendChild(sectionEl);
+  });
+  renderVitrineSlotList();
+  renderApoioProducao();
+  setVitrineMode(currentVitrineMode);
+}
+
+function renderVitrineSlotList() {
+  const layout = vitrineLayouts[currentUnit];
+  const vitrine = getVitrine();
+  const list = document.getElementById('vitrine-slot-list');
+  list.innerHTML = layout.sections.map(section => {
+    const rows = Array.from({ length: section.count }, (_, index) => {
+      const slotNumber = section.start + index;
+      const item = vitrine.find(v => v.slot === slotNumber);
+      const prod = item ? produtos.find(p => p.id === item.prodId) : null;
+      const role = section.roles?.[index] || `Espaco ${index + 1}`;
+      const expiration = item && prod ? getExpirationInfo(item, prod) : { expired: false };
+      const num = String(index + 1).padStart(2, '0');
+      if (!item || !prod) {
+        return `<div class="slot-list-row empty" onclick="openSlotModal(${slotNumber})">
+          <div><div class="slot-list-code">${num}</div><div class="slot-list-meta" style="font-size:10px;margin-top:2px;">${role}</div></div>
+          <div><div class="slot-list-name" style="color:var(--text-light);font-weight:400;">Livre</div></div>
+          <div class="slot-list-qty" style="color:var(--text-light);">&#8212;</div>
+          <button class="btn btn-ghost btn-sm" onclick="openSlotModal(${slotNumber});event.stopPropagation();">+</button>
+        </div>`;
+      }
+      const timeLabel = item.entryAt ? `ha ${formatDisplayTime(item.entryAt)}` : '&#8212;';
+      const statusClass = item.status === 'vendeu' ? 'sold' : (item.status === 'perda' || item.status === 'validade' ? 'loss' : '');
+      return `<div class="slot-list-row ${statusClass} ${expiration.expired ? 'expired' : ''}" data-slot-number="${slotNumber}" onclick="openSlotModal(${slotNumber}, ${vitrine.indexOf(item)})" oncontextmenu="openSlotContextMenu(event, ${slotNumber})">
+        <div><div class="slot-list-code">${num}</div><div class="slot-list-meta" style="font-size:10px;margin-top:2px;">${role}</div></div>
+        <div>
+          <div class="slot-list-name">${prod.nome}</div>
+          <div class="slot-list-meta">${timeLabel}${expiration.expired ? ' &middot; Fora do prazo' : ''}</div>
+        </div>
+        <div class="slot-list-qty">${item.qty} un.</div>
+        <button class="btn btn-ghost btn-sm" onclick="removeSlot(${slotNumber}, event)">&#215;</button>
+      </div>`;
+    }).join('');
+    return `<div style="margin-bottom:14px;">
+      <div class="vitrine-section-label" style="margin-bottom:6px;">${section.title}</div>
+      ${rows}
+    </div>`;
+  }).join('');
+}
+function getApoioProducao() {
+  if (!apoioProducao[currentUnit]) apoioProducao[currentUnit] = {};
+  if (!apoioProducao[currentUnit][currentDay]) apoioProducao[currentUnit][currentDay] = [];
+  return apoioProducao[currentUnit][currentDay];
+}
+
+function renderApoioProducao() {
+  const list = getApoioProducao();
+  const tbody = document.getElementById('apoio-tbody');
+  const datalist = document.getElementById('apoio-produtos-list');
+  datalist.innerHTML = produtos
+    .filter(prod => prod.unidade === 'ambas' || prod.unidade === currentUnit)
+    .map(prod => `<option value="${prod.nome}"></option>`)
+    .join('');
+
+  if (!list.length) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-light);padding:22px;">Digite um produto e pressione Enter</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = list.map((item, index) => `
+    <tr>
+      <td><span class="sheet-row-code">${String(index + 1).padStart(2, '0')}</span> ${item.nome}</td>
+      <td>${item.qty}</td>
+      <td style="width:40px;text-align:right;"><button class="btn btn-ghost btn-sm" onclick="removeApoioRow(${index})">�</button></td>
+    </tr>
+  `).join('');
+}
+
+function handleApoioKey(event, field) {
+  if (event.key !== 'Enter') return;
+  event.preventDefault();
+  if (field === 'produto') {
+    document.getElementById('apoio-qty').focus();
+    document.getElementById('apoio-qty').select();
+    return;
+  }
+  addApoioRow();
+}
+
+function addApoioRow() {
+  const produtoInput = document.getElementById('apoio-produto');
+  const qtyInput = document.getElementById('apoio-qty');
+  const nome = produtoInput.value.trim();
+  const qty = parseInt(qtyInput.value) || 1;
+  if (!nome) { produtoInput.focus(); return; }
+
+  const prod = produtos.find(p =>
+    p.nome.toLowerCase() === nome.toLowerCase() &&
+    (p.unidade === 'ambas' || p.unidade === currentUnit)
+  );
+  if (!prod) {
+    showToast('Produto nao encontrado no cadastro', 'error');
+    produtoInput.focus();
+    return;
+  }
+
+  getApoioProducao().push({ id: ++nextId, prodId: prod.id, nome: prod.nome, qty });
+  addToVitrineAuto(prod, qty);
+  saveAll();
+  produtoInput.value = '';
+  qtyInput.value = '';
+  renderApoioProducao();
+  renderVitrine();
+  produtoInput.focus();
+}
+
+function addToVitrineAuto(prod, qty) {
+  const vitrine = getVitrine();
+  const layout = vitrineLayouts[currentUnit];
+  const prodVitrine = inferProductVitrine(prod);
+  const sections = layout.sections.filter(s => prodVitrine === 'todas' || s.id === prodVitrine);
+  for (const section of sections) {
+    for (let i = 0; i < section.count; i++) {
+      const slotNum = section.start + i;
+      if (!vitrine.some(v => v.slot === slotNum)) {
+        vitrine.push({
+          prodId: prod.id, qty, producedQty: qty,
+          entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: slotNum
+        });
+        showToast(`${prod.nome} adicionado ao slot ${i + 1} &#10003;`, 'success');
+        return;
+      }
+    }
+  }
+  showToast(`Vitrine cheia para ${prod.nome}`, 'error');
+}
+function handleApoioPaste(event) {
+  const text = event.clipboardData?.getData('text') || '';
+  if (!text.includes('\n') && !text.includes('\t')) return;
+  event.preventDefault();
+  const rows = text.split(/\r?\n/)
+    .map(row => row.trim())
+    .filter(Boolean)
+    .map(row => row.split(/\t|;|,/).map(cell => cell.trim()));
+  const list = getApoioProducao();
+  rows.forEach(cells => {
+    const nome = cells[0];
+    const qty = parseInt(cells[1]) || 1;
+    if (!nome) return;
+    const prod = produtos.find(p => p.nome.toLowerCase() === nome.toLowerCase());
+    list.push({
+      id: ++nextId,
+      prodId: prod ? prod.id : null,
+      nome: prod ? prod.nome : nome,
+      qty
+    });
+  });
+  saveAll();
+  renderApoioProducao();
+  document.getElementById('apoio-produto').value = '';
+  document.getElementById('apoio-qty').value = '';
+}
+
+function removeApoioRow(index) {
+  getApoioProducao().splice(index, 1);
+  saveAll();
+  renderApoioProducao();
+}
+
+function openSlotModal(slotNum, editIdx) {
+  // Preencher select de produtos
+  const sel = document.getElementById('slot-produto');
+  const posSelect = document.getElementById('slot-pos');
+  const layoutSlots = getLayoutSlots();
+  const vitrine = getVitrine();
+  posSelect.innerHTML = layoutSlots.map(meta => {
+    const used = vitrine.some((item, index) => item.slot === meta.slot && index !== editIdx);
+    const suffix = used ? ' — ocupado' : '';
+    return `<option value="${meta.slot}" ${used ? 'disabled' : ''}>${meta.sectionTitle} · ${meta.role}${suffix}</option>`;
+  }).join('');
+
+  const firstEmpty = layoutSlots.find(meta => !vitrine.some(item => item.slot === meta.slot));
+  posSelect.value = slotNum || firstEmpty?.slot || layoutSlots[0]?.slot || 1;
+  posSelect.onchange = () => renderSlotProdutoOptions();
+  renderSlotProdutoOptions();
+  document.getElementById('slot-qty').value = 1;
+  document.getElementById('slot-produced').value = '';
+  document.getElementById('slot-entry').value = nowLocalInputValue();
+  document.getElementById('slot-edit-idx').value = editIdx !== undefined ? editIdx : '';
+
+  if (editIdx !== undefined) {
+    const item = vitrine[editIdx];
+    if (item) {
+      renderSlotProdutoOptions(item.prodId);
+      sel.value = item.prodId;
+      document.getElementById('slot-qty').value = item.qty;
+      document.getElementById('slot-produced').value = item.producedQty || item.qty || '';
+      document.getElementById('slot-entry').value = item.entryAt || nowLocalInputValue();
+      posSelect.value = item.slot;
+      renderSlotProdutoOptions(item.prodId);
+    }
+  }
+
+  openModal('modal-slot');
+}
+
+function renderSlotProdutoOptions(keepProdId = null) {
+  const sel = document.getElementById('slot-produto');
+  const selectedSlot = parseInt(document.getElementById('slot-pos').value);
+  const meta = getSlotMeta(selectedSlot);
+  const filtered = produtos.filter(p =>
+    (p.unidade === 'ambas' || p.unidade === currentUnit) &&
+    (!meta || productFitsSection(p, meta.sectionId) || p.id === keepProdId)
+  );
+  sel.innerHTML = filtered.map(p => `<option value="${p.id}">${p.nome} (${vitrineLabels[inferProductVitrine(p)] || 'Vitrine'})</option>`).join('');
+  if (keepProdId) sel.value = keepProdId;
+  if (!filtered.length) {
+    sel.innerHTML = '<option value="">Nenhum produto cadastrado para esta vitrine</option>';
+  }
+}
+
+function saveSlot() {
+  const prodId = parseInt(document.getElementById('slot-produto').value);
+  const qty = parseInt(document.getElementById('slot-qty').value) || 1;
+  const producedQty = parseInt(document.getElementById('slot-produced').value) || qty;
+  const entryAt = document.getElementById('slot-entry').value || nowLocalInputValue();
+  const pos = parseInt(document.getElementById('slot-pos').value) || 1;
+  const editIdx = document.getElementById('slot-edit-idx').value;
+
+  if (!prodId) return;
+  if (!getSlotMeta(pos)) {
+    showToast('Escolha um espaço válido da vitrine', 'error');
+    return;
+  }
+
+  const vitrine = getVitrine();
+
+  if (editIdx !== '') {
+    vitrine.splice(Number(editIdx), 1);
+  }
+
+  // Remove existing at this slot, if any
+  const existingIdx = vitrine.findIndex(v => v.slot === pos);
+  if (existingIdx >= 0) {
+    vitrine.splice(existingIdx, 1);
+  }
+
+  vitrine.push({ prodId, qty, producedQty, entryAt, status: 'em_vitrine', slot: pos });
+  saveAll();
+  closeModal('modal-slot');
+  renderVitrine();
+  showToast('Produto adicionado à vitrine ✓', 'success');
+}
+
+function removeSlot(slotNum, e) {
+  if (e) e.stopPropagation();
+  const vitrine = getVitrine();
+  const idx = vitrine.findIndex(v => v.slot === slotNum);
+  if (idx >= 0) vitrine.splice(idx, 1);
+  saveAll();
+  renderVitrine();
+}
+
+function removeSlotByProd(prodId) {
+  const vitrine = getVitrine();
+  const idx = vitrine.findIndex(v => v.prodId === prodId);
+  if (idx >= 0) vitrine.splice(idx, 1);
+  saveAll();
+  renderVitrine();
+}
+
+function openAddSlotModal() {
+  openSlotModal(null);
+}
+
+let contextSlotNumber = null;
+
+function openSlotContextMenu(event, slotNumber) {
+  event.preventDefault();
+  event.stopPropagation();
+  contextSlotNumber = slotNumber;
+  const vitrine = getVitrine();
+  const idx = vitrine.findIndex(v => v.slot === slotNumber);
+  const item = idx >= 0 ? vitrine[idx] : null;
+  const prod = item ? produtos.find(p => p.id === item.prodId) : null;
+  if (!item || !prod) return;
+
+  const menu = document.getElementById('slot-context-menu');
+  document.getElementById('slot-context-title').textContent = prod.nome;
+  menu.style.left = `${Math.min(event.clientX, window.innerWidth - 210)}px`;
+  menu.style.top = `${Math.min(event.clientY, window.innerHeight - 120)}px`;
+  menu.classList.add('open');
+}
+
+function closeSlotContextMenu() {
+  document.getElementById('slot-context-menu').classList.remove('open');
+}
+
+function getContextSlotItem() {
+  const vitrine = getVitrine();
+  return vitrine.find(v => v.slot === contextSlotNumber);
+}
+
+function markContextSlotSold() {
+  const item = getContextSlotItem();
+  if (!item) return;
+  const slotNumber = contextSlotNumber;
+  const vitrine = getVitrine();
+  const idx = vitrine.findIndex(v => v.slot === slotNumber);
+  burstHeartsAtSlot(slotNumber);
+  if (idx >= 0) vitrine.splice(idx, 1);
+  saveAll();
+  closeSlotContextMenu();
+  renderVitrine();
+  showToast('Vendeu tudo ✓', 'success');
+}
+
+function burstHeartsAtSlot(slotNumber) {
+  const slot = document.querySelector(`[data-slot-number="${slotNumber}"]`);
+  const rect = slot ? slot.getBoundingClientRect() : { left: window.innerWidth / 2, top: window.innerHeight / 2, width: 0, height: 0 };
+  const x = rect.left + rect.width / 2;
+  const y = rect.top + rect.height / 2;
+  for (let i = 0; i < 10; i++) {
+    const heart = document.createElement('div');
+    heart.className = 'heart-burst';
+    heart.textContent = '♥';
+    heart.style.left = `${x}px`;
+    heart.style.top = `${y}px`;
+    heart.style.color = i % 2 ? '#16A34A' : '#14B8A6';
+    heart.style.setProperty('--dx', `${(Math.random() * 120 - 60).toFixed(0)}px`);
+    heart.style.animationDelay = `${i * 35}ms`;
+    document.body.appendChild(heart);
+    setTimeout(() => heart.remove(), 1100);
+  }
+}
+
+function openContextSlotLoss() {
+  const item = getContextSlotItem();
+  if (!item) return;
+  const prod = produtos.find(p => p.id === item.prodId);
+  const expiration = getExpirationInfo(item, prod);
+  document.getElementById('slot-loss-title').textContent = prod ? `Perda · ${prod.nome}` : 'Anotar perda';
+  document.getElementById('slot-loss-slot').value = contextSlotNumber;
+  document.getElementById('slot-loss-qty').value = item.qty || 1;
+  document.getElementById('slot-loss-type').value = expiration.expired ? 'vencimento' : 'outro';
+  document.getElementById('slot-loss-obs').value = expiration.expired ? 'Produto fora do prazo de vencimento na vitrine' : '';
+  closeSlotContextMenu();
+  openModal('modal-slot-loss');
+}
+
+function saveSlotLoss() {
+  const slotNumber = parseInt(document.getElementById('slot-loss-slot').value);
+  const vitrine = getVitrine();
+  const idx = vitrine.findIndex(v => v.slot === slotNumber);
+  const item = idx >= 0 ? vitrine[idx] : null;
+  if (!item) return;
+  const qty = parseInt(document.getElementById('slot-loss-qty').value) || 1;
+  const tipo = document.getElementById('slot-loss-type').value;
+  const obs = document.getElementById('slot-loss-obs').value.trim();
+  perdas.push({
+    id: ++nextId,
+    prodId: item.prodId,
+    qty,
+    tipo,
+    data: new Date().toISOString().split('T')[0],
+    obs: obs || `Perda registrada no slot ${slotNumber} da vitrine`,
+    unit: currentUnit,
+    source: `slot-${currentUnit}-${currentDay}-${slotNumber}-${Date.now()}`
+  });
+  vitrine.splice(idx, 1);
+  saveAll();
+  closeModal('modal-slot-loss');
+  renderVitrine();
+  showToast('Perda registrada no slot', 'error');
+}
+
+function getFechamento(unit = currentUnit, day = currentDay) {
+  return (fechamentos[unit] && fechamentos[unit][day]) || [];
+}
+
+function openFechamentoModal() {
+  const vitrine = getVitrine().slice().sort((a, b) => a.slot - b.slot);
+  const tbody = document.getElementById('fechamento-tbody');
+  const saved = getFechamento();
+  document.getElementById('fechamento-sub').textContent =
+    `${currentUnit === 'matriz' ? 'Matriz' : 'Vila Nova'} · ${dayNames[currentDay]} · informe a sobra real no final do dia`;
+
+  if (!vitrine.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum item planejado para fechar neste dia</td></tr>';
+    openModal('modal-fechamento');
+    return;
+  }
+
+  tbody.innerHTML = vitrine.map(item => {
+    const prod = produtos.find(p => p.id === item.prodId);
+    const meta = getSlotMeta(item.slot);
+    const old = saved.find(f => f.slot === item.slot && f.prodId === item.prodId);
+    const oldStatus = old?.status || item.status || 'em_vitrine';
+    const leftoverDefault = item.status === 'vendeu' || item.status === 'validade' || item.status === 'perda' ? 0 : '';
+    return `<tr data-prod-id="${item.prodId}" data-slot="${item.slot}" data-planned="${item.qty}" data-entry="${item.entryAt || ''}">
+      <td><span class="sheet-readonly">${prod ? prod.nome : 'Produto removido'}</span></td>
+      <td><span class="sheet-readonly">${meta ? `${meta.sectionTitle} · ${meta.role}` : item.slot}</span></td>
+      <td><input class="sheet-input fechamento-produced" type="number" min="0" step="1" value="${old?.producedQty ?? item.producedQty ?? item.qty}" placeholder="0"></td>
+      <td><input class="sheet-input fechamento-entry" type="datetime-local" value="${old?.entryAt || item.entryAt || nowLocalInputValue()}"></td>
+      <td><span class="sheet-readonly">${formatDisplayTime(old?.entryAt || item.entryAt)}</span></td>
+      <td><span class="sheet-readonly">${item.qty} un.</span></td>
+      <td>
+        <select class="sheet-select fechamento-status">
+          <option value="em_vitrine" ${oldStatus === 'em_vitrine' ? 'selected' : ''}>Ainda na vitrine</option>
+          <option value="vendeu" ${oldStatus === 'vendeu' ? 'selected' : ''}>Vendeu tudo</option>
+          <option value="validade" ${oldStatus === 'validade' ? 'selected' : ''}>Fora da validade</option>
+          <option value="retirado" ${oldStatus === 'retirado' ? 'selected' : ''}>Retirado</option>
+        </select>
+      </td>
+      <td><input class="sheet-input fechamento-leftover" type="number" min="0" step="1" value="${old ? old.leftoverQty : leftoverDefault}" placeholder="0"></td>
+    </tr>`;
+  }).join('');
+  openModal('modal-fechamento');
+}
+
+function saveFechamento() {
+  const rows = Array.from(document.querySelectorAll('#fechamento-tbody tr[data-prod-id]'));
+  if (!fechamentos[currentUnit]) fechamentos[currentUnit] = {};
+  fechamentos[currentUnit][currentDay] = rows.map(row => ({
+    prodId: parseInt(row.dataset.prodId),
+    slot: parseInt(row.dataset.slot),
+    plannedQty: parseInt(row.dataset.planned) || 0,
+    producedQty: parseInt(row.querySelector('.fechamento-produced').value) || 0,
+    entryAt: row.querySelector('.fechamento-entry').value || '',
+    status: row.querySelector('.fechamento-status').value,
+    leftoverQty: parseInt(row.querySelector('.fechamento-leftover').value) || 0
+  }));
+  syncValidadePerdasFromFechamento();
+  saveAll();
+  closeModal('modal-fechamento');
+  renderPedido();
+  showToast('Fechamento salvo e produção atualizada ✓', 'success');
+}
+
+function syncValidadePerdasFromFechamento() {
+  const source = `fechamento-${currentUnit}-${currentDay}`;
+  // Remove perdas antigas com esta source do Supabase
+  db.from('perdas').delete().eq('source', source);
+  perdas = perdas.filter(p => p.source !== source);
+  const fechamento = getFechamento();
+  fechamento
+    .filter(item => item.status === 'validade')
+    .forEach(item => {
+      const qty = item.leftoverQty || item.plannedQty || item.producedQty || 1;
+      perdas.push({
+        id: ++nextId,
+        prodId: item.prodId,
+        qty,
+        tipo: 'vencimento',
+        data: new Date().toISOString().split('T')[0],
+        obs: `Fora da validade no fechamento da vitrine (${dayNames[currentDay]})`,
+        unit: currentUnit,
+        source
+      });
+    });
+}
+
+// ============================================================
+// CRONOGRAMA
+// ============================================================
+function setCronoDay(day) {
+  currentCronoDay = day;
+  document.querySelectorAll('#crono-day-tabs .day-tab').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  renderCronograma();
+}
+
+function getCrono() {
+  if (!cronograma[currentUnit]) cronograma[currentUnit] = {};
+  if (!cronograma[currentUnit][currentCronoDay]) cronograma[currentUnit][currentCronoDay] = [];
+  return cronograma[currentUnit][currentCronoDay];
+}
+
+function renderCronograma() {
+  const crono = getCrono();
+  const list = document.getElementById('cronograma-list');
+
+  if (crono.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">⏱</div><p>Nenhuma tarefa cadastrada para este dia</p></div>';
+    return;
+  }
+
+  const sorted = [...crono].sort((a, b) => a.hora.localeCompare(b.hora));
+  list.innerHTML = sorted.map((t, idx) => {
+    const prod = t.prodId ? produtos.find(p => p.id === t.prodId) : null;
+    return `<div class="cronograma-row">
+      <div class="crono-time">${t.hora}</div>
+      <div>
+        <div class="crono-task">${t.tarefa}${prod ? ` <span style="color:var(--brown-light)">(${prod.nome})</span>` : ''}</div>
+        ${t.qty ? `<div style="font-size:11px;color:var(--text-light);">Qtd: ${t.qty} un.</div>` : ''}
+      </div>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="badge badge-yellow">${t.resp}</span>
+        <button class="btn btn-ghost btn-sm" onclick="removeCrono(${idx})">×</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function openCronoModal() {
+  const sel = document.getElementById('crono-produto');
+  sel.innerHTML = '<option value="">— nenhum —</option>' + produtos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  document.getElementById('crono-hora').value = '';
+  document.getElementById('crono-tarefa').value = '';
+  document.getElementById('crono-qty').value = 0;
+  openModal('modal-crono');
+}
+
+function saveCrono() {
+  const hora = document.getElementById('crono-hora').value;
+  const tarefa = document.getElementById('crono-tarefa').value.trim();
+  const resp = document.getElementById('crono-resp').value;
+  const prodId = document.getElementById('crono-produto').value ? parseInt(document.getElementById('crono-produto').value) : null;
+  const qty = parseInt(document.getElementById('crono-qty').value) || 0;
+
+  if (!hora || !tarefa) return showToast('Preencha horário e tarefa', 'error');
+
+  getCrono().push({ hora, tarefa, resp, prodId, qty });
+  saveAll();
+  closeModal('modal-crono');
+  renderCronograma();
+  showToast('Tarefa adicionada ✓', 'success');
+}
+
+function removeCrono(idx) {
+  getCrono().splice(idx, 1);
+  saveAll();
+  renderCronograma();
+}
+
+// ============================================================
+// PRODUTOS
+// ============================================================
+function renderProdutos() {
+  const search = document.getElementById('filter-search').value.toLowerCase();
+  const curvaFilter = document.getElementById('filter-curva').value;
+  const vitrineFilter = document.getElementById('filter-vitrine').value;
+
+  const filtered = produtos.filter(p =>
+    (!curvaFilter || p.curva === curvaFilter) &&
+    (!vitrineFilter || inferProductVitrine(p) === vitrineFilter) &&
+    (!search || p.nome.toLowerCase().includes(search))
+  );
+
+  const tbody = document.getElementById('produtos-tbody');
+  tbody.innerHTML = filtered.map(p => `
+    <tr>
+      <td>
+        <div style="font-weight:600;">${p.nome}</div>
+        <div style="font-size:11px;color:var(--text-light);">${p.categoria}</div>
+      </td>
+      <td><span class="badge badge-yellow">${vitrineLabels[inferProductVitrine(p)] || 'Vitrine'}</span></td>
+      <td><span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span></td>
+      <td>${p.validade} dia${p.validade > 1 ? 's' : ''}</td>
+      <td>${p.resp}</td>
+      <td>R$ ${(p.custo||0).toFixed(2)}</td>
+      <td>R$ ${(p.preco||0).toFixed(2)}</td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="editProduto(${p.id})">✏️</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">🗑</button>
+      </td>
+    </tr>
+  `).join('') || `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto encontrado</td></tr>`;
+
+  // Stats
+  document.getElementById('stat-total').textContent = produtos.length;
+  document.getElementById('stat-a').textContent = produtos.filter(p => p.curva === 'A').length;
+  document.getElementById('stat-b').textContent = produtos.filter(p => p.curva === 'B').length;
+  document.getElementById('stat-c').textContent = produtos.filter(p => p.curva === 'C').length;
+
+  const total = produtos.length || 1;
+  const pA = (produtos.filter(p => p.curva==='A').length / total * 100).toFixed(0);
+  const pB = (produtos.filter(p => p.curva==='B').length / total * 100).toFixed(0);
+  const pC = (100 - pA - pB);
+  const bar = document.getElementById('abc-bar');
+  bar.children[0].style.width = pA + '%';
+  bar.children[1].style.width = pB + '%';
+  bar.children[2].style.width = Math.max(0, pC) + '%';
+}
+
+function openProdModal(prod) {
+  document.getElementById('p-id').value = prod ? prod.id : '';
+  document.getElementById('p-nome').value = prod ? prod.nome : '';
+  document.getElementById('p-curva').value = prod ? prod.curva : 'A';
+  document.getElementById('p-validade').value = prod ? prod.validade : '';
+  document.getElementById('p-categoria').value = prod ? prod.categoria : 'Bolo';
+  document.getElementById('p-custo').value = prod ? prod.custo : '';
+  document.getElementById('p-preco').value = prod ? prod.preco : '';
+  document.getElementById('p-vitrine').value = prod ? inferProductVitrine(prod) : 'salgada';
+  document.getElementById('p-resp').value = prod ? prod.resp : 'Alexandre';
+  document.getElementById('p-unidade').value = prod ? prod.unidade : 'ambas';
+  document.getElementById('p-obs').value = prod ? prod.obs : '';
+  document.getElementById('modal-produto-title').textContent = prod ? 'Editar Produto' : 'Novo Produto';
+  openModal('modal-produto');
+}
+
+function editProduto(id) {
+  const prod = produtos.find(p => p.id === id);
+  if (prod) openProdModal(prod);
+}
+
+function deleteProduto(id) {
+  if (!confirm('Remover este produto?')) return;
+  produtos = produtos.filter(p => p.id !== id);
+  receitas = receitas.filter(r => r.prodId !== id);
+  saveAll();
+  renderProdutos();
+  renderCMV();
+  showToast('Produto removido', 'error');
+  db.from('produtos').delete().eq('id', id);
+}
+
+function saveProduto() {
+  const id = document.getElementById('p-id').value;
+  const nome = document.getElementById('p-nome').value.trim();
+  if (!nome) return showToast('Informe o nome do produto', 'error');
+
+  const data = {
+    nome,
+    curva: document.getElementById('p-curva').value,
+    validade: parseInt(document.getElementById('p-validade').value) || 1,
+    categoria: document.getElementById('p-categoria').value,
+    vitrine: document.getElementById('p-vitrine').value,
+    custo: parseFloat(document.getElementById('p-custo').value) || 0,
+    preco: parseFloat(document.getElementById('p-preco').value) || 0,
+    resp: document.getElementById('p-resp').value,
+    unidade: document.getElementById('p-unidade').value,
+    obs: document.getElementById('p-obs').value,
+  };
+
+  if (id) {
+    const idx = produtos.findIndex(p => p.id == id);
+    produtos[idx] = { ...produtos[idx], ...data };
+  } else {
+    data.id = ++nextId;
+    produtos.push(data);
+  }
+
+  saveAll();
+  closeModal('modal-produto');
+  renderProdutos();
+  renderCMV();
+  showToast('Produto salvo ✓', 'success');
+}
+
+// ============================================================
+// CMV
+// ============================================================
+function money(v) {
+  return `R$ ${(Number(v) || 0).toFixed(2)}`;
+}
+
+function custoIngredienteUnit(ing) {
+  return (Number(ing.custoCompra) || 0) / ((Number(ing.qtdCompra) || 1));
+}
+
+function getReceitaCusto(receita) {
+  return (receita.itens || []).reduce((total, item) => {
+    const ing = ingredientes.find(i => i.id === item.ingId);
+    if (!ing) return total;
+    return total + custoIngredienteUnit(ing) * (Number(item.qtd) || 0);
+  }, 0);
+}
+
+function getReceitaByProduto(prodId) {
+  return receitas.find(r => r.prodId === prodId);
+}
+
+function getReceitasByProduto(prodId) {
+  return receitas.filter(r => r.prodId === prodId);
+}
+
+function getProdutoReceitaCusto(prodId) {
+  return getReceitasByProduto(prodId).reduce((sum, receita) => sum + getReceitaCusto(receita), 0);
+}
+
+function getProdutoReceitaRendimento(prodId) {
+  const receita = getReceitasByProduto(prodId).find(r => Number(r.rendimento) > 0);
+  return Number(receita?.rendimento) || 1;
+}
+
+function renderCMV() {
+  renderIngredientes();
+  renderReceitaSheet();
+
+  const produtosComReceita = [...new Set(receitas.map(r => r.prodId))]
+    .map(prodId => produtos.find(p => p.id === prodId))
+    .filter(Boolean);
+
+  const cmvs = produtosComReceita.map(produto => {
+    const custoUn = getProdutoReceitaCusto(produto.id) / getProdutoReceitaRendimento(produto.id);
+    return produto.preco ? (custoUn / produto.preco) * 100 : 0;
+  });
+
+  const media = cmvs.length ? cmvs.reduce((a, b) => a + b, 0) / cmvs.length : 0;
+  document.getElementById('cmv-stat-ingredientes').textContent = ingredientes.length;
+  document.getElementById('cmv-stat-receitas').textContent = receitas.length;
+  document.getElementById('cmv-stat-medio').textContent = `${media.toFixed(0)}%`;
+  document.getElementById('cmv-stat-alertas').textContent = cmvs.filter(v => v > 35).length;
+}
+
+function renderIngredientes() {
+  const tbody = document.getElementById('ingredientes-tbody');
+  tbody.innerHTML = ingredientes.map(ing => `
+    <tr>
+      <td><input class="sheet-input" value="${ing.nome || ''}" onblur="updateIngredienteCell(${ing.id}, 'nome', this.value)" placeholder="ex: Farinha"></td>
+      <td>
+        <select class="sheet-select" onchange="updateIngredienteCell(${ing.id}, 'unidade', this.value)">
+          <option value="g" ${ing.unidade === 'g' ? 'selected' : ''}>g</option>
+          <option value="ml" ${ing.unidade === 'ml' ? 'selected' : ''}>ml</option>
+          <option value="un" ${ing.unidade === 'un' ? 'selected' : ''}>un</option>
+        </select>
+      </td>
+      <td><input class="sheet-input" type="number" min="0" step="0.001" value="${ing.qtdCompra || ''}" onchange="updateIngredienteCell(${ing.id}, 'qtdCompra', this.value)" onblur="updateIngredienteCell(${ing.id}, 'qtdCompra', this.value)" placeholder="5000"></td>
+      <td><input class="sheet-input" type="number" min="0" step="0.01" value="${ing.custoCompra || ''}" onchange="updateIngredienteCell(${ing.id}, 'custoCompra', this.value)" onblur="updateIngredienteCell(${ing.id}, 'custoCompra', this.value)" placeholder="18.90"></td>
+      <td><span class="sheet-readonly">${money(custoIngredienteUnit(ing))} / ${ing.unidade}</span></td>
+      <td>
+        <button class="btn btn-ghost btn-sm" onclick="deleteIngrediente(${ing.id})" style="color:var(--red)">×</button>
+      </td>
+    </tr>
+  `).join('') || `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum ingrediente cadastrado</td></tr>`;
+}
+
+function renderReceitaSheet() {
+  const tbody = document.getElementById('receitas-tbody');
+  if (!receitas.length) {
+    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma receita cadastrada</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = receitas.map(receita => {
+    const prod = produtos.find(p => p.id === receita.prodId);
+    const custoTotal = prod ? getProdutoReceitaCusto(prod.id) : getReceitaCusto(receita);
+    const rendimento = prod ? getProdutoReceitaRendimento(prod.id) : (Number(receita.rendimento) || 1);
+    const custoUn = custoTotal / rendimento;
+    const cmv = prod?.preco ? (custoUn / prod.preco) * 100 : 0;
+    const status = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+    return `<tr>
+      <td>
+        <select class="sheet-select" onchange="updateReceitaCell(${receita.id}, 'prodId', this.value)">
+          ${produtos.map(p => `<option value="${p.id}" ${p.id === receita.prodId ? 'selected' : ''}>${p.nome}</option>`).join('')}
+        </select>
+      </td>
+      <td>${renderReceitaIngredientesCell(receita)}</td>
+      <td>${renderReceitaQtdCell(receita)}</td>
+      <td><input class="sheet-input" type="number" min="1" step="1" value="${receita.rendimento || 1}" onchange="updateReceitaCell(${receita.id}, 'rendimento', this.value)" onblur="updateReceitaCell(${receita.id}, 'rendimento', this.value)"></td>
+      <td><input class="sheet-input" value="${receita.unidade || 'un.'}" onblur="updateReceitaCell(${receita.id}, 'unidade', this.value)"></td>
+      <td><span class="sheet-readonly">${money(custoUn)}</span></td>
+      <td><span class="sheet-readonly"><span class="badge ${status}">${cmv.toFixed(0)}%</span></span></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="deleteReceita(${receita.id})" style="color:var(--red)">×</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderReceitaIngredientesCell(receita) {
+  const item = receita.itens?.[0] || {};
+  return `<select class="sheet-select" onchange="updateReceitaItemCell(${receita.id}, 'ingId', this.value)">
+    ${ingredientes.map(ing => `<option value="${ing.id}" ${ing.id === item.ingId ? 'selected' : ''}>${ing.nome}</option>`).join('')}
+  </select>`;
+}
+
+function renderReceitaQtdCell(receita) {
+  const item = receita.itens?.[0] || {};
+  const ing = ingredientes.find(i => i.id === item.ingId);
+  return `<div style="display:flex;align-items:center;">
+    <input class="sheet-input" type="number" min="0" step="0.001" value="${item.qtd || ''}" onchange="updateReceitaItemCell(${receita.id}, 'qtd', this.value)" onblur="updateReceitaItemCell(${receita.id}, 'qtd', this.value)" placeholder="250">
+    <span class="sheet-readonly" style="padding-left:0;">${ing?.unidade || ''}</span>
+  </div>`;
+}
+
+function addIngredienteRow() {
+  ingredientes.push({ id: ++nextId, nome: '', unidade: 'g', qtdCompra: 0, custoCompra: 0 });
+  saveAll();
+  renderCMV();
+}
+
+function updateIngredienteCell(id, field, value) {
+  const ing = ingredientes.find(i => i.id === id);
+  if (!ing) return;
+  ing[field] = ['qtdCompra', 'custoCompra'].includes(field) ? parseFloat(value) || 0 : value;
+  saveAll();
+  refreshProductCostsFromRecipes();
+  renderCMV();
+  renderProdutos();
+}
+
+function addReceitaRow() {
+  if (!produtos.length) return showToast('Cadastre um produto antes da receita', 'error');
+  if (!ingredientes.length) return showToast('Cadastre um ingrediente antes da receita', 'error');
+  receitas.push({
+    id: ++nextId,
+    prodId: produtos[0].id,
+    rendimento: 1,
+    unidade: 'un.',
+    itens: [{ ingId: ingredientes[0].id, qtd: 0 }]
+  });
+  saveAll();
+  renderCMV();
+}
+
+function updateReceitaCell(id, field, value) {
+  const receita = receitas.find(r => r.id === id);
+  if (!receita) return;
+  receita[field] = ['prodId', 'rendimento'].includes(field) ? parseFloat(value) || 0 : value;
+  saveAll();
+  refreshProductCostsFromRecipes();
+  renderCMV();
+  renderProdutos();
+}
+
+function updateReceitaItemCell(id, field, value) {
+  const receita = receitas.find(r => r.id === id);
+  if (!receita) return;
+  if (!receita.itens) receita.itens = [];
+  if (!receita.itens[0]) receita.itens[0] = { ingId: ingredientes[0]?.id || '', qtd: 0 };
+  receita.itens[0][field] = field === 'ingId' ? parseInt(value) : parseFloat(value) || 0;
+  saveAll();
+  refreshProductCostsFromRecipes();
+  renderCMV();
+  renderProdutos();
+}
+
+function refreshProductCostsFromRecipes() {
+  produtos.forEach(prod => {
+    const linhas = getReceitasByProduto(prod.id);
+    if (!linhas.length) return;
+    prod.custo = getProdutoReceitaCusto(prod.id) / getProdutoReceitaRendimento(prod.id);
+  });
+}
+
+function openIngredienteModal(ing = null) {
+  document.getElementById('ing-id').value = ing ? ing.id : '';
+  document.getElementById('ing-nome').value = ing ? ing.nome : '';
+  document.getElementById('ing-unidade').value = ing ? ing.unidade : 'g';
+  document.getElementById('ing-qtd').value = ing ? ing.qtdCompra : '';
+  document.getElementById('ing-custo').value = ing ? ing.custoCompra : '';
+  document.getElementById('modal-ingrediente-title').textContent = ing ? 'Editar Ingrediente' : 'Novo Ingrediente';
+  openModal('modal-ingrediente');
+}
+
+function saveIngrediente() {
+  const id = document.getElementById('ing-id').value;
+  const nome = document.getElementById('ing-nome').value.trim();
+  const qtdCompra = parseFloat(document.getElementById('ing-qtd').value) || 0;
+  const custoCompra = parseFloat(document.getElementById('ing-custo').value) || 0;
+  if (!nome || !qtdCompra || !custoCompra) return showToast('Preencha ingrediente, quantidade e custo', 'error');
+
+  const data = {
+    nome,
+    unidade: document.getElementById('ing-unidade').value,
+    qtdCompra,
+    custoCompra
+  };
+
+  if (id) {
+    const idx = ingredientes.findIndex(i => i.id == id);
+    ingredientes[idx] = { ...ingredientes[idx], ...data };
+  } else {
+    data.id = ++nextId;
+    ingredientes.push(data);
+  }
+
+  saveAll();
+  closeModal('modal-ingrediente');
+  renderCMV();
+  showToast('Ingrediente salvo ✓', 'success');
+}
+
+function editIngrediente(id) {
+  const ing = ingredientes.find(i => i.id === id);
+  if (ing) openIngredienteModal(ing);
+}
+
+function deleteIngrediente(id) {
+  if (!confirm('Remover este ingrediente?')) return;
+  ingredientes = ingredientes.filter(i => i.id !== id);
+  receitas = receitas.map(r => ({ ...r, itens: (r.itens || []).filter(item => item.ingId !== id) }));
+  saveAll();
+  renderCMV();
+  showToast('Ingrediente removido', 'error');
+  db.from('ingredientes').delete().eq('id', id);
+}
+
+function openReceitaModal(receita = null) {
+  document.getElementById('rec-id').value = receita ? receita.id : '';
+  document.getElementById('rec-produto').innerHTML = produtos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  document.getElementById('rec-produto').value = receita ? receita.prodId : produtos[0]?.id || '';
+  document.getElementById('rec-rendimento').value = receita ? receita.rendimento : 1;
+  document.getElementById('rec-unidade').value = receita ? (receita.unidade || 'un.') : 'un.';
+  document.getElementById('modal-receita-title').textContent = receita ? 'Editar Receita' : 'Nova Receita';
+  document.getElementById('receita-itens').innerHTML = '';
+
+  const itens = receita?.itens?.length ? receita.itens : [{ ingId: ingredientes[0]?.id || '', qtd: '' }];
+  itens.forEach(item => addReceitaItem(item));
+  openModal('modal-receita');
+}
+
+function addReceitaItem(item = {}) {
+  const wrap = document.getElementById('receita-itens');
+  const row = document.createElement('div');
+  row.className = 'form-row receita-item-row';
+  row.innerHTML = `
+    <div class="form-group"><label>Ingrediente</label>
+      <select class="rec-ing">${ingredientes.map(ing => `<option value="${ing.id}">${ing.nome} (${ing.unidade})</option>`).join('')}</select>
+    </div>
+    <div class="form-group"><label>Quantidade usada</label><input type="number" class="rec-qtd" min="0" step="0.001" placeholder="ex: 250"></div>
+    <button class="btn btn-ghost btn-sm" type="button" onclick="this.parentElement.remove()" style="align-self:end;">×</button>
+  `;
+  wrap.appendChild(row);
+  row.querySelector('.rec-ing').value = item.ingId || ingredientes[0]?.id || '';
+  row.querySelector('.rec-qtd').value = item.qtd || '';
+}
+
+function saveReceita() {
+  const id = document.getElementById('rec-id').value;
+  const prodId = parseInt(document.getElementById('rec-produto').value);
+  const rendimento = parseFloat(document.getElementById('rec-rendimento').value) || 1;
+  if (!prodId) return showToast('Cadastre um produto antes da receita', 'error');
+
+  const itens = Array.from(document.querySelectorAll('.receita-item-row')).map(row => ({
+    ingId: parseInt(row.querySelector('.rec-ing').value),
+    qtd: parseFloat(row.querySelector('.rec-qtd').value) || 0
+  })).filter(item => item.ingId && item.qtd > 0);
+
+  if (!itens.length) return showToast('Adicione pelo menos um ingrediente na receita', 'error');
+
+  const data = {
+    prodId,
+    rendimento,
+    unidade: document.getElementById('rec-unidade').value.trim() || 'un.',
+    itens
+  };
+
+  if (id) {
+    const idx = receitas.findIndex(r => r.id == id);
+    receitas[idx] = { ...receitas[idx], ...data };
+  } else {
+    data.id = ++nextId;
+    receitas.push(data);
+  }
+
+  const prod = produtos.find(p => p.id === prodId);
+  if (prod) prod.custo = getProdutoReceitaCusto(prodId) / getProdutoReceitaRendimento(prodId);
+
+  saveAll();
+  closeModal('modal-receita');
+  renderCMV();
+  renderProdutos();
+  showToast('Receita salva ✓', 'success');
+}
+
+function editReceita(id) {
+  const receita = receitas.find(r => r.id === id);
+  if (receita) openReceitaModal(receita);
+}
+
+function deleteReceita(id) {
+  if (!confirm('Remover esta receita?')) return;
+  receitas = receitas.filter(r => r.id !== id);
+  saveAll();
+  renderCMV();
+  showToast('Receita removida', 'error');
+  db.from('receitas').delete().eq('id', id); // cascata para receita_itens
+}
+
+// ============================================================
+// PERDAS
+// ============================================================
+function renderPerdas() {
+  const tipoFilter = document.getElementById('filter-perda-tipo').value;
+  const filtered = perdas.filter(p =>
+    p.unit === currentUnit &&
+    (!tipoFilter || p.tipo === tipoFilter)
+  );
+
+  // Stats
+  const agora = new Date();
+  const mesAtual = perdas.filter(p => {
+    const d = new Date(p.data);
+    return p.unit === currentUnit && d.getMonth() === agora.getMonth() && d.getFullYear() === agora.getFullYear();
+  });
+  const totalCusto = mesAtual.reduce((sum, p) => {
+    const prod = produtos.find(pr => pr.id === p.prodId);
+    return sum + (prod ? prod.custo * p.qty : 0);
+  }, 0);
+  document.getElementById('perdas-total-mes').textContent = `R$ ${totalCusto.toFixed(2)}`;
+  document.getElementById('perdas-qtd').textContent = mesAtual.length;
+
+  // Top produto perdido
+  const contProd = {};
+  mesAtual.forEach(p => { contProd[p.prodId] = (contProd[p.prodId] || 0) + p.qty; });
+  const topProdId = Object.keys(contProd).sort((a,b) => contProd[b]-contProd[a])[0];
+  const topProd = topProdId ? produtos.find(p => p.id == topProdId) : null;
+  document.getElementById('perdas-produto-top').textContent = topProd ? topProd.nome.split(' ')[0] : '—';
+
+  const contMotivo = {};
+  mesAtual.forEach(p => { contMotivo[p.tipo] = (contMotivo[p.tipo] || 0) + 1; });
+  const topMotivo = Object.keys(contMotivo).sort((a,b) => contMotivo[b]-contMotivo[a])[0];
+  const motivoLabel = { vencimento: 'Vencido', producao: 'Produção', cliente: 'Cliente', acidente: 'Acidente', outro: 'Outro' };
+  document.getElementById('perdas-motivo-top').textContent = topMotivo ? motivoLabel[topMotivo] : '—';
+
+  // List
+  const list = document.getElementById('perdas-list');
+  if (filtered.length === 0) {
+    list.innerHTML = '<div class="empty-state"><div class="empty-icon">✅</div><p>Sem registros de perdas para este filtro</p></div>';
+    return;
+  }
+
+  const tipoIcon = { vencimento: '🕐', producao: '⚙️', cliente: '💬', acidente: '💥', outro: '📝' };
+  list.innerHTML = filtered.slice().reverse().map((p, idx) => {
+    const prod = produtos.find(pr => pr.id === p.prodId);
+    const custo = prod ? (prod.custo * p.qty).toFixed(2) : '0.00';
+    const dataFmt = new Date(p.data + 'T12:00').toLocaleDateString('pt-BR');
+    return `<div class="perda-item">
+      <span class="perda-icon">${tipoIcon[p.tipo] || '📝'}</span>
+      <div class="perda-info">
+        <div class="perda-name">${prod ? prod.nome : 'Produto removido'} — ${p.qty} un.</div>
+        <div class="perda-detail">${motivoLabel[p.tipo]} · ${dataFmt} · ${p.obs || '—'}</div>
+      </div>
+      <div class="perda-custo">- R$ ${custo}</div>
+      <button class="btn btn-ghost btn-sm" onclick="removePerda(${perdas.indexOf(p)})" style="color:var(--red)">×</button>
+    </div>`;
+  }).join('');
+}
+
+function openPerdaModal() {
+  const sel = document.getElementById('perda-produto');
+  const filtered = produtos.filter(p => p.unidade === 'ambas' || p.unidade === currentUnit);
+  sel.innerHTML = filtered.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  document.getElementById('perda-data').value = new Date().toISOString().split('T')[0];
+  document.getElementById('perda-qty').value = 1;
+  document.getElementById('perda-obs').value = '';
+  openModal('modal-perda');
+}
+
+function savePerda() {
+  const prodId = parseInt(document.getElementById('perda-produto').value);
+  const qty = parseInt(document.getElementById('perda-qty').value) || 1;
+  const tipo = document.getElementById('perda-tipo').value;
+  const data = document.getElementById('perda-data').value;
+  const obs = document.getElementById('perda-obs').value.trim();
+
+  perdas.push({ id: ++nextId, prodId, qty, tipo, data, obs, unit: currentUnit });
+  saveAll();
+  closeModal('modal-perda');
+  renderPerdas();
+  showToast('Perda registrada ⚠️', 'error');
+}
+
+function removePerda(idx) {
+  if (!confirm('Remover este registro?')) return;
+  const perda = perdas[idx];
+  perdas.splice(idx, 1);
+  saveAll();
+  renderPerdas();
+  if (perda?.id) db.from('perdas').delete().eq('id', perda.id);
+}
+
+// ============================================================
+// PEDIDO DE PRODUÇÃO
+// ============================================================
+function setPedidoDay(day) {
+  currentPedidoDay = day;
+  document.querySelectorAll('#pedido-day-tabs .day-tab').forEach(b => b.classList.remove('active'));
+  event.currentTarget.classList.add('active');
+  renderPedido();
+}
+
+function renderPedido() {
+  document.getElementById('pedido-title').textContent = `Produção — ${dayNames[currentPedidoDay]}`;
+  document.getElementById('pedido-unidade').textContent = currentUnit === 'matriz' ? 'Matriz' : 'Vila Nova';
+
+  // Coleta dados
+  const vitrine = (vitrines[currentUnit] && vitrines[currentUnit][currentPedidoDay]) || [];
+  const crono = (cronograma[currentUnit] && cronograma[currentUnit][currentPedidoDay]) || [];
+  const sobraAnterior = {};
+  const fechamentoAnterior = (fechamentos[currentUnit] && fechamentos[currentUnit][previousDay(currentPedidoDay)]) || [];
+  fechamentoAnterior.filter(f => f.status === 'em_vitrine').forEach(f => {
+    sobraAnterior[f.prodId] = (sobraAnterior[f.prodId] || 0) + (f.leftoverQty || 0);
+  });
+
+  // Mapa de quantidades: prodId -> {qtyVitrine, qtyCrono, resp, hora}
+  const mapa = {};
+
+  vitrine.forEach(v => {
+    if (!mapa[v.prodId]) mapa[v.prodId] = { qtyVitrine: 0, qtyCrono: 0, resp: null, hora: null };
+    mapa[v.prodId].qtyVitrine += v.qty;
+  });
+
+  crono.forEach(c => {
+    if (!c.prodId || !c.qty) return;
+    if (!mapa[c.prodId]) mapa[c.prodId] = { qtyVitrine: 0, qtyCrono: 0, resp: null, hora: null };
+    mapa[c.prodId].qtyCrono += c.qty;
+    mapa[c.prodId].resp = c.resp;
+    mapa[c.prodId].hora = c.hora;
+  });
+
+  // Calcular reposição baseada em perdas (últimas 4 semanas)
+  const perdasProd = {};
+  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 28);
+  perdas.filter(p => p.unit === currentUnit && new Date(p.data) > cutoff).forEach(p => {
+    perdasProd[p.prodId] = (perdasProd[p.prodId] || 0) + p.qty;
+  });
+
+  const list = document.getElementById('pedido-list');
+
+  if (Object.keys(mapa).length === 0) {
+    list.innerHTML = '<div class="empty-state" style="padding:30px;"><div class="empty-icon">📋</div><p>Nenhum produto planejado para este dia.<br>Cadastre itens na vitrine ou cronograma.</p></div>';
+    document.getElementById('pedido-obs').innerHTML = '';
+    return;
+  }
+
+  let html = '';
+  let totalItems = 0;
+  let obsHtml = '';
+
+  // Ordena por curva ABC
+  const curvaOrder = { A: 0, B: 1, C: 2 };
+  const entries = Object.entries(mapa).sort((a, b) => {
+    const pA = produtos.find(p => p.id == a[0]);
+    const pB = produtos.find(p => p.id == b[0]);
+    return (curvaOrder[pA?.curva] || 2) - (curvaOrder[pB?.curva] || 2);
+  });
+
+  entries.forEach(([prodId, d]) => {
+    const prod = produtos.find(p => p.id == prodId);
+    if (!prod) return;
+
+    const qtdPlanejada = Math.max(d.qtyVitrine, d.qtyCrono);
+    const sobra = sobraAnterior[prodId] || 0;
+    const qtdBase = Math.max(0, qtdPlanejada - sobra);
+    const reposicao = Math.ceil((perdasProd[prodId] || 0) / 4); // média semanal de perdas
+    const resp = d.resp || prod.resp;
+    const hora = d.hora || '—';
+
+    html += `<div class="pedido-item">
+      <div>
+        <div class="prod-name">${prod.nome} <span class="badge badge-${prod.curva.toLowerCase()}">${prod.curva}</span></div>
+        <div class="prod-resp">${prod.categoria}</div>
+      </div>
+      <div><strong>${qtdBase}</strong></div>
+      <div style="color:var(--text-light)">${sobra || '—'}</div>
+      <div style="color:var(--red-light)">${reposicao > 0 ? '+' + reposicao : '—'}</div>
+      <div>${resp}</div>
+      <div>${hora}</div>
+    </div>`;
+
+    if (sobra > 0) {
+      obsHtml += `<div style="font-size:12px;color:var(--brown);margin-bottom:4px;"><strong>${prod.nome}</strong> — descontado ${sobra} un. de sobra registrada no fechamento anterior.</div>`;
+    }
+
+    if (prod.validade <= 1) {
+      obsHtml += `<div style="font-size:12px;color:var(--red);margin-bottom:4px;">⚠️ <strong>${prod.nome}</strong> — validade curta (${prod.validade} dia). Produzir somente no dia.</div>`;
+    }
+    totalItems++;
+  });
+
+  list.innerHTML = html;
+
+  document.getElementById('pedido-obs').innerHTML = obsHtml ? `
+    <div class="card" style="border-left:4px solid var(--red);padding:14px 16px;">
+      <div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--red);margin-bottom:8px;">Ajustes da produção</div>
+      ${obsHtml}
+    </div>` : '';
+}
+
+function imprimirPedido() {
+  window.print();
+}
+
+// ============================================================
+// MODAL HELPERS
+// ============================================================
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', function(e) {
+    if (e.target === this) this.classList.remove('open');
+  });
+});
+
+document.addEventListener('click', function(e) {
+  if (!e.target.closest('#slot-context-menu')) closeSlotContextMenu();
+});
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeSlotContextMenu();
+});
+
+// ============================================================
+// TOAST
+// ============================================================
+let toastTimer;
+function showToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = `toast toast-${type} show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+loadFromSupabase().then(() => {
+  renderProdutos();
+  renderVitrine();
+  renderCMV();
+});
+</script>
+</body>
+</html>
