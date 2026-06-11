@@ -1081,19 +1081,24 @@ tr:hover td { background: var(--surface-soft); }
   <div id="cmv-panel-ingredientes">
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
       <button class="btn btn-primary" onclick="addIngredienteRow()">+ Novo ingrediente</button>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer;margin-left:4px;">
+        <input type="checkbox" id="ing-show-inativos" onchange="renderIngredientes()" style="cursor:pointer;">
+        Mostrar inativos
+      </label>
     </div>
     <div class="sheet-card">
       <div class="table-wrap">
         <table class="sheet-table">
           <thead>
             <tr>
+              <th style="width:44px;">Ativo</th>
               <th>Ingrediente</th>
+              <th>Sugestão</th>
               <th>Unidade</th>
               <th>Fornecedor atual</th>
               <th>Data compra</th>
               <th>Qtd. compra</th>
               <th>Custo compra</th>
-              <th>Custo base</th>
               <th>Derivados</th>
               <th></th>
             </tr>
@@ -1380,6 +1385,7 @@ tr:hover td { background: var(--surface-soft); }
   <div class="modal" style="max-width:500px;">
     <div class="modal-title" id="modal-ingrediente-title">Novo Ingrediente</div>
     <div class="form-row full"><div class="form-group"><label>Nome do ingrediente</label><input type="text" id="ing-nome" placeholder="ex: Mussarela fatiada"></div></div>
+    <div class="form-row full"><div class="form-group"><label>Sugestão (alternativa preferida) — opcional</label><input type="text" id="ing-sugestao" placeholder="ex: Queijo Muçarela Apollo"></div></div>
     <div class="form-row">
       <div class="form-group"><label>Unidade base</label>
         <select id="ing-unidade">
@@ -1820,55 +1826,99 @@ let produtos = getStorage('ddv_produtos', [
 ]);
 
 let ingredientes = getStorage('ddv_ingredientes', [
-  { id: 201, nome: 'Pão francês', unidade: 'un', qtdCompra: 1, custoCompra: 0.25, fatia: null, historico: [{ id: 2001, qtdCompra: 1, custoCompra: 0.25, fornecedor: '', data: '' }] },
-  { id: 202, nome: 'Presunto Magro Sadia', unidade: 'un', qtdCompra: 2, custoCompra: 1.27, fatia: null, historico: [{ id: 2002, qtdCompra: 2, custoCompra: 1.27, fornecedor: '', data: '' }] },
-  { id: 203, nome: 'Queijo Muçarela Lacmon', unidade: 'un', qtdCompra: 2, custoCompra: 2.21, fatia: null, historico: [{ id: 2003, qtdCompra: 2, custoCompra: 2.21, fornecedor: '', data: '' }] },
-  { id: 204, nome: 'Tomate', unidade: 'un', qtdCompra: 1, custoCompra: 0.30, fatia: null, historico: [{ id: 2004, qtdCompra: 1, custoCompra: 0.30, fornecedor: '', data: '' }] },
-  { id: 205, nome: 'Chocolate em pó 50% Mavalerio', unidade: 'g', qtdCompra: 50, custoCompra: 3.32, fatia: null, historico: [{ id: 2005, qtdCompra: 50, custoCompra: 3.32, fornecedor: '', data: '' }] },
-  { id: 206, nome: 'Leite condensado Moça', unidade: 'un', qtdCompra: 1, custoCompra: 9.00, fatia: null, historico: [{ id: 2006, qtdCompra: 1, custoCompra: 9.00, fornecedor: '', data: '' }] },
-  { id: 207, nome: 'Manteiga Alto Alegre', unidade: 'g', qtdCompra: 50, custoCompra: 0.29, fatia: null, historico: [{ id: 2007, qtdCompra: 50, custoCompra: 0.29, fornecedor: '', data: '' }] },
-  { id: 208, nome: 'Café coador Jaguari', unidade: 'g', qtdCompra: 16, custoCompra: 1.71, fatia: null, historico: [{ id: 2008, qtdCompra: 16, custoCompra: 1.71, fornecedor: '', data: '' }] },
-  { id: 209, nome: 'Café em grãos Toledo', unidade: 'g', qtdCompra: 10, custoCompra: 1.33, fatia: null, historico: [{ id: 2009, qtdCompra: 10, custoCompra: 1.33, fornecedor: '', data: '' }] },
-  { id: 210, nome: 'Leite', unidade: 'ml', qtdCompra: 100, custoCompra: 0.40, fatia: null, historico: [{ id: 2010, qtdCompra: 100, custoCompra: 0.40, fornecedor: '', data: '' }] },
-  { id: 211, nome: 'Capuccino em pó Bevaccino', unidade: 'g', qtdCompra: 24, custoCompra: 1.37, fatia: null, historico: [{ id: 2011, qtdCompra: 24, custoCompra: 1.37, fornecedor: '', data: '' }] },
-  { id: 212, nome: 'Calda de chocolate', unidade: 'g', qtdCompra: 20, custoCompra: 0.60, fatia: null, historico: [{ id: 2012, qtdCompra: 20, custoCompra: 0.60, fornecedor: '', data: '' }] },
-  { id: 213, nome: 'Tapioca terrinha', unidade: 'g', qtdCompra: 50, custoCompra: 0.70, fatia: null, historico: [{ id: 2013, qtdCompra: 50, custoCompra: 0.70, fornecedor: '', data: '' }] },
-  { id: 214, nome: 'Ovos', unidade: 'un', qtdCompra: 1, custoCompra: 0.80, fatia: null, historico: [{ id: 2014, qtdCompra: 1, custoCompra: 0.80, fornecedor: '', data: '' }] },
-  { id: 215, nome: 'Requeijão cremoso Coronata', unidade: 'g', qtdCompra: 60, custoCompra: 1.06, fatia: null, historico: [{ id: 2015, qtdCompra: 60, custoCompra: 1.06, fornecedor: '', data: '' }] },
-  { id: 216, nome: 'Frango desfiado', unidade: 'g', qtdCompra: 70, custoCompra: 1.40, fatia: null, historico: [{ id: 2016, qtdCompra: 70, custoCompra: 1.40, fornecedor: '', data: '' }] },
-  { id: 217, nome: 'Queijo branco', unidade: 'un', qtdCompra: 1, custoCompra: 4.50, fatia: null, historico: [{ id: 2017, qtdCompra: 1, custoCompra: 4.50, fornecedor: '', data: '' }] },
-  { id: 218, nome: 'Queijo prato', unidade: 'un', qtdCompra: 1, custoCompra: 1.50, fatia: null, historico: [{ id: 2018, qtdCompra: 1, custoCompra: 1.50, fornecedor: '', data: '' }] },
-  { id: 219, nome: 'Peito de peru Sadia', unidade: 'un', qtdCompra: 2, custoCompra: 2.08, fatia: null, historico: [{ id: 2019, qtdCompra: 2, custoCompra: 2.08, fornecedor: '', data: '' }] },
-  { id: 220, nome: 'Pão pullman integral', unidade: 'un', qtdCompra: 3, custoCompra: 0.85, fatia: null, historico: [{ id: 2020, qtdCompra: 3, custoCompra: 0.85, fornecedor: '', data: '' }] },
-  { id: 221, nome: 'Maionese', unidade: 'g', qtdCompra: 100, custoCompra: 2.40, fatia: null, historico: [{ id: 2021, qtdCompra: 100, custoCompra: 2.40, fornecedor: '', data: '' }] },
-  { id: 222, nome: 'Hamburguer artesanal', unidade: 'un', qtdCompra: 1, custoCompra: 5.80, fatia: null, historico: [{ id: 2022, qtdCompra: 1, custoCompra: 5.80, fornecedor: '', data: '' }] },
-  { id: 223, nome: 'Pão pullman hamburguer', unidade: 'un', qtdCompra: 1, custoCompra: 3.00, fatia: null, historico: [{ id: 2023, qtdCompra: 1, custoCompra: 3.00, fornecedor: '', data: '' }] },
-  { id: 224, nome: 'Queijo Parmesão Scala', unidade: 'g', qtdCompra: 10, custoCompra: 0.69, fatia: null, historico: [{ id: 2024, qtdCompra: 10, custoCompra: 0.69, fornecedor: '', data: '' }] },
-  { id: 225, nome: 'Rucúla', unidade: 'g', qtdCompra: 40, custoCompra: 0.80, fatia: null, historico: [{ id: 2025, qtdCompra: 40, custoCompra: 0.80, fornecedor: '', data: '' }] },
-  { id: 226, nome: 'Tomate Seco', unidade: 'g', qtdCompra: 30, custoCompra: 0.95, fatia: null, historico: [{ id: 2026, qtdCompra: 30, custoCompra: 0.95, fornecedor: '', data: '' }] },
-  { id: 227, nome: 'Pão integral 70%', unidade: 'un', qtdCompra: 1, custoCompra: 0.50, fatia: null, historico: [{ id: 2027, qtdCompra: 1, custoCompra: 0.50, fornecedor: '', data: '' }] },
-  { id: 228, nome: 'Requeijão Catupiry', unidade: 'g', qtdCompra: 50, custoCompra: 1.78, fatia: null, historico: [{ id: 2028, qtdCompra: 50, custoCompra: 1.78, fornecedor: '', data: '' }] },
-  { id: 229, nome: 'Toddy', unidade: 'g', qtdCompra: 20, custoCompra: 0.54, fatia: null, historico: [{ id: 2029, qtdCompra: 20, custoCompra: 0.54, fornecedor: '', data: '' }] },
-  { id: 230, nome: 'Ovomaltine', unidade: 'g', qtdCompra: 35, custoCompra: 2.03, fatia: null, historico: [{ id: 2030, qtdCompra: 35, custoCompra: 2.03, fornecedor: '', data: '' }] },
-  { id: 231, nome: 'Whey Black Skull', unidade: 'g', qtdCompra: 30, custoCompra: 3.00, fatia: null, historico: [{ id: 2031, qtdCompra: 30, custoCompra: 3.00, fornecedor: '', data: '' }] },
-  { id: 232, nome: 'Café expresso', unidade: 'un', qtdCompra: 1, custoCompra: 1.50, fatia: null, historico: [{ id: 2032, qtdCompra: 1, custoCompra: 1.50, fornecedor: '', data: '' }] },
-  { id: 233, nome: 'Salame Italiano Sadia', unidade: 'un', qtdCompra: 6, custoCompra: 3.99, fatia: null, historico: [{ id: 2033, qtdCompra: 6, custoCompra: 3.99, fornecedor: '', data: '' }] },
-  { id: 234, nome: 'Alface', unidade: 'g', qtdCompra: 70, custoCompra: 0.90, fatia: null, historico: [{ id: 2034, qtdCompra: 70, custoCompra: 0.90, fornecedor: '', data: '' }] },
-  { id: 235, nome: 'Presunto Magro Seara', unidade: 'un', qtdCompra: 4, custoCompra: 2.41, fatia: null, historico: [{ id: 2035, qtdCompra: 4, custoCompra: 2.41, fornecedor: '', data: '' }] },
-  { id: 236, nome: 'Maracujá poupa', unidade: 'un', qtdCompra: 1, custoCompra: 2.90, fatia: null, historico: [{ id: 2036, qtdCompra: 1, custoCompra: 2.90, fornecedor: '', data: '' }] },
-  { id: 237, nome: 'Caju poupa', unidade: 'un', qtdCompra: 1, custoCompra: 2.90, fatia: null, historico: [{ id: 2037, qtdCompra: 1, custoCompra: 2.90, fornecedor: '', data: '' }] },
-  { id: 238, nome: 'Frutas vermelhas poupa', unidade: 'un', qtdCompra: 1, custoCompra: 3.40, fatia: null, historico: [{ id: 2038, qtdCompra: 1, custoCompra: 3.40, fornecedor: '', data: '' }] },
-  { id: 239, nome: 'Chocolate ao leite barra Cargill', unidade: 'g', qtdCompra: 850, custoCompra: 72.86, fatia: null, historico: [{ id: 2039, qtdCompra: 850, custoCompra: 72.86, fornecedor: '', data: '' }] },
-  { id: 240, nome: 'Pré Mistura Bolo Chocomousse Fleishman', unidade: 'g', qtdCompra: 500, custoCompra: 8.90, fatia: null, historico: [{ id: 2040, qtdCompra: 500, custoCompra: 8.90, fornecedor: '', data: '' }] },
-  { id: 241, nome: 'Óleo Liza', unidade: 'ml', qtdCompra: 100, custoCompra: 1.00, fatia: null, historico: [{ id: 2041, qtdCompra: 100, custoCompra: 1.00, fornecedor: '', data: '' }] },
-  { id: 242, nome: 'Ganache Toffee Vabene', unidade: 'g', qtdCompra: 30, custoCompra: 1.50, fatia: null, historico: [{ id: 2042, qtdCompra: 30, custoCompra: 1.50, fornecedor: '', data: '' }] },
-  { id: 243, nome: 'Nozes sem casca', unidade: 'g', qtdCompra: 175, custoCompra: 15.16, fatia: null, historico: [{ id: 2043, qtdCompra: 175, custoCompra: 15.16, fornecedor: '', data: '' }] },
-  { id: 244, nome: 'Margarina Coamo', unidade: 'g', qtdCompra: 30, custoCompra: 0.31, fatia: null, historico: [{ id: 2044, qtdCompra: 30, custoCompra: 0.31, fornecedor: '', data: '' }] },
-  { id: 245, nome: 'Fondant 1KG MIX', unidade: 'g', qtdCompra: 700, custoCompra: 14.70, fatia: null, historico: [{ id: 2045, qtdCompra: 700, custoCompra: 14.70, fornecedor: '', data: '' }] },
-  { id: 246, nome: 'Bolacha Maizena', unidade: 'g', qtdCompra: 350, custoCompra: 10.50, fatia: null, historico: [{ id: 2046, qtdCompra: 350, custoCompra: 10.50, fornecedor: '', data: '' }] },
-  { id: 247, nome: 'Creme de leite', unidade: 'un', qtdCompra: 1, custoCompra: 3.00, fatia: null, historico: [{ id: 2047, qtdCompra: 1, custoCompra: 3.00, fornecedor: '', data: '' }] },
-  { id: 248, nome: 'Chocolate em pó 50% Melken', unidade: 'g', qtdCompra: 70, custoCompra: 4.89, fatia: null, historico: [{ id: 2048, qtdCompra: 70, custoCompra: 4.89, fornecedor: '', data: '' }] },
-  { id: 249, nome: 'Açúcar refinado', unidade: 'g', qtdCompra: 200, custoCompra: 1.00, fatia: null, historico: [{ id: 2049, qtdCompra: 200, custoCompra: 1.00, fornecedor: '', data: '' }] },
+  { id: 200, ativo: true,  nome: 'Achocolatado em pó Toddy',               sugestao: '',                                    unidade: 'g',  qtdCompra: 1800,  custoCompra: 40.69,  fatia: null, categoria: '', historico: [{ id: 2000, qtdCompra: 1800,  custoCompra: 40.69,  fornecedor: '',                        data: '' }] },
+  { id: 201, ativo: true,  nome: 'Oléo Liza 900ml',                         sugestao: '',                                    unidade: 'ml', qtdCompra: 900,   custoCompra: 9.00,   fatia: null, categoria: '', historico: [{ id: 2010, qtdCompra: 900,   custoCompra: 9.00,   fornecedor: '',                        data: '' }] },
+  { id: 202, ativo: true,  nome: 'Açúcar confeiteiro Mavaleiro',             sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 20.28,  fatia: null, categoria: '', historico: [{ id: 2020, qtdCompra: 1000,  custoCompra: 20.28,  fornecedor: '',                        data: '' }] },
+  { id: 203, ativo: true,  nome: 'Açúcar gelado Diniz',                      sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 42.25,  fatia: null, categoria: '', historico: [{ id: 2030, qtdCompra: 1000,  custoCompra: 42.25,  fornecedor: '',                        data: '' }] },
+  { id: 204, ativo: true,  nome: 'Alface',                                   sugestao: '',                                    unidade: 'g',  qtdCompra: 250,   custoCompra: 3.20,   fatia: null, categoria: '', historico: [{ id: 2040, qtdCompra: 250,   custoCompra: 3.20,   fornecedor: '',                        data: '' }] },
+  { id: 205, ativo: true,  nome: 'Amido de milho',                           sugestao: '',                                    unidade: 'g',  qtdCompra: 500,   custoCompra: 20.37,  fatia: null, categoria: '', historico: [{ id: 2050, qtdCompra: 500,   custoCompra: 20.37,  fornecedor: '',                        data: '' }] },
+  { id: 206, ativo: true,  nome: 'Apresuntado Perdigão',                     sugestao: '',                                    unidade: 'g',  qtdCompra: 7000,  custoCompra: 78.62,  fatia: 25,   categoria: '', historico: [{ id: 2060, qtdCompra: 7000,  custoCompra: 78.62,  fornecedor: '',                        data: '' }] },
+  { id: 207, ativo: false, nome: 'Apresuntado Sadia',                        sugestao: '',                                    unidade: 'g',  qtdCompra: 13800, custoCompra: 299.74, fatia: 25,   categoria: '', historico: [{ id: 2070, qtdCompra: 13800, custoCompra: 299.74, fornecedor: '',                        data: '' }] },
+  { id: 208, ativo: true,  nome: 'Apresuntado Sadia',                        sugestao: '',                                    unidade: 'g',  qtdCompra: 7000,  custoCompra: 138.18, fatia: 25,   categoria: '', historico: [{ id: 2080, qtdCompra: 7000,  custoCompra: 138.18, fornecedor: '',                        data: '2026-03-31' }] },
+  { id: 209, ativo: true,  nome: 'Apresuntado Seara',                        sugestao: '',                                    unidade: 'g',  qtdCompra: 13930, custoCompra: 229.71, fatia: null, categoria: '', historico: [{ id: 2090, qtdCompra: 13930, custoCompra: 229.71, fornecedor: '',                        data: '' }] },
+  { id: 210, ativo: true,  nome: 'Aveia flocos finos Jasmine',               sugestao: '',                                    unidade: 'g',  qtdCompra: 170,   custoCompra: 4.62,   fatia: null, categoria: '', historico: [{ id: 2100, qtdCompra: 170,   custoCompra: 4.62,   fornecedor: '',                        data: '' }] },
+  { id: 211, ativo: true,  nome: 'Café coador Jaguari',                      sugestao: '',                                    unidade: 'g',  qtdCompra: 500,   custoCompra: 53.30,  fatia: null, categoria: '', historico: [{ id: 2110, qtdCompra: 500,   custoCompra: 53.30,  fornecedor: '',                        data: '' }] },
+  { id: 212, ativo: true,  nome: 'Café coador Jaguari (2)',                  sugestao: '',                                    unidade: 'g',  qtdCompra: 500,   custoCompra: 50.00,  fatia: null, categoria: '', historico: [{ id: 2120, qtdCompra: 500,   custoCompra: 50.00,  fornecedor: '',                        data: '' }] },
+  { id: 213, ativo: true,  nome: 'Café Jaguari Solúvel sachê',               sugestao: 'Café coador Jaguari',                 unidade: 'g',  qtdCompra: 40,    custoCompra: 5.70,   fatia: null, categoria: '', historico: [{ id: 2130, qtdCompra: 40,    custoCompra: 5.70,   fornecedor: '',                        data: '' }] },
+  { id: 214, ativo: true,  nome: 'Café em grãos Toledo',                     sugestao: '',                                    unidade: 'g',  qtdCompra: 900,   custoCompra: 120.00, fatia: null, categoria: '', historico: [{ id: 2140, qtdCompra: 900,   custoCompra: 120.00, fornecedor: '',                        data: '' }] },
+  { id: 215, ativo: true,  nome: 'Café expresso',                            sugestao: '',                                    unidade: 'un', qtdCompra: 1,     custoCompra: 1.50,   fatia: null, categoria: '', historico: [{ id: 2150, qtdCompra: 1,     custoCompra: 1.50,   fornecedor: '',                        data: '' }] },
+  { id: 216, ativo: true,  nome: 'Caju polpa',                               sugestao: '',                                    unidade: 'un', qtdCompra: 1,     custoCompra: 2.90,   fatia: null, categoria: '', historico: [{ id: 2160, qtdCompra: 1,     custoCompra: 2.90,   fornecedor: '',                        data: '' }] },
+  { id: 217, ativo: true,  nome: 'Calda de chocolate',                       sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 30.00,  fatia: null, categoria: '', historico: [{ id: 2170, qtdCompra: 1000,  custoCompra: 30.00,  fornecedor: '',                        data: '' }] },
+  { id: 218, ativo: true,  nome: 'Capuccino em pó Bevaccino',                sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 56.90,  fatia: null, categoria: '', historico: [{ id: 2180, qtdCompra: 1000,  custoCompra: 56.90,  fornecedor: '',                        data: '' }] },
+  { id: 219, ativo: true,  nome: 'Chantilly Pride',                          sugestao: '',                                    unidade: 'g',  qtdCompra: 907,   custoCompra: 32.84,  fatia: null, categoria: '', historico: [{ id: 2190, qtdCompra: 907,   custoCompra: 32.84,  fornecedor: '',                        data: '' }] },
+  { id: 220, ativo: true,  nome: 'Chantilly Pride TTF',                      sugestao: '',                                    unidade: 'g',  qtdCompra: 907,   custoCompra: 23.90,  fatia: null, categoria: '', historico: [{ id: 2200, qtdCompra: 907,   custoCompra: 23.90,  fornecedor: 'TTF',                     data: '' }] },
+  { id: 221, ativo: false, nome: 'Chipa Congelada',                          sugestao: '',                                    unidade: 'g',  qtdCompra: 2000,  custoCompra: 54.70,  fatia: null, categoria: '', historico: [{ id: 2210, qtdCompra: 2000,  custoCompra: 54.70,  fornecedor: '',                        data: '' }] },
+  { id: 222, ativo: true,  nome: 'Chipa Congelada',                          sugestao: '',                                    unidade: 'g',  qtdCompra: 2000,  custoCompra: 54.70,  fatia: null, categoria: '', historico: [{ id: 2220, qtdCompra: 2000,  custoCompra: 54.70,  fornecedor: 'LimerPan',                data: '2026-04-15' }] },
+  { id: 223, ativo: true,  nome: 'Chocolate ao leite barra Cargill',         sugestao: '',                                    unidade: 'g',  qtdCompra: 2100,  custoCompra: 180.00, fatia: null, categoria: '', historico: [{ id: 2230, qtdCompra: 2100,  custoCompra: 180.00, fornecedor: '',                        data: '' }] },
+  { id: 224, ativo: true,  nome: 'Bolacha Maizena 200g',                     sugestao: '',                                    unidade: 'g',  qtdCompra: 200,   custoCompra: 6.00,   fatia: null, categoria: '', historico: [{ id: 2240, qtdCompra: 200,   custoCompra: 6.00,   fornecedor: '',                        data: '' }] },
+  { id: 225, ativo: true,  nome: 'Chocolate em pó 50% Mavalerio',            sugestao: 'Chocolate em pó 50% Melken',          unidade: 'g',  qtdCompra: 1000,  custoCompra: 66.48,  fatia: null, categoria: '', historico: [{ id: 2250, qtdCompra: 1000,  custoCompra: 66.48,  fornecedor: '',                        data: '' }] },
+  { id: 226, ativo: true,  nome: 'Fondant 1KG MIX',                          sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 21.00,  fatia: null, categoria: '', historico: [{ id: 2260, qtdCompra: 1000,  custoCompra: 21.00,  fornecedor: '',                        data: '' }] },
+  { id: 227, ativo: true,  nome: 'Chocolate em pó 50% Melken',               sugestao: 'Chocolate em pó 50% Mavalerio',       unidade: 'g',  qtdCompra: 1000,  custoCompra: 69.90,  fatia: null, categoria: '', historico: [{ id: 2270, qtdCompra: 1000,  custoCompra: 69.90,  fornecedor: 'TTF',                     data: '' }] },
+  { id: 228, ativo: true,  nome: 'Creme de leite',                           sugestao: '',                                    unidade: 'g',  qtdCompra: 200,   custoCompra: 3.00,   fatia: null, categoria: '', historico: [{ id: 2280, qtdCompra: 200,   custoCompra: 3.00,   fornecedor: '',                        data: '' }] },
+  { id: 229, ativo: true,  nome: 'Açúcar refinado',                          sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 5.00,   fatia: null, categoria: '', historico: [{ id: 2290, qtdCompra: 1000,  custoCompra: 5.00,   fornecedor: '',                        data: '' }] },
+  { id: 230, ativo: true,  nome: 'Coco flocos Sococo',                       sugestao: '',                                    unidade: 'g',  qtdCompra: 5000,  custoCompra: 361.92, fatia: null, categoria: '', historico: [{ id: 2300, qtdCompra: 5000,  custoCompra: 361.92, fornecedor: '',                        data: '' }] },
+  { id: 231, ativo: true,  nome: 'Farinha de trigo',                         sugestao: '',                                    unidade: 'g',  qtdCompra: 2500,  custoCompra: 100.00, fatia: null, categoria: '', historico: [{ id: 2310, qtdCompra: 2500,  custoCompra: 100.00, fornecedor: '',                        data: '' }] },
+  { id: 232, ativo: true,  nome: 'Fermento em pó Fleishman',                 sugestao: '',                                    unidade: 'g',  qtdCompra: 2000,  custoCompra: 73.90,  fatia: null, categoria: '', historico: [{ id: 2320, qtdCompra: 2000,  custoCompra: 73.90,  fornecedor: '',                        data: '' }] },
+  { id: 233, ativo: true,  nome: 'Fermento fresco Rekord',                   sugestao: '',                                    unidade: 'g',  qtdCompra: 500,   custoCompra: 6.39,   fatia: null, categoria: '', historico: [{ id: 2330, qtdCompra: 500,   custoCompra: 6.39,   fornecedor: '',                        data: '' }] },
+  { id: 234, ativo: true,  nome: 'Frango desfiado',                          sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 20.00,  fatia: null, categoria: '', historico: [{ id: 2340, qtdCompra: 1000,  custoCompra: 20.00,  fornecedor: '',                        data: '' }] },
+  { id: 235, ativo: true,  nome: 'Frutas vermelhas polpa',                   sugestao: '',                                    unidade: 'un', qtdCompra: 10,    custoCompra: 34.00,  fatia: null, categoria: '', historico: [{ id: 2350, qtdCompra: 10,    custoCompra: 34.00,  fornecedor: '',                        data: '' }] },
+  { id: 236, ativo: true,  nome: 'Fubá Yoki',                                sugestao: '',                                    unidade: 'g',  qtdCompra: 4000,  custoCompra: 35.02,  fatia: null, categoria: '', historico: [{ id: 2360, qtdCompra: 4000,  custoCompra: 35.02,  fornecedor: '',                        data: '' }] },
+  { id: 237, ativo: true,  nome: 'Granulé Meio Amargo Melken',               sugestao: '',                                    unidade: 'g',  qtdCompra: 400,   custoCompra: 45.00,  fatia: null, categoria: '', historico: [{ id: 2370, qtdCompra: 400,   custoCompra: 45.00,  fornecedor: 'TTF',                     data: '' }] },
+  { id: 238, ativo: true,  nome: 'Hamburguer artesanal',                     sugestao: '',                                    unidade: 'un', qtdCompra: 48,    custoCompra: 278.49, fatia: null, categoria: '', historico: [{ id: 2380, qtdCompra: 48,    custoCompra: 278.49, fornecedor: '',                        data: '' }] },
+  { id: 239, ativo: true,  nome: 'Iogurte Natural Nestlé',                   sugestao: '',                                    unidade: 'un', qtdCompra: 1,     custoCompra: 3.43,   fatia: null, categoria: '', historico: [{ id: 2390, qtdCompra: 1,     custoCompra: 3.43,   fornecedor: '',                        data: '' }] },
+  { id: 240, ativo: true,  nome: 'Leite',                                    sugestao: '',                                    unidade: 'ml', qtdCompra: 1000,  custoCompra: 4.00,   fatia: null, categoria: '', historico: [{ id: 2400, qtdCompra: 1000,  custoCompra: 4.00,   fornecedor: '',                        data: '' }] },
+  { id: 241, ativo: true,  nome: 'Leite condensado Moça',                    sugestao: '',                                    unidade: 'g',  qtdCompra: 395,   custoCompra: 9.00,   fatia: null, categoria: '', historico: [{ id: 2410, qtdCompra: 395,   custoCompra: 9.00,   fornecedor: '',                        data: '' }] },
+  { id: 242, ativo: true,  nome: 'Leite NINHO',                              sugestao: '',                                    unidade: 'g',  qtdCompra: 350,   custoCompra: 17.20,  fatia: null, categoria: '', historico: [{ id: 2420, qtdCompra: 350,   custoCompra: 17.20,  fornecedor: '',                        data: '' }] },
+  { id: 243, ativo: true,  nome: 'Maionese',                                 sugestao: '',                                    unidade: 'g',  qtdCompra: 500,   custoCompra: 12.00,  fatia: null, categoria: '', historico: [{ id: 2430, qtdCompra: 500,   custoCompra: 12.00,  fornecedor: '',                        data: '' }] },
+  { id: 244, ativo: true,  nome: 'Manteiga Alto Alegre',                     sugestao: '',                                    unidade: 'g',  qtdCompra: 5000,  custoCompra: 29.20,  fatia: null, categoria: '', historico: [{ id: 2440, qtdCompra: 5000,  custoCompra: 29.20,  fornecedor: 'Laticinios Luso Brasileiro', data: '' }] },
+  { id: 245, ativo: true,  nome: 'Maracujá polpa',                           sugestao: '',                                    unidade: 'un', qtdCompra: 10,    custoCompra: 29.00,  fatia: null, categoria: '', historico: [{ id: 2450, qtdCompra: 10,    custoCompra: 29.00,  fornecedor: '',                        data: '' }] },
+  { id: 246, ativo: true,  nome: 'Margarina Coamo',                          sugestao: '',                                    unidade: 'g',  qtdCompra: 14500, custoCompra: 149.50, fatia: null, categoria: '', historico: [{ id: 2460, qtdCompra: 14500, custoCompra: 149.50, fornecedor: '',                        data: '' }] },
+  { id: 247, ativo: true,  nome: 'Margarina Folhada Ricca',                  sugestao: '',                                    unidade: 'g',  qtdCompra: 2000,  custoCompra: 51.46,  fatia: null, categoria: '', historico: [{ id: 2470, qtdCompra: 2000,  custoCompra: 51.46,  fornecedor: 'Diniz',                   data: '' }] },
+  { id: 248, ativo: true,  nome: 'Morangos',                                 sugestao: '',                                    unidade: 'g',  qtdCompra: 250,   custoCompra: 8.00,   fatia: null, categoria: '', historico: [{ id: 2480, qtdCompra: 250,   custoCompra: 8.00,   fornecedor: '',                        data: '' }] },
+  { id: 249, ativo: true,  nome: 'Nozes sem casca',                          sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 86.60,  fatia: null, categoria: '', historico: [{ id: 2490, qtdCompra: 1000,  custoCompra: 86.60,  fornecedor: '',                        data: '' }] },
+  { id: 250, ativo: true,  nome: 'Ovomaltine',                               sugestao: '',                                    unidade: 'g',  qtdCompra: 750,   custoCompra: 43.54,  fatia: null, categoria: '', historico: [{ id: 2500, qtdCompra: 750,   custoCompra: 43.54,  fornecedor: 'Imp Irmãos Avelino',      data: '' }] },
+  { id: 251, ativo: true,  nome: 'Ovos',                                     sugestao: '',                                    unidade: 'g',  qtdCompra: 50,    custoCompra: 0.80,   fatia: null, categoria: '', historico: [{ id: 2510, qtdCompra: 50,    custoCompra: 0.80,   fornecedor: '',                        data: '' }] },
+  { id: 252, ativo: true,  nome: 'Pão francês',                              sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 5.00,   fatia: 50,   categoria: '', historico: [{ id: 2520, qtdCompra: 1000,  custoCompra: 5.00,   fornecedor: '',                        data: '' }] },
+  { id: 253, ativo: true,  nome: 'Pão integral 70%',                         sugestao: 'Pão pullman integral',                unidade: 'un', qtdCompra: 1,     custoCompra: 0.50,   fatia: null, categoria: '', historico: [{ id: 2530, qtdCompra: 1,     custoCompra: 0.50,   fornecedor: '',                        data: '' }] },
+  { id: 254, ativo: true,  nome: 'Pão pullman hamburguer',                   sugestao: 'Pão pullman integral',                unidade: 'un', qtdCompra: 6,     custoCompra: 18.00,  fatia: null, categoria: '', historico: [{ id: 2540, qtdCompra: 6,     custoCompra: 18.00,  fornecedor: '',                        data: '' }] },
+  { id: 255, ativo: true,  nome: 'Pão pullman integral',                     sugestao: 'Pão pullman hamburguer',              unidade: 'un', qtdCompra: 30,    custoCompra: 8.50,   fatia: null, categoria: '', historico: [{ id: 2550, qtdCompra: 30,    custoCompra: 8.50,   fornecedor: '',                        data: '' }] },
+  { id: 256, ativo: true,  nome: 'Papel Hig Rolão',                          sugestao: '',                                    unidade: 'un', qtdCompra: 8,     custoCompra: 122.31, fatia: null, categoria: '', historico: [{ id: 2560, qtdCompra: 8,     custoCompra: 122.31, fornecedor: 'JL Embalagens',            data: '2026-04-15' }] },
+  { id: 257, ativo: false, nome: 'Peito de peru Sadia',                      sugestao: '',                                    unidade: 'g',  qtdCompra: 5600,  custoCompra: 262.08, fatia: 25,   categoria: '', historico: [{ id: 2570, qtdCompra: 5600,  custoCompra: 262.08, fornecedor: '',                        data: '2026-03-14' }] },
+  { id: 258, ativo: true,  nome: 'Ganache Toffee Vabene 4kg',                sugestao: '',                                    unidade: 'g',  qtdCompra: 4000,  custoCompra: 200.00, fatia: null, categoria: '', historico: [{ id: 2580, qtdCompra: 4000,  custoCompra: 200.00, fornecedor: '',                        data: '' }] },
+  { id: 259, ativo: true,  nome: 'Peito de peru Sadia',                      sugestao: '',                                    unidade: 'g',  qtdCompra: 5600,  custoCompra: 233.50, fatia: 25,   categoria: '', historico: [{ id: 2590, qtdCompra: 5600,  custoCompra: 233.50, fornecedor: '',                        data: '2026-03-31' }] },
+  { id: 260, ativo: true,  nome: 'Pré Mistura Bolo Chocomousse Fleishman',   sugestao: 'Pré Mistura Bolo Limão Vilma',        unidade: 'g',  qtdCompra: 5000,  custoCompra: 89.00,  fatia: null, categoria: '', historico: [{ id: 2600, qtdCompra: 5000,  custoCompra: 89.00,  fornecedor: '',                        data: '' }] },
+  { id: 261, ativo: true,  nome: 'Pré Mistura Bolo Limão Vilma',             sugestao: 'Pré Mistura Bolo Chocomousse Fleishman', unidade: 'g', qtdCompra: 5000, custoCompra: 57.00, fatia: null, categoria: '', historico: [{ id: 2610, qtdCompra: 5000, custoCompra: 57.00,  fornecedor: '',                        data: '' }] },
+  { id: 262, ativo: true,  nome: 'Pré Mistura Cake Neutro',                  sugestao: 'Pré Mistura Bolo Chocomousse Fleishman', unidade: 'g', qtdCompra: 2000, custoCompra: 35.00, fatia: null, categoria: '', historico: [{ id: 2620, qtdCompra: 2000, custoCompra: 35.00,  fornecedor: 'TTF',                     data: '' }] },
+  { id: 263, ativo: true,  nome: 'Pré Mistura Pão Ciabatta',                 sugestao: '',                                    unidade: 'g',  qtdCompra: 5000,  custoCompra: 48.94,  fatia: null, categoria: '', historico: [{ id: 2630, qtdCompra: 5000,  custoCompra: 48.94,  fornecedor: '',                        data: '' }] },
+  { id: 264, ativo: true,  nome: 'Presunto Magro Sadia',                     sugestao: '',                                    unidade: 'g',  qtdCompra: 6900,  custoCompra: 175.12, fatia: 25,   categoria: '', historico: [{ id: 2640, qtdCompra: 6900,  custoCompra: 175.12, fornecedor: 'Sadia',                   data: '2026-03-31' }] },
+  { id: 265, ativo: false, nome: 'Presunto Magro Sadia',                     sugestao: '',                                    unidade: 'g',  qtdCompra: 6900,  custoCompra: 146.00, fatia: null, categoria: '', historico: [{ id: 2650, qtdCompra: 6900,  custoCompra: 146.00, fornecedor: 'Sadia',                   data: '2026-03-24' }] },
+  { id: 266, ativo: true,  nome: 'Presunto Magro Seara',                     sugestao: 'Presunto Magro Sadia',                unidade: 'g',  qtdCompra: 1000,  custoCompra: 24.06,  fatia: 25,   categoria: '', historico: [{ id: 2660, qtdCompra: 1000,  custoCompra: 24.06,  fornecedor: '',                        data: '' }] },
+  { id: 267, ativo: true,  nome: 'Queijo branco',                            sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 45.00,  fatia: 100,  categoria: '', historico: [{ id: 2670, qtdCompra: 1000,  custoCompra: 45.00,  fornecedor: '',                        data: '' }] },
+  { id: 268, ativo: true,  nome: 'Queijo Colonial Scala',                    sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 70.49,  fatia: null, categoria: '', historico: [{ id: 2680, qtdCompra: 1000,  custoCompra: 70.49,  fornecedor: 'Cigaax',                  data: '' }] },
+  { id: 269, ativo: true,  nome: 'Queijo Muçarela (Tipo Muçarela)',          sugestao: 'Queijo Muçarela Apollo',              unidade: 'g',  qtdCompra: 1000,  custoCompra: 38.90,  fatia: null, categoria: '', historico: [{ id: 2690, qtdCompra: 1000,  custoCompra: 38.90,  fornecedor: 'Elvis Laticinios',        data: '2026-04-15' }] },
+  { id: 270, ativo: true,  nome: 'Queijo Muçarela Apollo',                   sugestao: 'Queijo Muçarela (Tipo Muçarela)',    unidade: 'g',  qtdCompra: 1000,  custoCompra: 35.38,  fatia: 30,   categoria: '', historico: [{ id: 2700, qtdCompra: 1000,  custoCompra: 35.38,  fornecedor: 'MPA Comercial',           data: '' }] },
+  { id: 271, ativo: true,  nome: 'Queijo Muçarela Imperador',                sugestao: 'Queijo Muçarela (Tipo Muçarela)',    unidade: 'g',  qtdCompra: 1000,  custoCompra: 30.13,  fatia: 30,   categoria: '', historico: [{ id: 2710, qtdCompra: 1000,  custoCompra: 30.13,  fornecedor: 'Emporio Mega 100',        data: '' }] },
+  { id: 272, ativo: true,  nome: 'Queijo Muçarela Inlaron',                  sugestao: 'Queijo Muçarela (Tipo Muçarela)',    unidade: 'g',  qtdCompra: 1000,  custoCompra: 33.99,  fatia: 30,   categoria: '', historico: [{ id: 2720, qtdCompra: 1000,  custoCompra: 33.99,  fornecedor: '',                        data: '' }] },
+  { id: 273, ativo: false, nome: 'Queijo Muçarela Lacmon',                   sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 31.35,  fatia: 30,   categoria: '', historico: [{ id: 2730, qtdCompra: 1000,  custoCompra: 31.35,  fornecedor: '',                        data: '' }] },
+  { id: 274, ativo: true,  nome: 'Queijo Muçarela Lacmon',                   sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 36.90,  fatia: 30,   categoria: '', historico: [{ id: 2740, qtdCompra: 1000,  custoCompra: 36.90,  fornecedor: 'RJ Cm. de Alimentos',     data: '2026-04-06' }] },
+  { id: 275, ativo: true,  nome: 'Queijo parmesão ralado Vigor',             sugestao: 'Queijo Parmesão Scala',               unidade: 'g',  qtdCompra: 1000,  custoCompra: 101.13, fatia: null, categoria: '', historico: [{ id: 2750, qtdCompra: 1000,  custoCompra: 101.13, fornecedor: '',                        data: '' }] },
+  { id: 276, ativo: true,  nome: 'Queijo Parmesão Scala',                    sugestao: 'Queijo parmesão ralado Vigor',        unidade: 'g',  qtdCompra: 1000,  custoCompra: 69.39,  fatia: null, categoria: '', historico: [{ id: 2760, qtdCompra: 1000,  custoCompra: 69.39,  fornecedor: 'MPA Comercial',           data: '' }] },
+  { id: 277, ativo: true,  nome: 'Queijo prato',                             sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 60.00,  fatia: 25,   categoria: '', historico: [{ id: 2770, qtdCompra: 1000,  custoCompra: 60.00,  fornecedor: '',                        data: '' }] },
+  { id: 278, ativo: true,  nome: 'Requeijão Catupiry',                       sugestao: 'Requeijão cremoso Catupiry',          unidade: 'g',  qtdCompra: 420,   custoCompra: 14.99,  fatia: null, categoria: '', historico: [{ id: 2780, qtdCompra: 420,   custoCompra: 14.99,  fornecedor: '',                        data: '' }] },
+  { id: 279, ativo: true,  nome: 'Requeijão cremoso Catupiry',               sugestao: 'Requeijão cremoso Coronata',          unidade: 'g',  qtdCompra: 1500,  custoCompra: 70.00,  fatia: null, categoria: '', historico: [{ id: 2790, qtdCompra: 1500,  custoCompra: 70.00,  fornecedor: '',                        data: '' }] },
+  { id: 280, ativo: true,  nome: 'Requeijão cremoso Coronata',               sugestao: 'Requeijão cremoso Catupiry',          unidade: 'g',  qtdCompra: 1500,  custoCompra: 26.60,  fatia: null, categoria: '', historico: [{ id: 2800, qtdCompra: 1500,  custoCompra: 26.60,  fornecedor: '',                        data: '' }] },
+  { id: 281, ativo: true,  nome: 'Rúcula',                                   sugestao: '',                                    unidade: 'g',  qtdCompra: 300,   custoCompra: 6.00,   fatia: null, categoria: '', historico: [{ id: 2810, qtdCompra: 300,   custoCompra: 6.00,   fornecedor: '',                        data: '' }] },
+  { id: 282, ativo: true,  nome: 'Sachê de chá',                             sugestao: '',                                    unidade: 'un', qtdCompra: 1,     custoCompra: 1.00,   fatia: null, categoria: '', historico: [{ id: 2820, qtdCompra: 1,     custoCompra: 1.00,   fornecedor: '',                        data: '' }] },
+  { id: 283, ativo: true,  nome: 'Sacola CartaPlast',                        sugestao: '',                                    unidade: 'un', qtdCompra: 800,   custoCompra: 163.07, fatia: null, categoria: '', historico: [{ id: 2830, qtdCompra: 800,   custoCompra: 163.07, fornecedor: 'JL Embalagens',            data: '2026-04-15' }] },
+  { id: 284, ativo: true,  nome: 'Salame Hamburgues Sadia',                  sugestao: '',                                    unidade: 'g',  qtdCompra: 4600,  custoCompra: 292.42, fatia: null, categoria: '', historico: [{ id: 2840, qtdCompra: 4600,  custoCompra: 292.42, fornecedor: 'SADIA',                   data: '' }] },
+  { id: 285, ativo: true,  nome: 'Salame Italiano Sadia',                    sugestao: '',                                    unidade: 'g',  qtdCompra: 6000,  custoCompra: 398.64, fatia: 10,   categoria: '', historico: [{ id: 2850, qtdCompra: 6000,  custoCompra: 398.64, fornecedor: 'SADIA',                   data: '' }] },
+  { id: 286, ativo: true,  nome: 'Tapioca terrinha',                         sugestao: '',                                    unidade: 'g',  qtdCompra: 500,   custoCompra: 7.00,   fatia: null, categoria: '', historico: [{ id: 2860, qtdCompra: 500,   custoCompra: 7.00,   fornecedor: '',                        data: '' }] },
+  { id: 287, ativo: true,  nome: 'Toalha Interfolhada FellCare',             sugestao: '',                                    unidade: 'un', qtdCompra: 12,    custoCompra: 227.22, fatia: null, categoria: '', historico: [{ id: 2870, qtdCompra: 12,    custoCompra: 227.22, fornecedor: 'JL Embalagens',            data: '2026-04-15' }] },
+  { id: 288, ativo: true,  nome: 'Toddy',                                    sugestao: '',                                    unidade: 'g',  qtdCompra: 370,   custoCompra: 10.00,  fatia: null, categoria: '', historico: [{ id: 2880, qtdCompra: 370,   custoCompra: 10.00,  fornecedor: '',                        data: '' }] },
+  { id: 289, ativo: true,  nome: 'Tomate',                                   sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 15.00,  fatia: 20,   categoria: '', historico: [{ id: 2890, qtdCompra: 1000,  custoCompra: 15.00,  fornecedor: '',                        data: '' }] },
+  { id: 290, ativo: true,  nome: 'Tomate Seco',                              sugestao: '',                                    unidade: 'g',  qtdCompra: 1900,  custoCompra: 60.00,  fatia: null, categoria: '', historico: [{ id: 2900, qtdCompra: 1900,  custoCompra: 60.00,  fornecedor: '',                        data: '' }] },
+  { id: 291, ativo: true,  nome: 'Whey Black Skull',                         sugestao: '',                                    unidade: 'g',  qtdCompra: 900,   custoCompra: 90.00,  fatia: null, categoria: '', historico: [{ id: 2910, qtdCompra: 900,   custoCompra: 90.00,  fornecedor: '',                        data: '' }] },
+  { id: 292, ativo: true,  nome: 'Creamcheese Danubio Tradicional',          sugestao: '',                                    unidade: 'g',  qtdCompra: 1000,  custoCompra: 43.90,  fatia: null, categoria: '', historico: [{ id: 2920, qtdCompra: 1000,  custoCompra: 43.90,  fornecedor: '',                        data: '' }] },
 ]);
 
 // Migração aplicada após nextId ser inicializado (ver bloco abaixo)
@@ -1988,6 +2038,9 @@ ingredientes = ingredientes.map(ing => {
       : [];
   }
   if (ing.fatia === undefined) ing.fatia = null;
+  if (ing.ativo === undefined) ing.ativo = true;
+  if (!ing.sugestao) ing.sugestao = '';
+  if (!ing.categoria) ing.categoria = '';
   // Garante qtdCompra/custoCompra sincronizados com historico mais recente
   const ultimo = ing.historico[ing.historico.length - 1];
   if (ultimo) { ing.qtdCompra = ultimo.qtdCompra; ing.custoCompra = ultimo.custoCompra; }
@@ -3362,7 +3415,9 @@ function renderCMV() {
 
 function renderIngredientes() {
   const tbody = document.getElementById('ingredientes-tbody');
-  tbody.innerHTML = ingredientes.map(ing => {
+  const mostrarInativos = document.getElementById('ing-show-inativos')?.checked ?? false;
+  const lista = ingredientes.filter(ing => mostrarInativos || ing.ativo !== false);
+  tbody.innerHTML = lista.map(ing => {
     const uc = getUltimaCompra(ing);
     const custoUnit = custoIngredienteUnit(ing);
     let derivados = `<span style="color:var(--text-light);font-size:12px;">${money(custoUnit)}/${ing.unidade}</span>`;
@@ -3380,8 +3435,15 @@ function renderIngredientes() {
       derivados = `<span style="font-size:11px;color:var(--text-mid);">${money(custoUnit)}/un</span>`;
     }
     const nCompras = (ing.historico || []).length;
-    return `<tr>
+    const ativoColor = ing.ativo !== false ? 'var(--green,#16a34a)' : 'var(--red,#dc2626)';
+    const ativoLabel = ing.ativo !== false ? 'ON' : 'OFF';
+    const rowStyle = ing.ativo === false ? 'opacity:0.55;' : '';
+    return `<tr style="${rowStyle}">
+      <td style="text-align:center;">
+        <button class="btn btn-ghost btn-sm" onclick="toggleIngredienteAtivo(${ing.id})" title="Ativar/Desativar" style="font-size:11px;font-weight:700;color:${ativoColor};padding:2px 6px;">${ativoLabel}</button>
+      </td>
       <td><input class="sheet-input" value="${ing.nome || ''}" onblur="updateIngredienteCell(${ing.id}, 'nome', this.value)" placeholder="ex: Farinha" style="min-width:130px;"></td>
+      <td><input class="sheet-input" value="${ing.sugestao || ''}" onblur="updateIngredienteCell(${ing.id}, 'sugestao', this.value)" placeholder="alternativa…" style="min-width:120px;font-size:11px;color:var(--text-mid);"></td>
       <td>
         <select class="sheet-select" onchange="updateIngredienteCell(${ing.id}, 'unidade', this.value)">
           <option value="g" ${ing.unidade === 'g' ? 'selected' : ''}>g</option>
@@ -3401,7 +3463,7 @@ function renderIngredientes() {
         <button class="btn btn-ghost btn-sm" onclick="deleteIngrediente(${ing.id})" style="color:var(--red)">×</button>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum ingrediente cadastrado</td></tr>`;
+  }).join('') || `<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum ingrediente cadastrado</td></tr>`;
 }
 
 function renderReceitaRow(receita) {
@@ -3582,9 +3644,17 @@ function updateIngredienteCompra(id, field, value) {
 }
 
 function addIngredienteRow() {
-  ingredientes.push({ id: ++nextId, nome: '', unidade: 'g', qtdCompra: 0, custoCompra: 0, fatia: null, historico: [] });
+  ingredientes.push({ id: ++nextId, ativo: true, nome: '', sugestao: '', unidade: 'g', qtdCompra: 0, custoCompra: 0, fatia: null, categoria: '', historico: [] });
   saveAll();
   renderCMV();
+}
+
+function toggleIngredienteAtivo(id) {
+  const ing = ingredientes.find(i => i.id === id);
+  if (!ing) return;
+  ing.ativo = !ing.ativo;
+  saveAll();
+  renderIngredientes();
 }
 
 function updateIngredienteCell(id, field, value) {
@@ -3644,6 +3714,7 @@ function refreshProductCostsFromRecipes() {
 function openIngredienteModal(ing = null) {
   document.getElementById('ing-id').value = ing ? ing.id : '';
   document.getElementById('ing-nome').value = ing ? ing.nome : '';
+  document.getElementById('ing-sugestao').value = ing ? (ing.sugestao || '') : '';
   document.getElementById('ing-unidade').value = ing ? ing.unidade : 'g';
   document.getElementById('ing-fatia').value = ing?.fatia || '';
   const uc = ing ? getUltimaCompra(ing) : {};
@@ -3665,10 +3736,12 @@ function saveIngrediente() {
   const fatia = parseFloat(document.getElementById('ing-fatia').value) || null;
   if (!nome) return showToast('Preencha o nome do ingrediente', 'error');
 
+  const sugestao = document.getElementById('ing-sugestao').value.trim();
   if (id) {
     const idx = ingredientes.findIndex(i => i.id == id);
     const ing = ingredientes[idx];
     ing.nome = nome;
+    ing.sugestao = sugestao;
     ing.unidade = document.getElementById('ing-unidade').value;
     ing.fatia = fatia;
     // Se preencheu nova compra, registra no histórico
@@ -3685,9 +3758,12 @@ function saveIngrediente() {
   } else {
     const novo = {
       id: ++nextId,
+      ativo: true,
       nome,
+      sugestao,
       unidade: document.getElementById('ing-unidade').value,
       qtdCompra, custoCompra, fatia,
+      categoria: '',
       historico: (qtdCompra && custoCompra) ? [{ id: ++nextId, qtdCompra, custoCompra, fornecedor, data: dataCompra }] : []
     };
     ingredientes.push(novo);
