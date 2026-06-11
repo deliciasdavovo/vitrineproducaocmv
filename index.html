@@ -893,6 +893,7 @@ tr:hover td { background: var(--surface-soft); }
   <button class="nav-btn active" onclick="showPage('vitrine')">Vitrines</button>
   <button class="nav-btn" onclick="showPage('cronograma')">Cronograma</button>
   <button class="nav-btn" onclick="showPage('produtos')">Produtos</button>
+  <button class="nav-btn" onclick="showPage('insumos')">Insumos & Fichas</button>
   <button class="nav-btn" onclick="showPage('cmv')">CMV</button>
   <button class="nav-btn" onclick="showPage('perdas')">Perdas</button>
   <button class="nav-btn" onclick="showPage('pedido')">Pedido de Produção</button>
@@ -1048,37 +1049,14 @@ tr:hover td { background: var(--surface-soft); }
   </div>
 </div>
 
-<!-- ===================== PAGE: CMV ===================== -->
-<div class="page" id="page-cmv">
-  <h2 class="section-title">CMV — Custo da Mercadoria Vendida</h2>
-  <p class="section-sub">Cadastre ingredientes com histórico de compras e monte receitas por produto.</p>
+<!-- ===================== PAGE: INSUMOS & FICHAS ===================== -->
+<div class="page" id="page-insumos">
+  <h2 class="section-title">Insumos & Fichas Técnicas</h2>
+  <p class="section-sub">Cadastre os insumos com histórico de compras e monte as fichas técnicas de cada produto. Preencha como numa planilha: <strong>Enter</strong> pula para a próxima coluna e, na última coluna, cria uma nova linha.</p>
 
-  <div class="stats-row" id="cmv-stats-row">
-    <div class="stat-card">
-      <div class="stat-value" id="cmv-stat-ingredientes">0</div>
-      <div class="stat-label">Ingredientes</div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-value" id="cmv-stat-receitas">0</div>
-      <div class="stat-label">Receitas cadastradas</div>
-    </div>
-    <div class="stat-card" id="cmv-stat-card-medio">
-      <div class="stat-value" id="cmv-stat-medio" style="font-size:22px;">—</div>
-      <div class="stat-label">CMV médio</div>
-      <div id="cmv-medio-bar" style="height:4px;border-radius:999px;background:var(--border);margin-top:6px;overflow:hidden;"><div id="cmv-medio-fill" style="height:100%;width:0%;background:var(--green);border-radius:999px;transition:width .4s;"></div></div>
-    </div>
-    <div class="stat-card" id="cmv-stat-card-alertas">
-      <div class="stat-value" id="cmv-stat-alertas">0</div>
-      <div class="stat-label">Produtos acima de 35%</div>
-    </div>
-  </div>
-
-  <!-- TABS (mesma organização da planilha: Insumos · Fichas Técnicas · Produtos Produção · Produtos Revenda) -->
-  <div class="toggle-row" id="cmv-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
-    <button class="toggle-btn active" id="cmv-tab-ing" onclick="setCmvTab('ingredientes')">Insumos</button>
-    <button class="toggle-btn" id="cmv-tab-rec" onclick="setCmvTab('receitas')">Fichas Técnicas</button>
-    <button class="toggle-btn" id="cmv-tab-prod" onclick="setCmvTab('producao')">Produtos Produção</button>
-    <button class="toggle-btn" id="cmv-tab-rev" onclick="setCmvTab('revenda')">Produtos Revenda</button>
+  <div class="toggle-row" id="insumos-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
+    <button class="toggle-btn active" id="insumos-tab-ing" onclick="setInsumosTab('ingredientes')">Insumos</button>
+    <button class="toggle-btn" id="insumos-tab-rec" onclick="setInsumosTab('receitas')">Fichas Técnicas</button>
   </div>
 
   <!-- PAINEL INGREDIENTES -->
@@ -1146,9 +1124,41 @@ tr:hover td { background: var(--surface-soft); }
       </div>
     </div>
   </div>
+</div>
+
+<!-- ===================== PAGE: CMV ===================== -->
+<div class="page" id="page-cmv">
+  <h2 class="section-title">CMV — Custo da Mercadoria Vendida</h2>
+  <p class="section-sub">CMV dos produtos de produção e de revenda. Os custos vêm dos insumos e fichas técnicas cadastrados na aba Insumos &amp; Fichas.</p>
+
+  <div class="stats-row" id="cmv-stats-row">
+    <div class="stat-card">
+      <div class="stat-value" id="cmv-stat-ingredientes">0</div>
+      <div class="stat-label">Insumos</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="cmv-stat-receitas">0</div>
+      <div class="stat-label">Fichas técnicas</div>
+    </div>
+    <div class="stat-card" id="cmv-stat-card-medio">
+      <div class="stat-value" id="cmv-stat-medio" style="font-size:22px;">—</div>
+      <div class="stat-label">CMV médio</div>
+      <div id="cmv-medio-bar" style="height:4px;border-radius:999px;background:var(--border);margin-top:6px;overflow:hidden;"><div id="cmv-medio-fill" style="height:100%;width:0%;background:var(--green);border-radius:999px;transition:width .4s;"></div></div>
+    </div>
+    <div class="stat-card" id="cmv-stat-card-alertas">
+      <div class="stat-value" id="cmv-stat-alertas">0</div>
+      <div class="stat-label">Produtos acima de 35%</div>
+    </div>
+  </div>
+
+  <!-- TABS: apenas produtos (produção e revenda) -->
+  <div class="toggle-row" id="cmv-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
+    <button class="toggle-btn active" id="cmv-tab-prod" onclick="setCmvTab('producao')">Produtos Produção</button>
+    <button class="toggle-btn" id="cmv-tab-rev" onclick="setCmvTab('revenda')">Produtos Revenda</button>
+  </div>
 
   <!-- PAINEL PRODUTOS PRODUÇÃO -->
-  <div id="cmv-panel-producao" style="display:none;">
+  <div id="cmv-panel-producao">
     <p class="section-sub" style="margin-bottom:12px;">Resumo dos produtos de fabricação: custo da ficha técnica, CMV, lucro e margem por unidade.</p>
     <div class="sheet-card">
       <div class="table-wrap">
@@ -2023,6 +2033,7 @@ function showPage(page) {
   if (page === 'vitrine') renderVitrine();
   if (page === 'cronograma') renderCronograma();
   if (page === 'produtos') renderProdutos();
+  if (page === 'insumos') renderInsumos();
   if (page === 'cmv') renderCMV();
   if (page === 'perdas') renderPerdas();
   if (page === 'pedido') renderPedido();
@@ -2916,24 +2927,36 @@ function getProdutoReceitaRendimento(prodId) {
   return Number(receita?.rendimento) || 1;
 }
 
-let currentCmvTab = 'ingredientes';
+let currentCmvTab = 'producao';
+let currentInsumosTab = 'ingredientes';
 let currentReceitaView = 'flat';
 
 function setCmvTab(tab) {
   currentCmvTab = tab;
   const panels = {
-    ingredientes: 'cmv-panel-ingredientes',
-    receitas: 'cmv-panel-receitas',
     producao: 'cmv-panel-producao',
     revenda: 'cmv-panel-revenda'
   };
   Object.entries(panels).forEach(([key, id]) => {
     document.getElementById(id).style.display = key === tab ? '' : 'none';
   });
-  document.getElementById('cmv-tab-ing').classList.toggle('active', tab === 'ingredientes');
-  document.getElementById('cmv-tab-rec').classList.toggle('active', tab === 'receitas');
   document.getElementById('cmv-tab-prod').classList.toggle('active', tab === 'producao');
   document.getElementById('cmv-tab-rev').classList.toggle('active', tab === 'revenda');
+}
+
+function setInsumosTab(tab) {
+  currentInsumosTab = tab;
+  document.getElementById('cmv-panel-ingredientes').style.display = tab === 'ingredientes' ? '' : 'none';
+  document.getElementById('cmv-panel-receitas').style.display = tab === 'receitas' ? '' : 'none';
+  document.getElementById('insumos-tab-ing').classList.toggle('active', tab === 'ingredientes');
+  document.getElementById('insumos-tab-rec').classList.toggle('active', tab === 'receitas');
+}
+
+function renderInsumos() {
+  renderIngredientes();
+  renderReceitaSheet();
+  document.getElementById('cmv-stat-ingredientes').textContent = ingredientes.length;
+  document.getElementById('cmv-stat-receitas').textContent = receitas.length;
 }
 
 function getRevendaCusto(p) {
@@ -3788,6 +3811,68 @@ function renderPedido() {
 function imprimirPedido() {
   window.print();
 }
+
+// ============================================================
+// NAVEGAÇÃO TIPO PLANILHA (Enter = próxima coluna / nova linha)
+// ============================================================
+// tbodies que ganham uma nova linha ao apertar Enter na última coluna
+const sheetRowAdders = {
+  'ingredientes-tbody': () => addIngredienteRow(),
+  'receitas-tbody': () => addReceitaRow(),
+  'revenda-tbody': () => addRevendaProduto(),
+};
+
+function handleSheetKey(e) {
+  if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
+  const el = e.target;
+  if (!el.classList || !(el.classList.contains('sheet-input') || el.classList.contains('sheet-select'))) return;
+  const tbody = el.closest('tbody');
+  const row = el.closest('tr');
+  if (!tbody || !row || !tbody.id) return; // só nas planilhas com tbody identificado
+  e.preventDefault();
+
+  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const rowIndex = rows.indexOf(row);
+  const rowCells = Array.from(row.querySelectorAll('.sheet-input, .sheet-select'));
+  const colIndex = rowCells.indexOf(el);
+  const tbodyId = tbody.id;
+  const lastCol = colIndex >= rowCells.length - 1;
+  const lastRow = rowIndex >= rows.length - 1;
+
+  // commita o valor atual (dispara onblur/onchange e re-render da planilha)
+  el.blur();
+
+  if (!lastCol) {
+    focusSheetCell(tbodyId, rowIndex, colIndex + 1);
+  } else if (lastRow) {
+    const adder = sheetRowAdders[tbodyId];
+    if (adder) {
+      adder();
+      focusSheetCell(tbodyId, rowIndex + 1, 0);
+    } else {
+      focusSheetCell(tbodyId, rowIndex, colIndex);
+    }
+  } else {
+    focusSheetCell(tbodyId, rowIndex + 1, 0);
+  }
+}
+
+function focusSheetCell(tbodyId, rowIndex, colIndex) {
+  requestAnimationFrame(() => {
+    const tbody = document.getElementById(tbodyId);
+    if (!tbody) return;
+    const rows = tbody.querySelectorAll('tr');
+    const row = rows[rowIndex];
+    if (!row) return;
+    const cells = row.querySelectorAll('.sheet-input, .sheet-select');
+    if (!cells.length) return;
+    const cell = cells[Math.min(colIndex, cells.length - 1)];
+    cell.focus();
+    if (typeof cell.select === 'function') { try { cell.select(); } catch (_) {} }
+  });
+}
+
+document.addEventListener('keydown', handleSheetKey);
 
 // ============================================================
 // MODAL HELPERS
