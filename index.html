@@ -1705,9 +1705,17 @@ let produtos = getStorage('ddv_produtos', [
   { id: 1, nome: 'Pão de queijo especial', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 2.00, resp: 'Alexandre', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
   { id: 2, nome: 'Torta de frango cremosa', curva: 'A', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 65.00, resp: 'Alexandre', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
   { id: 3, nome: 'Bolo de chocolate', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 85.00, resp: 'Tiago', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
-  { id: 4, nome: 'Refrigerante lata 350ml', curva: 'B', validade: 180, categoria: 'Bebida', vitrine: 'todas', custo: 3.20, preco: 6.00, resp: 'Lucas', unidade: 'ambas', obs: 'Coca-Cola', tipo: 'revenda' },
-  { id: 5, nome: 'Água mineral 500ml', curva: 'A', validade: 365, categoria: 'Bebida', vitrine: 'todas', custo: 0.80, preco: 3.00, resp: 'Lucas', unidade: 'ambas', obs: '', tipo: 'revenda' },
-  { id: 6, nome: 'Suco de caixinha 200ml', curva: 'B', validade: 90, categoria: 'Bebida', vitrine: 'todas', custo: 1.50, preco: 4.00, resp: 'Lucas', unidade: 'ambas', obs: '', tipo: 'revenda' },
+  { id: 4, nome: 'Água Crystal 350ml', curva: 'A', validade: 365, categoria: 'Bebida', vitrine: 'todas', custo: 1.54, preco: 3.50, qtdComprada: 12, valorCompra: 18.43, resp: '', unidade: 'ambas', obs: '', tipo: 'revenda' },
+  { id: 5, nome: 'Aveia Jasmine Flocos Finos 170g', curva: 'C', validade: 180, categoria: 'Outro', vitrine: 'todas', custo: 4.62, preco: 0, qtdComprada: 1, valorCompra: 4.62, resp: '', unidade: 'ambas', obs: '', tipo: 'revenda' },
+  { id: 6, nome: 'Yopro Nutrata Mor/Choc. Branco', curva: 'B', validade: 30, categoria: 'Suplemento', vitrine: 'todas', custo: 12.94, preco: 16.80, qtdComprada: 12, valorCompra: 155.23, resp: '', unidade: 'ambas', obs: '', tipo: 'revenda' },
+  { id: 7, nome: 'Bananinha Fazendinha', curva: 'B', validade: 90, categoria: 'Doce', vitrine: 'todas', custo: 1.74, preco: 3.00, qtdComprada: 24, valorCompra: 41.70, resp: '', unidade: 'ambas', obs: '02/04/2026', tipo: 'revenda' },
+  { id: 8, nome: 'Kitkat 41,5g', curva: 'B', validade: 180, categoria: 'Doce', vitrine: 'todas', custo: 4.79, preco: 6.00, qtdComprada: 24, valorCompra: 114.90, resp: '', unidade: 'ambas', obs: '02/04/2026', tipo: 'revenda' },
+  { id: 9, nome: 'Mentos PureFresh Mono', curva: 'B', validade: 365, categoria: 'Doce', vitrine: 'todas', custo: 0.44, preco: 0.50, qtdComprada: 60, valorCompra: 26.31, resp: '', unidade: 'ambas', obs: '02/04/2026', tipo: 'revenda' },
+  { id: 10, nome: 'Diploko Olhos Famintos 10g', curva: 'B', validade: 180, categoria: 'Doce', vitrine: 'todas', custo: 2.67, preco: 3.50, qtdComprada: 24, valorCompra: 64.00, resp: '', unidade: 'ambas', obs: '02/04/2026', tipo: 'revenda' },
+  { id: 11, nome: 'Água 510ml S/ Gás Cabreuva', curva: 'A', validade: 365, categoria: 'Bebida', vitrine: 'todas', custo: 1.13, preco: 4.25, qtdComprada: 12, valorCompra: 13.50, resp: '', unidade: 'ambas', obs: 'Sugestão: Água 510ml C/ Gás Petropolitana', tipo: 'revenda' },
+  { id: 12, nome: 'Água 1,5L S/ Gás Ecoleve', curva: 'A', validade: 365, categoria: 'Bebida', vitrine: 'todas', custo: 2.12, preco: 6.50, qtdComprada: 6, valorCompra: 12.70, resp: '', unidade: 'ambas', obs: '', tipo: 'revenda' },
+  { id: 13, nome: 'Água 510ml C/ Gás Petropolitana', curva: 'A', validade: 365, categoria: 'Bebida', vitrine: 'todas', custo: 1.13, preco: 4.80, qtdComprada: 12, valorCompra: 13.50, resp: '', unidade: 'ambas', obs: 'Sugestão: Água 510ml S/ Gás Cabreuva', tipo: 'revenda' },
+  { id: 14, nome: 'Hysotonic 500ml Sport LK', curva: 'B', validade: 365, categoria: 'Bebida', vitrine: 'todas', custo: 4.09, preco: 8.50, qtdComprada: 6, valorCompra: 24.54, resp: '', unidade: 'ambas', obs: '', tipo: 'revenda' },
 ]);
 
 let ingredientes = getStorage('ddv_ingredientes', [
