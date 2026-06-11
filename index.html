@@ -976,6 +976,25 @@ tr:hover td { background: var(--surface-soft); }
   <div style="margin-top:12px;">
     <button class="btn btn-primary" onclick="openCronoModal()">+ Adicionar tarefa</button>
   </div>
+
+  <div style="margin-top:32px;">
+    <h2 class="section-title" style="font-size:18px;">Plano de Produção Semanal</h2>
+    <p class="section-sub">Quantidade padrão de cada produto por dia da semana — entra automaticamente no Pedido de Produção do dia.</p>
+    <div class="sheet-card">
+      <div class="table-wrap">
+        <table class="sheet-table">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody id="plano-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ===================== PAGE: PRODUTOS ===================== -->
@@ -1022,18 +1041,7 @@ tr:hover td { background: var(--surface-soft); }
   <div class="card" style="padding:0; overflow:hidden;">
     <div class="table-wrap">
       <table id="produtos-table">
-        <thead>
-          <tr>
-            <th>Produto</th>
-            <th>Vitrine</th>
-            <th>Curva</th>
-            <th>Validade</th>
-            <th>Responsável</th>
-            <th>Custo Unit.</th>
-            <th>Preço</th>
-            <th></th>
-          </tr>
-        </thead>
+        <thead id="produtos-thead"></thead>
         <tbody id="produtos-tbody"></tbody>
       </table>
     </div>
@@ -1065,18 +1073,12 @@ tr:hover td { background: var(--surface-soft); }
     </div>
   </div>
 
-  <!-- TABS -->
-  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
-    <div class="toggle-row" id="cmv-tabs" style="margin-bottom:0;">
-      <button class="toggle-btn active" id="cmv-tab-fab" onclick="setCmvSection('fabricacao')">Fabricação</button>
-      <button class="toggle-btn" id="cmv-tab-rev" onclick="setCmvSection('revenda')">Revenda</button>
-    </div>
-  </div>
-
-  <!-- INNER TABS for fabricação -->
-  <div class="toggle-row" id="cmv-fab-inner-tabs" style="margin-bottom:16px;">
-    <button class="toggle-btn active" id="cmv-tab-ing" onclick="setCmvTab('ingredientes')">Ingredientes</button>
-    <button class="toggle-btn" id="cmv-tab-rec" onclick="setCmvTab('receitas')">Receitas</button>
+  <!-- TABS (mesma organização da planilha: Insumos · Fichas Técnicas · Produtos Produção · Produtos Revenda) -->
+  <div class="toggle-row" id="cmv-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
+    <button class="toggle-btn active" id="cmv-tab-ing" onclick="setCmvTab('ingredientes')">Insumos</button>
+    <button class="toggle-btn" id="cmv-tab-rec" onclick="setCmvTab('receitas')">Fichas Técnicas</button>
+    <button class="toggle-btn" id="cmv-tab-prod" onclick="setCmvTab('producao')">Produtos Produção</button>
+    <button class="toggle-btn" id="cmv-tab-rev" onclick="setCmvTab('revenda')">Produtos Revenda</button>
   </div>
 
   <!-- PAINEL INGREDIENTES -->
@@ -1145,16 +1147,43 @@ tr:hover td { background: var(--surface-soft); }
     </div>
   </div>
 
-  <!-- PAINEL REVENDA CMV -->
-  <div id="cmv-panel-revenda" style="display:none;">
-    <p class="section-sub" style="margin-bottom:12px;">Produtos de revenda: margem calculada sobre custo de aquisição vs preço de venda.</p>
+  <!-- PAINEL PRODUTOS PRODUÇÃO -->
+  <div id="cmv-panel-producao" style="display:none;">
+    <p class="section-sub" style="margin-bottom:12px;">Resumo dos produtos de fabricação: custo da ficha técnica, CMV, lucro e margem por unidade.</p>
     <div class="sheet-card">
       <div class="table-wrap">
         <table class="sheet-table">
           <thead>
             <tr>
               <th>Produto</th>
-              <th>Custo compra (R$)</th>
+              <th>Categoria</th>
+              <th>Preço venda (R$)</th>
+              <th>Custo ficha</th>
+              <th>Rend.</th>
+              <th>Custo un.</th>
+              <th>CMV %</th>
+              <th>Lucro un.</th>
+              <th>Margem %</th>
+            </tr>
+          </thead>
+          <tbody id="producao-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAINEL REVENDA CMV -->
+  <div id="cmv-panel-revenda" style="display:none;">
+    <p class="section-sub" style="margin-bottom:12px;">Produtos comprados prontos: informe a última compra (quantidade e valor pago) e o custo unitário, margem e CMV saem sozinhos.</p>
+    <div class="sheet-card">
+      <div class="table-wrap">
+        <table class="sheet-table">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Qtd. comprada</th>
+              <th>Valor da compra (R$)</th>
+              <th>Custo un.</th>
               <th>Preço venda (R$)</th>
               <th>Margem R$</th>
               <th>Margem %</th>
@@ -1164,6 +1193,9 @@ tr:hover td { background: var(--surface-soft); }
           </thead>
           <tbody id="revenda-tbody"></tbody>
         </table>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn btn-ghost btn-sm" onclick="addRevendaProduto()">+ Novo produto de revenda</button>
       </div>
     </div>
   </div>
@@ -1199,7 +1231,7 @@ tr:hover td { background: var(--surface-soft); }
 <!-- ===================== PAGE: PEDIDO ===================== -->
 <div class="page" id="page-pedido">
   <h2 class="section-title">Pedido de Produção</h2>
-  <p class="section-sub">Gerado automaticamente com base na vitrine planejada + cronograma + perdas</p>
+  <p class="section-sub">Gerado automaticamente com base no plano semanal + vitrine planejada + cronograma, descontando sobras e somando reposição de perdas</p>
 
   <div class="day-tabs" id="pedido-day-tabs">
     <button class="day-tab active" onclick="setPedidoDay('seg')">Seg</button>
@@ -1243,7 +1275,7 @@ tr:hover td { background: var(--surface-soft); }
     <div class="form-row full"><div class="form-group"><label>Nome do produto</label><input type="text" id="p-nome"></div></div>
     <div class="form-row">
       <div class="form-group"><label>Tipo de produto</label>
-        <select id="p-tipo">
+        <select id="p-tipo" onchange="toggleProdutoTipoFields()">
           <option value="fabricacao">Fabricação — produto que fazemos</option>
           <option value="revenda">Revenda — produto que compramos</option>
         </select>
@@ -1272,8 +1304,12 @@ tr:hover td { background: var(--surface-soft); }
         </select>
       </div>
     </div>
+    <div class="form-row" id="p-revenda-row" style="display:none;">
+      <div class="form-group"><label>Qtd. comprada (última compra)</label><input type="number" id="p-qtd-comprada" min="0" step="1" placeholder="ex: 12"></div>
+      <div class="form-group"><label>Valor da compra (R$)</label><input type="number" id="p-valor-compra" min="0" step="0.01" placeholder="ex: 18,43"></div>
+    </div>
     <div class="form-row">
-      <div class="form-group"><label>Responsável produção</label>
+      <div class="form-group" id="p-resp-group"><label>Responsável produção</label>
         <select id="p-resp">
           <option>Alexandre</option><option>Tiago</option><option>Anderson</option><option>Lucas</option><option>Outro</option>
         </select>
@@ -1684,6 +1720,8 @@ let perdas = getStorage('ddv_perdas', []);
 let fechamentos = getStorage('ddv_fechamentos', {});
 // apoioProducao[unit][day] = [{id, prodId, nome, qty}]
 let apoioProducao = getStorage('ddv_apoio_producao', {});
+// planoSemanal[unit][prodId][day] = qty padrão a produzir
+let planoSemanal = getStorage('ddv_plano_semanal', {});
 
 let nextId = getStorage('ddv_nextid', 10);
 nextId = Math.max(
@@ -1720,6 +1758,7 @@ function saveAll() {
   setStorage('ddv_perdas', perdas);
   setStorage('ddv_fechamentos', fechamentos);
   setStorage('ddv_apoio_producao', apoioProducao);
+  setStorage('ddv_plano_semanal', planoSemanal);
   setStorage('ddv_nextid', nextId);
   clearTimeout(_sbTimer);
   _sbTimer = setTimeout(syncToSupabase, 900);
@@ -1806,6 +1845,15 @@ async function syncToSupabase() {
       });
     });
     if (allApoio.length) await db.from('apoio_producao').insert(allApoio);
+    // Plano semanal — delete e re-insere por unidade
+    await db.from('plano_semanal').delete().eq('unit', currentUnit);
+    const allPlano = [];
+    Object.entries(planoSemanal[currentUnit] || {}).forEach(([prodId, days]) => {
+      Object.entries(days || {}).forEach(([dia, qty]) => {
+        if (Number(qty) > 0) allPlano.push({ unit: currentUnit, dia, prod_id: parseInt(prodId), qty: Number(qty) });
+      });
+    });
+    if (allPlano.length) await db.from('plano_semanal').insert(allPlano);
     // Fechamentos — upsert (mantém histórico)
     for (const [dia, items] of Object.entries(fechamentos[currentUnit] || {})) {
       if (!items?.length) continue;
@@ -1838,6 +1886,7 @@ async function loadFromSupabase() {
       { data: perdasData },
       { data: fechData },
       { data: apoioData },
+      { data: planoData },
     ] = await Promise.all([
       db.from('produtos').select('*').order('nome'),
       db.from('ingredientes').select('*').order('nome'),
@@ -1847,14 +1896,23 @@ async function loadFromSupabase() {
       db.from('perdas').select('*').order('data', { ascending: false }),
       db.from('fechamentos').select('*').order('data_fechamento', { ascending: false }),
       db.from('apoio_producao').select('*').order('created_at'),
+      db.from('plano_semanal').select('*'),
     ]);
 
     if (prodData?.length) {
-      produtos = prodData.map(p => ({
-        id: p.id, nome: p.nome, curva: p.curva, validade: p.validade,
-        categoria: p.categoria, vitrine: p.vitrine, custo: Number(p.custo),
-        preco: Number(p.preco), resp: p.resp, unidade: p.unidade, obs: p.obs || ''
-      }));
+      // tipo/qtdComprada/valorCompra ainda não existem nas colunas do Supabase — preserva do cache local
+      const localProdutos = getStorage('ddv_produtos', []);
+      produtos = prodData.map(p => {
+        const local = localProdutos.find(l => l.id === p.id);
+        return {
+          id: p.id, nome: p.nome, curva: p.curva, validade: p.validade,
+          categoria: p.categoria, vitrine: p.vitrine, custo: Number(p.custo),
+          preco: Number(p.preco), resp: p.resp, unidade: p.unidade, obs: p.obs || '',
+          tipo: local?.tipo || 'fabricacao',
+          qtdComprada: local?.qtdComprada ?? null,
+          valorCompra: local?.valorCompra ?? null
+        };
+      });
     }
     if (ingData?.length) {
       const localIngredientes = getStorage('ddv_ingredientes', []);
@@ -1924,6 +1982,14 @@ async function loadFromSupabase() {
         apoioProducao[a.unit][a.dia].push({
           id: a.id, prodId: a.prod_id, nome: a.nome, qty: a.qty
         });
+      });
+    }
+    if (planoData?.length) {
+      planoSemanal = {};
+      planoData.forEach(r => {
+        if (!planoSemanal[r.unit]) planoSemanal[r.unit] = {};
+        if (!planoSemanal[r.unit][r.prod_id]) planoSemanal[r.unit][r.prod_id] = {};
+        planoSemanal[r.unit][r.prod_id][r.dia] = r.qty;
       });
     }
     // Sincroniza nextId
@@ -2540,6 +2606,7 @@ function getCrono() {
 function renderCronograma() {
   const crono = getCrono();
   const list = document.getElementById('cronograma-list');
+  renderPlanoSemanal();
 
   if (crono.length === 0) {
     list.innerHTML = '<div class="empty-state"><div class="empty-icon">⏱</div><p>Nenhuma tarefa cadastrada para este dia</p></div>';
@@ -2595,6 +2662,47 @@ function removeCrono(idx) {
 }
 
 // ============================================================
+// PLANO DE PRODUÇÃO SEMANAL
+// ============================================================
+function getPlanoSemanal() {
+  if (!planoSemanal[currentUnit]) planoSemanal[currentUnit] = {};
+  return planoSemanal[currentUnit];
+}
+
+function renderPlanoSemanal() {
+  const tbody = document.getElementById('plano-tbody');
+  if (!tbody) return;
+  const plano = getPlanoSemanal();
+  const prods = produtos.filter(p =>
+    (p.tipo || 'fabricacao') === 'fabricacao' &&
+    (p.unidade === 'ambas' || p.unidade === currentUnit)
+  );
+  if (!prods.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>';
+    return;
+  }
+  tbody.innerHTML = prods.map(p => {
+    const days = plano[p.id] || {};
+    const total = dayOrder.reduce((sum, d) => sum + (Number(days[d]) || 0), 0);
+    return `<tr>
+      <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span><span class="sheet-readonly" style="padding-top:0;font-size:11px;color:var(--text-light);">${p.resp || ''}</span></td>
+      ${dayOrder.map(d => `<td><input class="sheet-input" type="number" min="0" step="1" style="min-width:52px;text-align:center;" value="${days[d] || ''}" placeholder="—" onchange="updatePlanoQty(${p.id}, '${d}', this.value)"></td>`).join('')}
+      <td><span class="sheet-readonly" style="font-family:var(--font-mono);font-weight:700;text-align:right;">${total || '—'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function updatePlanoQty(prodId, day, value) {
+  const plano = getPlanoSemanal();
+  if (!plano[prodId]) plano[prodId] = {};
+  const qty = parseInt(value) || 0;
+  if (qty > 0) plano[prodId][day] = qty;
+  else delete plano[prodId][day];
+  saveAll();
+  renderPlanoSemanal();
+}
+
+// ============================================================
 // PRODUTOS
 // ============================================================
 let currentProdutosTipo = 'fabricacao';
@@ -2618,25 +2726,43 @@ function renderProdutos() {
     (!search || p.nome.toLowerCase().includes(search))
   );
 
+  const isRevenda = currentProdutosTipo === 'revenda';
+  document.getElementById('produtos-thead').innerHTML = isRevenda
+    ? `<tr><th>Produto</th><th>Vitrine</th><th>Curva</th><th>Validade</th><th>Qtd. comprada</th><th>Custo Unit.</th><th>Preço</th><th>CMV%</th><th></th></tr>`
+    : `<tr><th>Produto</th><th>Vitrine</th><th>Curva</th><th>Validade</th><th>Responsável</th><th>Custo Unit.</th><th>Preço</th><th></th></tr>`;
+
   const tbody = document.getElementById('produtos-tbody');
-  tbody.innerHTML = filtered.map(p => `
-    <tr>
+  tbody.innerHTML = filtered.map(p => {
+    const baseCols = `
       <td>
         <div style="font-weight:600;">${p.nome}</div>
         <div style="font-size:11px;color:var(--text-light);">${p.categoria}</div>
       </td>
       <td><span class="badge badge-yellow">${vitrineLabels[inferProductVitrine(p)] || 'Vitrine'}</span></td>
       <td><span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span></td>
-      <td>${p.validade} dia${p.validade > 1 ? 's' : ''}</td>
-      <td>${p.resp}</td>
-      <td>R$ ${(p.custo||0).toFixed(2)}</td>
-      <td>R$ ${(p.preco||0).toFixed(2)}</td>
+      <td>${p.validade} dia${p.validade > 1 ? 's' : ''}</td>`;
+    const actions = `
       <td>
         <button class="btn btn-ghost btn-sm" onclick="editProduto(${p.id})">✏️</button>
         <button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">🗑</button>
-      </td>
-    </tr>
-  `).join('') || `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto encontrado</td></tr>`;
+      </td>`;
+    if (isRevenda) {
+      const custo = getRevendaCusto(p);
+      const cmv = p.preco > 0 && custo > 0 ? (custo / p.preco) * 100 : 0;
+      const statusClass = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+      return `<tr>${baseCols}
+        <td>${p.qtdComprada || '—'}</td>
+        <td>R$ ${custo.toFixed(2)}</td>
+        <td>R$ ${(p.preco||0).toFixed(2)}</td>
+        <td>${cmv > 0 ? `<span class="badge ${statusClass}">${cmv.toFixed(0)}%</span>` : '—'}</td>
+        ${actions}</tr>`;
+    }
+    return `<tr>${baseCols}
+      <td>${p.resp || '—'}</td>
+      <td>R$ ${(p.custo||0).toFixed(2)}</td>
+      <td>R$ ${(p.preco||0).toFixed(2)}</td>
+      ${actions}</tr>`;
+  }).join('') || `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto encontrado</td></tr>`;
 
   // Stats (per tipo)
   const produtosTipo = produtos.filter(p => (p.tipo || 'fabricacao') === currentProdutosTipo);
@@ -2664,12 +2790,27 @@ function openProdModal(prod) {
   document.getElementById('p-custo').value = prod ? prod.custo : '';
   document.getElementById('p-preco').value = prod ? prod.preco : '';
   document.getElementById('p-vitrine').value = prod ? inferProductVitrine(prod) : 'salgada';
-  document.getElementById('p-resp').value = prod ? prod.resp : 'Alexandre';
+  document.getElementById('p-resp').value = prod && prod.resp ? prod.resp : 'Alexandre';
   document.getElementById('p-unidade').value = prod ? prod.unidade : 'ambas';
   document.getElementById('p-obs').value = prod ? prod.obs : '';
   document.getElementById('p-tipo').value = prod ? (prod.tipo || 'fabricacao') : 'fabricacao';
+  document.getElementById('p-qtd-comprada').value = prod?.qtdComprada || '';
+  document.getElementById('p-valor-compra').value = prod?.valorCompra || '';
   document.getElementById('modal-produto-title').textContent = prod ? 'Editar Produto' : 'Novo Produto';
+  toggleProdutoTipoFields();
   openModal('modal-produto');
+}
+
+function toggleProdutoTipoFields() {
+  const isRevenda = document.getElementById('p-tipo').value === 'revenda';
+  document.getElementById('p-resp-group').style.display = isRevenda ? 'none' : '';
+  document.getElementById('p-revenda-row').style.display = isRevenda ? '' : 'none';
+}
+
+function addRevendaProduto() {
+  openProdModal();
+  document.getElementById('p-tipo').value = 'revenda';
+  toggleProdutoTipoFields();
 }
 
 function editProduto(id) {
@@ -2681,6 +2822,7 @@ function deleteProduto(id) {
   if (!confirm('Remover este produto?')) return;
   produtos = produtos.filter(p => p.id !== id);
   receitas = receitas.filter(r => r.prodId !== id);
+  Object.values(planoSemanal).forEach(porUnidade => { delete porUnidade[id]; });
   saveAll();
   renderProdutos();
   renderCMV();
@@ -2705,7 +2847,17 @@ function saveProduto() {
     unidade: document.getElementById('p-unidade').value,
     obs: document.getElementById('p-obs').value,
     tipo: document.getElementById('p-tipo').value,
+    qtdComprada: parseFloat(document.getElementById('p-qtd-comprada').value) || 0,
+    valorCompra: parseFloat(document.getElementById('p-valor-compra').value) || 0,
   };
+
+  // Revenda não tem responsável de produção; custo unitário sai da compra
+  if (data.tipo === 'revenda') {
+    data.resp = '';
+    if (data.qtdComprada > 0 && data.valorCompra > 0) {
+      data.custo = data.valorCompra / data.qtdComprada;
+    }
+  }
 
   if (id) {
     const idx = produtos.findIndex(p => p.id == id);
@@ -2766,32 +2918,71 @@ function getProdutoReceitaRendimento(prodId) {
 
 let currentCmvTab = 'ingredientes';
 let currentReceitaView = 'flat';
-let currentCmvSection = 'fabricacao';
-
-function setCmvSection(section) {
-  currentCmvSection = section;
-  const isFab = section === 'fabricacao';
-  document.getElementById('cmv-fab-inner-tabs').style.display = isFab ? '' : 'none';
-  document.getElementById('cmv-panel-revenda').style.display = isFab ? 'none' : '';
-  document.getElementById('cmv-tab-fab').classList.toggle('active', isFab);
-  document.getElementById('cmv-tab-rev').classList.toggle('active', !isFab);
-  if (isFab) {
-    // Let setCmvTab manage ingredientes/receitas panels
-    setCmvTab(currentCmvTab);
-  } else {
-    // Hide fab panels when showing revenda
-    document.getElementById('cmv-panel-ingredientes').style.display = 'none';
-    document.getElementById('cmv-panel-receitas').style.display = 'none';
-    renderRevendaCMV();
-  }
-}
 
 function setCmvTab(tab) {
   currentCmvTab = tab;
-  document.getElementById('cmv-panel-ingredientes').style.display = tab === 'ingredientes' ? '' : 'none';
-  document.getElementById('cmv-panel-receitas').style.display = tab === 'receitas' ? '' : 'none';
+  const panels = {
+    ingredientes: 'cmv-panel-ingredientes',
+    receitas: 'cmv-panel-receitas',
+    producao: 'cmv-panel-producao',
+    revenda: 'cmv-panel-revenda'
+  };
+  Object.entries(panels).forEach(([key, id]) => {
+    document.getElementById(id).style.display = key === tab ? '' : 'none';
+  });
   document.getElementById('cmv-tab-ing').classList.toggle('active', tab === 'ingredientes');
   document.getElementById('cmv-tab-rec').classList.toggle('active', tab === 'receitas');
+  document.getElementById('cmv-tab-prod').classList.toggle('active', tab === 'producao');
+  document.getElementById('cmv-tab-rev').classList.toggle('active', tab === 'revenda');
+}
+
+function getRevendaCusto(p) {
+  const qtd = Number(p.qtdComprada) || 0;
+  const valor = Number(p.valorCompra) || 0;
+  if (qtd > 0 && valor > 0) return valor / qtd;
+  return Number(p.custo) || 0;
+}
+
+function renderProducaoCMV() {
+  const tbody = document.getElementById('producao-tbody');
+  if (!tbody) return;
+  const fabricacao = produtos.filter(p => (p.tipo || 'fabricacao') === 'fabricacao');
+  if (!fabricacao.length) {
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>';
+    return;
+  }
+  tbody.innerHTML = fabricacao.map(p => {
+    const temFicha = getReceitasByProduto(p.id).length > 0;
+    const custoTotal = temFicha ? getProdutoReceitaCusto(p.id) : 0;
+    const rendimento = temFicha ? getProdutoReceitaRendimento(p.id) : 1;
+    const custoUn = temFicha ? custoTotal / rendimento : (Number(p.custo) || 0);
+    const preco = Number(p.preco) || 0;
+    const calculavel = preco > 0 && custoUn > 0;
+    const cmv = calculavel ? (custoUn / preco) * 100 : 0;
+    const lucro = preco - custoUn;
+    const margem = preco > 0 ? (lucro / preco) * 100 : 0;
+    const statusClass = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+    return `<tr>
+      <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span></td>
+      <td><span class="sheet-readonly" style="font-size:12px;">${p.categoria || '—'}</span></td>
+      <td><input class="sheet-input" type="number" min="0" step="0.01" value="${preco || ''}" onblur="updateProducaoPreco(${p.id}, this.value)" placeholder="0,00"></td>
+      <td><span class="sheet-readonly">${temFicha ? money(custoTotal) : '<span style="color:var(--text-light);">sem ficha</span>'}</span></td>
+      <td><span class="sheet-readonly">${temFicha ? rendimento : '—'}</span></td>
+      <td><span class="sheet-readonly">${custoUn > 0 ? money(custoUn) : '—'}</span></td>
+      <td><span class="sheet-readonly">${calculavel ? `<span class="badge ${statusClass}">${cmv.toFixed(1)}%</span>` : '—'}</span></td>
+      <td><span class="sheet-readonly" style="font-weight:600;color:${lucro >= 0 ? 'var(--green)' : 'var(--red)'};">${calculavel ? money(lucro) : '—'}</span></td>
+      <td><span class="sheet-readonly">${calculavel ? margem.toFixed(1) + '%' : '—'}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateProducaoPreco(prodId, value) {
+  const p = produtos.find(pr => pr.id === prodId);
+  if (!p) return;
+  p.preco = parseFloat(value) || 0;
+  saveAll();
+  renderCMV();
+  renderProdutos();
 }
 
 function renderRevendaCMV() {
@@ -2799,43 +2990,40 @@ function renderRevendaCMV() {
   if (!tbody) return;
   const revenda = produtos.filter(p => (p.tipo || 'fabricacao') === 'revenda');
   if (!revenda.length) {
-    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Adicione produtos com tipo "Revenda" na página de Produtos.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
     return;
   }
   tbody.innerHTML = revenda.map(p => {
-    const custo = Number(p.custo) || 0;
+    const qtd = Number(p.qtdComprada) || 0;
+    const valor = Number(p.valorCompra) || 0;
+    const custo = getRevendaCusto(p);
     const preco = Number(p.preco) || 0;
     const margem = preco - custo;
     const margemPct = preco > 0 ? (margem / preco) * 100 : 0;
-    const cmv = preco > 0 ? (custo / preco) * 100 : 0;
+    const cmv = preco > 0 && custo > 0 ? (custo / preco) * 100 : 0;
     const statusClass = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
     return `<tr>
       <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span></td>
-      <td><input class="sheet-input" type="number" step="0.01" value="${custo || ''}" onblur="updateRevendaCusto(${p.id}, this.value)" placeholder="0,00"></td>
-      <td><input class="sheet-input" type="number" step="0.01" value="${preco || ''}" onblur="updateRevendaPreco(${p.id}, this.value)" placeholder="0,00"></td>
-      <td><span class="sheet-readonly">${preco > 0 ? 'R$ ' + margem.toFixed(2) : '—'}</span></td>
-      <td><span class="sheet-readonly">${preco > 0 ? margemPct.toFixed(1) + '%' : '—'}</span></td>
-      <td><span class="sheet-readonly">${preco > 0 ? '<span class="badge ' + statusClass + '">' + cmv.toFixed(1) + '%</span>' : '—'}</span></td>
+      <td><input class="sheet-input" type="number" min="0" step="1" value="${qtd || ''}" onblur="updateRevendaCampo(${p.id}, 'qtdComprada', this.value)" placeholder="ex: 12"></td>
+      <td><input class="sheet-input" type="number" min="0" step="0.01" value="${valor || ''}" onblur="updateRevendaCampo(${p.id}, 'valorCompra', this.value)" placeholder="ex: 18,43"></td>
+      <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${custo > 0 ? money(custo) : '—'}</span></td>
+      <td><input class="sheet-input" type="number" min="0" step="0.01" value="${preco || ''}" onblur="updateRevendaCampo(${p.id}, 'preco', this.value)" placeholder="0,00"></td>
+      <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? money(margem) : '—'}</span></td>
+      <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? margemPct.toFixed(1) + '%' : '—'}</span></td>
+      <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? '<span class="badge ' + statusClass + '">' + cmv.toFixed(1) + '%</span>' : '—'}</span></td>
       <td><button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))">✏️</button></td>
     </tr>`;
   }).join('');
 }
 
-function updateRevendaCusto(prodId, value) {
+function updateRevendaCampo(prodId, campo, value) {
   const p = produtos.find(pr => pr.id === prodId);
   if (!p) return;
-  p.custo = parseFloat(value) || 0;
+  p[campo] = parseFloat(value) || 0;
+  // Mantém o custo unitário sincronizado com a última compra
+  if (p.qtdComprada > 0 && p.valorCompra > 0) p.custo = p.valorCompra / p.qtdComprada;
   saveAll();
-  renderRevendaCMV();
-  renderProdutos();
-}
-
-function updateRevendaPreco(prodId, value) {
-  const p = produtos.find(pr => pr.id === prodId);
-  if (!p) return;
-  p.preco = parseFloat(value) || 0;
-  saveAll();
-  renderRevendaCMV();
+  renderCMV();
   renderProdutos();
 }
 
@@ -2850,15 +3038,21 @@ function setReceitaView(view) {
 function renderCMV() {
   renderIngredientes();
   renderReceitaSheet();
+  renderProducaoCMV();
+  renderRevendaCMV();
 
   const produtosComReceita = [...new Set(receitas.map(r => r.prodId))]
     .map(prodId => produtos.find(p => p.id === prodId))
     .filter(Boolean);
 
-  const cmvs = produtosComReceita.map(produto => {
+  const cmvsFabricacao = produtosComReceita.map(produto => {
     const custoUn = getProdutoReceitaCusto(produto.id) / getProdutoReceitaRendimento(produto.id);
     return produto.preco ? (custoUn / produto.preco) * 100 : 0;
   });
+  const cmvsRevenda = produtos
+    .filter(p => (p.tipo || 'fabricacao') === 'revenda' && Number(p.preco) > 0 && getRevendaCusto(p) > 0)
+    .map(p => (getRevendaCusto(p) / Number(p.preco)) * 100);
+  const cmvs = [...cmvsFabricacao, ...cmvsRevenda];
 
   const media = cmvs.length ? cmvs.reduce((a, b) => a + b, 0) / cmvs.length : 0;
   const alertas = cmvs.filter(v => v > 35).length;
@@ -3497,20 +3691,29 @@ function renderPedido() {
     sobraAnterior[f.prodId] = (sobraAnterior[f.prodId] || 0) + (f.leftoverQty || 0);
   });
 
-  // Mapa de quantidades: prodId -> {qtyVitrine, qtyCrono, resp, hora}
+  // Mapa de quantidades: prodId -> {qtyVitrine, qtyCrono, qtyPlano, resp, hora}
   const mapa = {};
+  const novaEntrada = () => ({ qtyVitrine: 0, qtyCrono: 0, qtyPlano: 0, resp: null, hora: null });
 
   vitrine.forEach(v => {
-    if (!mapa[v.prodId]) mapa[v.prodId] = { qtyVitrine: 0, qtyCrono: 0, resp: null, hora: null };
+    if (!mapa[v.prodId]) mapa[v.prodId] = novaEntrada();
     mapa[v.prodId].qtyVitrine += v.qty;
   });
 
   crono.forEach(c => {
     if (!c.prodId || !c.qty) return;
-    if (!mapa[c.prodId]) mapa[c.prodId] = { qtyVitrine: 0, qtyCrono: 0, resp: null, hora: null };
+    if (!mapa[c.prodId]) mapa[c.prodId] = novaEntrada();
     mapa[c.prodId].qtyCrono += c.qty;
     mapa[c.prodId].resp = c.resp;
     mapa[c.prodId].hora = c.hora;
+  });
+
+  // Plano de produção semanal (quantidade padrão do dia da semana)
+  Object.entries(planoSemanal[currentUnit] || {}).forEach(([prodId, days]) => {
+    const qty = Number(days?.[currentPedidoDay]) || 0;
+    if (!qty) return;
+    if (!mapa[prodId]) mapa[prodId] = novaEntrada();
+    mapa[prodId].qtyPlano = qty;
   });
 
   // Calcular reposição baseada em perdas (últimas 4 semanas)
@@ -3523,7 +3726,7 @@ function renderPedido() {
   const list = document.getElementById('pedido-list');
 
   if (Object.keys(mapa).length === 0) {
-    list.innerHTML = '<div class="empty-state" style="padding:30px;"><div class="empty-icon">📋</div><p>Nenhum produto planejado para este dia.<br>Cadastre itens na vitrine ou cronograma.</p></div>';
+    list.innerHTML = '<div class="empty-state" style="padding:30px;"><div class="empty-icon">📋</div><p>Nenhum produto planejado para este dia.<br>Cadastre itens na vitrine, no cronograma ou no plano de produção semanal.</p></div>';
     document.getElementById('pedido-obs').innerHTML = '';
     return;
   }
@@ -3544,11 +3747,11 @@ function renderPedido() {
     const prod = produtos.find(p => p.id == prodId);
     if (!prod) return;
 
-    const qtdPlanejada = Math.max(d.qtyVitrine, d.qtyCrono);
+    const qtdPlanejada = Math.max(d.qtyVitrine, d.qtyCrono, d.qtyPlano || 0);
     const sobra = sobraAnterior[prodId] || 0;
     const qtdBase = Math.max(0, qtdPlanejada - sobra);
     const reposicao = Math.ceil((perdasProd[prodId] || 0) / 4); // média semanal de perdas
-    const resp = d.resp || prod.resp;
+    const resp = d.resp || prod.resp || '—';
     const hora = d.hora || '—';
 
     html += `<div class="pedido-item">
