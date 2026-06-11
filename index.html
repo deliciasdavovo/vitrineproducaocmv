@@ -1702,23 +1702,222 @@ function setStorage(key, val) {
 }
 
 let produtos = getStorage('ddv_produtos', [
-  { id: 1, nome: 'Pão de queijo especial', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 2.00, resp: 'Alexandre', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
-  { id: 2, nome: 'Torta de frango cremosa', curva: 'A', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 65.00, resp: 'Alexandre', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
-  { id: 3, nome: 'Bolo de chocolate', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 85.00, resp: 'Tiago', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
-  { id: 4, nome: 'Refrigerante lata 350ml', curva: 'B', validade: 180, categoria: 'Bebida', vitrine: 'todas', custo: 3.20, preco: 6.00, resp: 'Lucas', unidade: 'ambas', obs: 'Coca-Cola', tipo: 'revenda' },
-  { id: 5, nome: 'Água mineral 500ml', curva: 'A', validade: 365, categoria: 'Bebida', vitrine: 'todas', custo: 0.80, preco: 3.00, resp: 'Lucas', unidade: 'ambas', obs: '', tipo: 'revenda' },
-  { id: 6, nome: 'Suco de caixinha 200ml', curva: 'B', validade: 90, categoria: 'Bebida', vitrine: 'todas', custo: 1.50, preco: 4.00, resp: 'Lucas', unidade: 'ambas', obs: '', tipo: 'revenda' },
+  // Lanches
+  { id: 1, nome: 'Bauru', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 2, nome: 'Chapa', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 3, nome: 'Misto frio', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 4, nome: 'Misto quente', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 5, nome: 'Queijo quente branco', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 6, nome: 'Queijo quente light', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 7, nome: 'Queijo quente mussarela', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 8, nome: 'Queijo quente prato', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 9, nome: 'Pão com ovo', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 10, nome: 'Pão com requeijão chapa', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 11, nome: 'Requeijão frio', curva: 'B', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 12, nome: 'Manteiga frio', curva: 'B', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 13, nome: 'Integral na chapa', curva: 'B', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 14, nome: 'Integral com requeijão chapa', curva: 'B', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 15, nome: 'Peito de peru light', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 16, nome: 'Peito de peru quente', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 17, nome: 'Lanche natural FR', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 18, nome: 'Lanche natural PP', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 19, nome: 'Lanche natural PQ', curva: 'A', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 20, nome: 'Lanche de salame', curva: 'B', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 21, nome: 'Ovos mexidos', curva: 'B', validade: 1, categoria: 'Lanches', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  // Cafeteria
+  { id: 22, nome: 'Café casa G - COADO NA HR', curva: 'A', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 23, nome: 'Café casa PQ - COADO NA HR', curva: 'A', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 24, nome: 'Café com leite G Expresso', curva: 'A', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 25, nome: 'Café com leite PQ Expresso', curva: 'A', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 26, nome: 'Capuccino G', curva: 'A', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 27, nome: 'Capuccino PQ', curva: 'A', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 28, nome: 'Capuccino gelado', curva: 'A', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 29, nome: 'Capuccino italiano', curva: 'A', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 30, nome: 'Chocolate quente grande - meio amargo', curva: 'B', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 31, nome: 'Chocolate quente pequeno - meio amargo', curva: 'B', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 32, nome: 'Expresso Duplo', curva: 'A', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 33, nome: 'Expresso PQ', curva: 'A', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 34, nome: 'Gelado de chocolate Meio amargo', curva: 'B', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 35, nome: 'Gelado de chocolate Toddy', curva: 'B', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 36, nome: 'Ovolmaltine gelado', curva: 'B', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 37, nome: 'Leite puro', curva: 'B', validade: 1, categoria: 'Cafeteria', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  // Omeletes & Tapiocas & Especiais
+  { id: 38, nome: 'Crepioca FR c/ catupiry', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 39, nome: 'Crepioca FR c/ muçarela', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 40, nome: 'Crepioca FR c/ Q. Branco', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 41, nome: 'Crepioca FR c/ Q. prato', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 42, nome: 'Crepioca PP/ Q. branco', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 43, nome: 'Crepioca PQ', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 44, nome: 'Crepioca Rucula / tom. seco/ Q. Branco', curva: 'B', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 45, nome: 'Hamburguer - Cheeseburguer', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 46, nome: 'Omelete 1 CAM - FR c/ catupiry', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 47, nome: 'Omelete 1 CAM - FR c/ muçarela', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 48, nome: 'Omelete 1 CAM - FR c/ Queijo Branco', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 49, nome: 'Omelete 1 CAM - FR c/ Queijo Prato', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 50, nome: 'Omelete 1 CAM - PQ', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 51, nome: 'Omelete 1 CAM - Rúcula/ tom. seco/ Q branco', curva: 'B', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 52, nome: 'Omelete 2 CAM - FR c/ catupiry', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 53, nome: 'Omelete 2 CAM - FR c/ muçarela', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 54, nome: 'Omelete 2 CAM - FR c/ Queijo Branco', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 55, nome: 'Omelete 2 CAM - FR c/ Queijo Prato', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 56, nome: 'Omelete 2 CAM - PQ', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 57, nome: 'Omelete 2 CAM - Rúcula/ tom. seco/ Q branco', curva: 'B', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 58, nome: 'Omelete sem recheio', curva: 'B', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 59, nome: 'Tapioca FR c/ catupiry', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 60, nome: 'Tapioca FR c/ muçarela', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 61, nome: 'Tapioca FR c/ Q. Branco', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 62, nome: 'Tapioca FR c/ Q. prato', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 63, nome: 'Tapioca PP/ Q. branco', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 64, nome: 'Tapioca PQ', curva: 'A', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 65, nome: 'Tapioca Rucula / tom. seco/ Q. Branco', curva: 'B', validade: 1, categoria: 'Omeletes & Tapiocas & Especiais', vitrine: 'salgada', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  // Doces
+  { id: 66, nome: 'Brigadeiro unitário', curva: 'A', validade: 3, categoria: 'Doces', vitrine: 'doce', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 67, nome: 'Pão de Mel', curva: 'A', validade: 5, categoria: 'Doces', vitrine: 'doce', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 68, nome: 'Camafeu', curva: 'B', validade: 7, categoria: 'Doces', vitrine: 'doce', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 69, nome: 'Palha Italiana', curva: 'A', validade: 7, categoria: 'Doces', vitrine: 'doce', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  // Sucos
+  { id: 70, nome: 'Shake proteico', curva: 'B', validade: 1, categoria: 'Suco', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 71, nome: 'Shake proteico com café', curva: 'B', validade: 1, categoria: 'Suco', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 72, nome: 'Suco Maracujá', curva: 'B', validade: 1, categoria: 'Suco', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 73, nome: 'Suco Caju', curva: 'B', validade: 1, categoria: 'Suco', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 74, nome: 'Suco Frutas Vermelhas', curva: 'B', validade: 1, categoria: 'Suco', vitrine: 'todas', custo: 0, preco: 0, resp: '', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
 ]);
 
 let ingredientes = getStorage('ddv_ingredientes', [
-  { id: 101, nome: 'Farinha de trigo', unidade: 'g', qtdCompra: 5000, custoCompra: 18.90, fatia: null, historico: [{ id: 1001, qtdCompra: 5000, custoCompra: 18.90, fornecedor: '', data: '' }] },
-  { id: 102, nome: 'Queijo mussarela', unidade: 'g', qtdCompra: 1000, custoCompra: 32.00, fatia: 30, historico: [{ id: 1002, qtdCompra: 1000, custoCompra: 32.00, fornecedor: '', data: '' }] },
-  { id: 103, nome: 'Chocolate em pó', unidade: 'g', qtdCompra: 400, custoCompra: 14.50, fatia: null, historico: [{ id: 1003, qtdCompra: 400, custoCompra: 14.50, fornecedor: '', data: '' }] },
+  { id: 201, nome: 'Pão francês', unidade: 'un', qtdCompra: 1, custoCompra: 0.25, fatia: null, historico: [{ id: 2001, qtdCompra: 1, custoCompra: 0.25, fornecedor: '', data: '' }] },
+  { id: 202, nome: 'Presunto Magro Sadia', unidade: 'un', qtdCompra: 2, custoCompra: 1.27, fatia: null, historico: [{ id: 2002, qtdCompra: 2, custoCompra: 1.27, fornecedor: '', data: '' }] },
+  { id: 203, nome: 'Queijo Muçarela Lacmon', unidade: 'un', qtdCompra: 2, custoCompra: 2.21, fatia: null, historico: [{ id: 2003, qtdCompra: 2, custoCompra: 2.21, fornecedor: '', data: '' }] },
+  { id: 204, nome: 'Tomate', unidade: 'un', qtdCompra: 1, custoCompra: 0.30, fatia: null, historico: [{ id: 2004, qtdCompra: 1, custoCompra: 0.30, fornecedor: '', data: '' }] },
+  { id: 205, nome: 'Chocolate em pó 50% Mavalerio', unidade: 'g', qtdCompra: 50, custoCompra: 3.32, fatia: null, historico: [{ id: 2005, qtdCompra: 50, custoCompra: 3.32, fornecedor: '', data: '' }] },
+  { id: 206, nome: 'Leite condensado Moça', unidade: 'un', qtdCompra: 1, custoCompra: 9.00, fatia: null, historico: [{ id: 2006, qtdCompra: 1, custoCompra: 9.00, fornecedor: '', data: '' }] },
+  { id: 207, nome: 'Manteiga Alto Alegre', unidade: 'g', qtdCompra: 50, custoCompra: 0.29, fatia: null, historico: [{ id: 2007, qtdCompra: 50, custoCompra: 0.29, fornecedor: '', data: '' }] },
+  { id: 208, nome: 'Café coador Jaguari', unidade: 'g', qtdCompra: 16, custoCompra: 1.71, fatia: null, historico: [{ id: 2008, qtdCompra: 16, custoCompra: 1.71, fornecedor: '', data: '' }] },
+  { id: 209, nome: 'Café em grãos Toledo', unidade: 'g', qtdCompra: 10, custoCompra: 1.33, fatia: null, historico: [{ id: 2009, qtdCompra: 10, custoCompra: 1.33, fornecedor: '', data: '' }] },
+  { id: 210, nome: 'Leite', unidade: 'ml', qtdCompra: 100, custoCompra: 0.40, fatia: null, historico: [{ id: 2010, qtdCompra: 100, custoCompra: 0.40, fornecedor: '', data: '' }] },
+  { id: 211, nome: 'Capuccino em pó Bevaccino', unidade: 'g', qtdCompra: 24, custoCompra: 1.37, fatia: null, historico: [{ id: 2011, qtdCompra: 24, custoCompra: 1.37, fornecedor: '', data: '' }] },
+  { id: 212, nome: 'Calda de chocolate', unidade: 'g', qtdCompra: 20, custoCompra: 0.60, fatia: null, historico: [{ id: 2012, qtdCompra: 20, custoCompra: 0.60, fornecedor: '', data: '' }] },
+  { id: 213, nome: 'Tapioca terrinha', unidade: 'g', qtdCompra: 50, custoCompra: 0.70, fatia: null, historico: [{ id: 2013, qtdCompra: 50, custoCompra: 0.70, fornecedor: '', data: '' }] },
+  { id: 214, nome: 'Ovos', unidade: 'un', qtdCompra: 1, custoCompra: 0.80, fatia: null, historico: [{ id: 2014, qtdCompra: 1, custoCompra: 0.80, fornecedor: '', data: '' }] },
+  { id: 215, nome: 'Requeijão cremoso Coronata', unidade: 'g', qtdCompra: 60, custoCompra: 1.06, fatia: null, historico: [{ id: 2015, qtdCompra: 60, custoCompra: 1.06, fornecedor: '', data: '' }] },
+  { id: 216, nome: 'Frango desfiado', unidade: 'g', qtdCompra: 70, custoCompra: 1.40, fatia: null, historico: [{ id: 2016, qtdCompra: 70, custoCompra: 1.40, fornecedor: '', data: '' }] },
+  { id: 217, nome: 'Queijo branco', unidade: 'un', qtdCompra: 1, custoCompra: 4.50, fatia: null, historico: [{ id: 2017, qtdCompra: 1, custoCompra: 4.50, fornecedor: '', data: '' }] },
+  { id: 218, nome: 'Queijo prato', unidade: 'un', qtdCompra: 1, custoCompra: 1.50, fatia: null, historico: [{ id: 2018, qtdCompra: 1, custoCompra: 1.50, fornecedor: '', data: '' }] },
+  { id: 219, nome: 'Peito de peru Sadia', unidade: 'un', qtdCompra: 2, custoCompra: 2.08, fatia: null, historico: [{ id: 2019, qtdCompra: 2, custoCompra: 2.08, fornecedor: '', data: '' }] },
+  { id: 220, nome: 'Pão pullman integral', unidade: 'un', qtdCompra: 3, custoCompra: 0.85, fatia: null, historico: [{ id: 2020, qtdCompra: 3, custoCompra: 0.85, fornecedor: '', data: '' }] },
+  { id: 221, nome: 'Maionese', unidade: 'g', qtdCompra: 100, custoCompra: 2.40, fatia: null, historico: [{ id: 2021, qtdCompra: 100, custoCompra: 2.40, fornecedor: '', data: '' }] },
+  { id: 222, nome: 'Hamburguer artesanal', unidade: 'un', qtdCompra: 1, custoCompra: 5.80, fatia: null, historico: [{ id: 2022, qtdCompra: 1, custoCompra: 5.80, fornecedor: '', data: '' }] },
+  { id: 223, nome: 'Pão pullman hamburguer', unidade: 'un', qtdCompra: 1, custoCompra: 3.00, fatia: null, historico: [{ id: 2023, qtdCompra: 1, custoCompra: 3.00, fornecedor: '', data: '' }] },
+  { id: 224, nome: 'Queijo Parmesão Scala', unidade: 'g', qtdCompra: 10, custoCompra: 0.69, fatia: null, historico: [{ id: 2024, qtdCompra: 10, custoCompra: 0.69, fornecedor: '', data: '' }] },
+  { id: 225, nome: 'Rucúla', unidade: 'g', qtdCompra: 40, custoCompra: 0.80, fatia: null, historico: [{ id: 2025, qtdCompra: 40, custoCompra: 0.80, fornecedor: '', data: '' }] },
+  { id: 226, nome: 'Tomate Seco', unidade: 'g', qtdCompra: 30, custoCompra: 0.95, fatia: null, historico: [{ id: 2026, qtdCompra: 30, custoCompra: 0.95, fornecedor: '', data: '' }] },
+  { id: 227, nome: 'Pão integral 70%', unidade: 'un', qtdCompra: 1, custoCompra: 0.50, fatia: null, historico: [{ id: 2027, qtdCompra: 1, custoCompra: 0.50, fornecedor: '', data: '' }] },
+  { id: 228, nome: 'Requeijão Catupiry', unidade: 'g', qtdCompra: 50, custoCompra: 1.78, fatia: null, historico: [{ id: 2028, qtdCompra: 50, custoCompra: 1.78, fornecedor: '', data: '' }] },
+  { id: 229, nome: 'Toddy', unidade: 'g', qtdCompra: 20, custoCompra: 0.54, fatia: null, historico: [{ id: 2029, qtdCompra: 20, custoCompra: 0.54, fornecedor: '', data: '' }] },
+  { id: 230, nome: 'Ovomaltine', unidade: 'g', qtdCompra: 35, custoCompra: 2.03, fatia: null, historico: [{ id: 2030, qtdCompra: 35, custoCompra: 2.03, fornecedor: '', data: '' }] },
+  { id: 231, nome: 'Whey Black Skull', unidade: 'g', qtdCompra: 30, custoCompra: 3.00, fatia: null, historico: [{ id: 2031, qtdCompra: 30, custoCompra: 3.00, fornecedor: '', data: '' }] },
+  { id: 232, nome: 'Café expresso', unidade: 'un', qtdCompra: 1, custoCompra: 1.50, fatia: null, historico: [{ id: 2032, qtdCompra: 1, custoCompra: 1.50, fornecedor: '', data: '' }] },
+  { id: 233, nome: 'Salame Italiano Sadia', unidade: 'un', qtdCompra: 6, custoCompra: 3.99, fatia: null, historico: [{ id: 2033, qtdCompra: 6, custoCompra: 3.99, fornecedor: '', data: '' }] },
+  { id: 234, nome: 'Alface', unidade: 'g', qtdCompra: 70, custoCompra: 0.90, fatia: null, historico: [{ id: 2034, qtdCompra: 70, custoCompra: 0.90, fornecedor: '', data: '' }] },
+  { id: 235, nome: 'Presunto Magro Seara', unidade: 'un', qtdCompra: 4, custoCompra: 2.41, fatia: null, historico: [{ id: 2035, qtdCompra: 4, custoCompra: 2.41, fornecedor: '', data: '' }] },
+  { id: 236, nome: 'Maracujá poupa', unidade: 'un', qtdCompra: 1, custoCompra: 2.90, fatia: null, historico: [{ id: 2036, qtdCompra: 1, custoCompra: 2.90, fornecedor: '', data: '' }] },
+  { id: 237, nome: 'Caju poupa', unidade: 'un', qtdCompra: 1, custoCompra: 2.90, fatia: null, historico: [{ id: 2037, qtdCompra: 1, custoCompra: 2.90, fornecedor: '', data: '' }] },
+  { id: 238, nome: 'Frutas vermelhas poupa', unidade: 'un', qtdCompra: 1, custoCompra: 3.40, fatia: null, historico: [{ id: 2038, qtdCompra: 1, custoCompra: 3.40, fornecedor: '', data: '' }] },
+  { id: 239, nome: 'Chocolate ao leite barra Cargill', unidade: 'g', qtdCompra: 850, custoCompra: 72.86, fatia: null, historico: [{ id: 2039, qtdCompra: 850, custoCompra: 72.86, fornecedor: '', data: '' }] },
+  { id: 240, nome: 'Pré Mistura Bolo Chocomousse Fleishman', unidade: 'g', qtdCompra: 500, custoCompra: 8.90, fatia: null, historico: [{ id: 2040, qtdCompra: 500, custoCompra: 8.90, fornecedor: '', data: '' }] },
+  { id: 241, nome: 'Óleo Liza', unidade: 'ml', qtdCompra: 100, custoCompra: 1.00, fatia: null, historico: [{ id: 2041, qtdCompra: 100, custoCompra: 1.00, fornecedor: '', data: '' }] },
+  { id: 242, nome: 'Ganache Toffee Vabene', unidade: 'g', qtdCompra: 30, custoCompra: 1.50, fatia: null, historico: [{ id: 2042, qtdCompra: 30, custoCompra: 1.50, fornecedor: '', data: '' }] },
+  { id: 243, nome: 'Nozes sem casca', unidade: 'g', qtdCompra: 175, custoCompra: 15.16, fatia: null, historico: [{ id: 2043, qtdCompra: 175, custoCompra: 15.16, fornecedor: '', data: '' }] },
+  { id: 244, nome: 'Margarina Coamo', unidade: 'g', qtdCompra: 30, custoCompra: 0.31, fatia: null, historico: [{ id: 2044, qtdCompra: 30, custoCompra: 0.31, fornecedor: '', data: '' }] },
+  { id: 245, nome: 'Fondant 1KG MIX', unidade: 'g', qtdCompra: 700, custoCompra: 14.70, fatia: null, historico: [{ id: 2045, qtdCompra: 700, custoCompra: 14.70, fornecedor: '', data: '' }] },
+  { id: 246, nome: 'Bolacha Maizena', unidade: 'g', qtdCompra: 350, custoCompra: 10.50, fatia: null, historico: [{ id: 2046, qtdCompra: 350, custoCompra: 10.50, fornecedor: '', data: '' }] },
+  { id: 247, nome: 'Creme de leite', unidade: 'un', qtdCompra: 1, custoCompra: 3.00, fatia: null, historico: [{ id: 2047, qtdCompra: 1, custoCompra: 3.00, fornecedor: '', data: '' }] },
+  { id: 248, nome: 'Chocolate em pó 50% Melken', unidade: 'g', qtdCompra: 70, custoCompra: 4.89, fatia: null, historico: [{ id: 2048, qtdCompra: 70, custoCompra: 4.89, fornecedor: '', data: '' }] },
+  { id: 249, nome: 'Açúcar refinado', unidade: 'g', qtdCompra: 200, custoCompra: 1.00, fatia: null, historico: [{ id: 2049, qtdCompra: 200, custoCompra: 1.00, fornecedor: '', data: '' }] },
 ]);
 
 // Migração aplicada após nextId ser inicializado (ver bloco abaixo)
 
-let receitas = getStorage('ddv_receitas', []);
+let receitas = getStorage('ddv_receitas', [
+  // Lanches
+  { id: 301, prodId: 1,  rendimento: 1, unidade: 'un', itens: [{ingId:201,qtd:1},{ingId:202,qtd:2},{ingId:203,qtd:2},{ingId:204,qtd:2}] }, // Bauru
+  { id: 302, prodId: 2,  rendimento: 1, unidade: 'un', itens: [{ingId:207,qtd:50},{ingId:201,qtd:1}] }, // Chapa
+  { id: 303, prodId: 3,  rendimento: 1, unidade: 'un', itens: [{ingId:201,qtd:1},{ingId:202,qtd:1.5},{ingId:203,qtd:1.5}] }, // Misto frio
+  { id: 304, prodId: 4,  rendimento: 1, unidade: 'un', itens: [{ingId:207,qtd:20},{ingId:201,qtd:1},{ingId:202,qtd:2},{ingId:203,qtd:2}] }, // Misto quente
+  { id: 305, prodId: 5,  rendimento: 1, unidade: 'un', itens: [{ingId:201,qtd:1},{ingId:217,qtd:1}] }, // Queijo quente branco
+  { id: 306, prodId: 6,  rendimento: 1, unidade: 'un', itens: [{ingId:227,qtd:1},{ingId:217,qtd:1},{ingId:204,qtd:2}] }, // Queijo quente light
+  { id: 307, prodId: 7,  rendimento: 1, unidade: 'un', itens: [{ingId:201,qtd:1},{ingId:203,qtd:4}] }, // Queijo quente mussarela
+  { id: 308, prodId: 8,  rendimento: 1, unidade: 'un', itens: [{ingId:201,qtd:1},{ingId:218,qtd:3}] }, // Queijo quente prato
+  { id: 309, prodId: 9,  rendimento: 1, unidade: 'un', itens: [{ingId:207,qtd:30},{ingId:214,qtd:2},{ingId:201,qtd:1}] }, // Pão com ovo
+  { id: 310, prodId: 10, rendimento: 1, unidade: 'un', itens: [{ingId:207,qtd:30},{ingId:201,qtd:1},{ingId:228,qtd:50}] }, // Pão com requeijão chapa
+  { id: 311, prodId: 11, rendimento: 1, unidade: 'un', itens: [{ingId:228,qtd:50},{ingId:201,qtd:1}] }, // Requeijão frio
+  { id: 312, prodId: 12, rendimento: 1, unidade: 'un', itens: [{ingId:201,qtd:1},{ingId:207,qtd:50}] }, // Manteiga frio
+  { id: 313, prodId: 13, rendimento: 1, unidade: 'un', itens: [{ingId:207,qtd:50},{ingId:227,qtd:1}] }, // Integral na chapa
+  { id: 314, prodId: 14, rendimento: 1, unidade: 'un', itens: [{ingId:207,qtd:30},{ingId:227,qtd:1},{ingId:228,qtd:50}] }, // Integral com requeijão chapa
+  { id: 315, prodId: 15, rendimento: 1, unidade: 'un', itens: [{ingId:227,qtd:1},{ingId:219,qtd:2},{ingId:217,qtd:1},{ingId:204,qtd:2}] }, // Peito de peru light
+  { id: 316, prodId: 16, rendimento: 1, unidade: 'un', itens: [{ingId:201,qtd:1},{ingId:219,qtd:2},{ingId:203,qtd:2}] }, // Peito de peru quente
+  { id: 317, prodId: 17, rendimento: 1, unidade: 'un', itens: [{ingId:220,qtd:3},{ingId:216,qtd:70},{ingId:204,qtd:4},{ingId:234,qtd:70},{ingId:221,qtd:100}] }, // Lanche natural FR
+  { id: 318, prodId: 18, rendimento: 1, unidade: 'un', itens: [{ingId:220,qtd:3},{ingId:219,qtd:4},{ingId:217,qtd:1},{ingId:204,qtd:4},{ingId:234,qtd:70},{ingId:221,qtd:80}] }, // Lanche natural PP
+  { id: 319, prodId: 19, rendimento: 1, unidade: 'un', itens: [{ingId:220,qtd:3},{ingId:235,qtd:4},{ingId:203,qtd:4},{ingId:204,qtd:4},{ingId:234,qtd:70},{ingId:221,qtd:80}] }, // Lanche natural PQ
+  { id: 320, prodId: 20, rendimento: 1, unidade: 'un', itens: [{ingId:233,qtd:6},{ingId:201,qtd:1},{ingId:203,qtd:2}] }, // Lanche de salame
+  { id: 321, prodId: 21, rendimento: 1, unidade: 'un', itens: [{ingId:214,qtd:2},{ingId:207,qtd:50}] }, // Ovos mexidos
+  // Cafeteria
+  { id: 322, prodId: 22, rendimento: 1, unidade: 'un', itens: [{ingId:208,qtd:16}] }, // Café casa G coado
+  { id: 323, prodId: 23, rendimento: 1, unidade: 'un', itens: [{ingId:208,qtd:9}] }, // Café casa PQ coado
+  { id: 324, prodId: 24, rendimento: 1, unidade: 'un', itens: [{ingId:209,qtd:10},{ingId:210,qtd:100}] }, // Café com leite G Expresso
+  { id: 325, prodId: 25, rendimento: 1, unidade: 'un', itens: [{ingId:209,qtd:10},{ingId:210,qtd:50}] }, // Café com leite PQ Expresso
+  { id: 326, prodId: 26, rendimento: 1, unidade: 'un', itens: [{ingId:211,qtd:24},{ingId:210,qtd:100}] }, // Capuccino G
+  { id: 327, prodId: 27, rendimento: 1, unidade: 'un', itens: [{ingId:211,qtd:12},{ingId:210,qtd:50}] }, // Capuccino PQ
+  { id: 328, prodId: 28, rendimento: 1, unidade: 'un', itens: [{ingId:212,qtd:20},{ingId:211,qtd:35},{ingId:210,qtd:250}] }, // Capuccino gelado
+  { id: 329, prodId: 29, rendimento: 1, unidade: 'un', itens: [{ingId:209,qtd:10},{ingId:205,qtd:15},{ingId:210,qtd:100}] }, // Capuccino italiano
+  { id: 330, prodId: 30, rendimento: 1, unidade: 'un', itens: [{ingId:205,qtd:12},{ingId:210,qtd:120}] }, // Chocolate quente grande
+  { id: 331, prodId: 31, rendimento: 1, unidade: 'un', itens: [{ingId:205,qtd:6},{ingId:210,qtd:70}] }, // Chocolate quente pequeno
+  { id: 332, prodId: 32, rendimento: 1, unidade: 'un', itens: [{ingId:209,qtd:15}] }, // Expresso Duplo
+  { id: 333, prodId: 33, rendimento: 1, unidade: 'un', itens: [{ingId:209,qtd:10}] }, // Expresso PQ
+  { id: 334, prodId: 34, rendimento: 1, unidade: 'un', itens: [{ingId:212,qtd:20},{ingId:205,qtd:20},{ingId:210,qtd:250}] }, // Gelado chocolate meio amargo
+  { id: 335, prodId: 35, rendimento: 1, unidade: 'un', itens: [{ingId:212,qtd:20},{ingId:210,qtd:250},{ingId:229,qtd:20}] }, // Gelado chocolate Toddy
+  { id: 336, prodId: 36, rendimento: 1, unidade: 'un', itens: [{ingId:212,qtd:20},{ingId:210,qtd:250},{ingId:230,qtd:35}] }, // Ovolmaltine gelado
+  { id: 337, prodId: 37, rendimento: 1, unidade: 'un', itens: [{ingId:210,qtd:200}] }, // Leite puro
+  // Omeletes & Tapiocas & Especiais
+  { id: 338, prodId: 38, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:70},{ingId:214,qtd:1},{ingId:215,qtd:60},{ingId:213,qtd:50}] }, // Crepioca FR c/ catupiry
+  { id: 339, prodId: 39, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:70},{ingId:214,qtd:1},{ingId:203,qtd:2},{ingId:213,qtd:50}] }, // Crepioca FR c/ muçarela
+  { id: 340, prodId: 40, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:70},{ingId:214,qtd:1},{ingId:217,qtd:1},{ingId:213,qtd:50}] }, // Crepioca FR c/ Q. Branco
+  { id: 341, prodId: 41, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:70},{ingId:214,qtd:1},{ingId:218,qtd:2},{ingId:213,qtd:50}] }, // Crepioca FR c/ Q. prato
+  { id: 342, prodId: 42, rendimento: 1, unidade: 'un', itens: [{ingId:214,qtd:1},{ingId:219,qtd:2},{ingId:217,qtd:1},{ingId:213,qtd:50}] }, // Crepioca PP/ Q. branco
+  { id: 343, prodId: 43, rendimento: 1, unidade: 'un', itens: [{ingId:214,qtd:1},{ingId:202,qtd:2},{ingId:203,qtd:2},{ingId:213,qtd:50}] }, // Crepioca PQ
+  { id: 344, prodId: 44, rendimento: 1, unidade: 'un', itens: [{ingId:214,qtd:1},{ingId:217,qtd:1},{ingId:225,qtd:40},{ingId:213,qtd:50},{ingId:226,qtd:30}] }, // Crepioca Rucula
+  { id: 345, prodId: 45, rendimento: 1, unidade: 'un', itens: [{ingId:222,qtd:1},{ingId:223,qtd:1},{ingId:218,qtd:2}] }, // Hamburguer Cheeseburguer
+  { id: 346, prodId: 46, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:70},{ingId:214,qtd:2},{ingId:203,qtd:1},{ingId:224,qtd:10},{ingId:215,qtd:60}] }, // Omelete 1CAM FR catupiry
+  { id: 347, prodId: 47, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:70},{ingId:214,qtd:2},{ingId:203,qtd:3},{ingId:224,qtd:10}] }, // Omelete 1CAM FR muçarela
+  { id: 348, prodId: 48, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:70},{ingId:214,qtd:2},{ingId:217,qtd:1},{ingId:203,qtd:1},{ingId:224,qtd:10}] }, // Omelete 1CAM FR Q.Branco
+  { id: 349, prodId: 49, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:70},{ingId:214,qtd:2},{ingId:203,qtd:1},{ingId:224,qtd:10},{ingId:218,qtd:2}] }, // Omelete 1CAM FR Q.Prato
+  { id: 350, prodId: 50, rendimento: 1, unidade: 'un', itens: [{ingId:214,qtd:2},{ingId:202,qtd:2},{ingId:203,qtd:3},{ingId:224,qtd:10}] }, // Omelete 1CAM PQ
+  { id: 351, prodId: 51, rendimento: 1, unidade: 'un', itens: [{ingId:214,qtd:2},{ingId:217,qtd:1},{ingId:203,qtd:1},{ingId:224,qtd:10},{ingId:225,qtd:40},{ingId:226,qtd:30}] }, // Omelete 1CAM Rucula
+  { id: 352, prodId: 52, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:120},{ingId:214,qtd:2},{ingId:203,qtd:1},{ingId:224,qtd:10},{ingId:215,qtd:100}] }, // Omelete 2CAM FR catupiry
+  { id: 353, prodId: 53, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:120},{ingId:214,qtd:2},{ingId:203,qtd:5},{ingId:224,qtd:10}] }, // Omelete 2CAM FR muçarela
+  { id: 354, prodId: 54, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:120},{ingId:214,qtd:2},{ingId:217,qtd:2},{ingId:203,qtd:1},{ingId:224,qtd:10}] }, // Omelete 2CAM FR Q.Branco
+  { id: 355, prodId: 55, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:120},{ingId:214,qtd:2},{ingId:203,qtd:1},{ingId:224,qtd:10},{ingId:218,qtd:4}] }, // Omelete 2CAM FR Q.Prato
+  { id: 356, prodId: 56, rendimento: 1, unidade: 'un', itens: [{ingId:214,qtd:2},{ingId:202,qtd:4},{ingId:203,qtd:5},{ingId:224,qtd:10}] }, // Omelete 2CAM PQ
+  { id: 357, prodId: 57, rendimento: 1, unidade: 'un', itens: [{ingId:214,qtd:2},{ingId:217,qtd:1.5},{ingId:203,qtd:1},{ingId:224,qtd:10},{ingId:225,qtd:50},{ingId:226,qtd:50}] }, // Omelete 2CAM Rucula
+  { id: 358, prodId: 58, rendimento: 1, unidade: 'un', itens: [{ingId:207,qtd:30},{ingId:214,qtd:2},{ingId:203,qtd:1}] }, // Omelete sem recheio
+  { id: 359, prodId: 59, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:70},{ingId:215,qtd:60},{ingId:213,qtd:100}] }, // Tapioca FR catupiry
+  { id: 360, prodId: 60, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:70},{ingId:203,qtd:2},{ingId:213,qtd:100}] }, // Tapioca FR muçarela
+  { id: 361, prodId: 61, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:70},{ingId:217,qtd:1},{ingId:213,qtd:100}] }, // Tapioca FR Q.Branco
+  { id: 362, prodId: 62, rendimento: 1, unidade: 'un', itens: [{ingId:216,qtd:70},{ingId:218,qtd:2},{ingId:213,qtd:100}] }, // Tapioca FR Q.prato
+  { id: 363, prodId: 63, rendimento: 1, unidade: 'un', itens: [{ingId:219,qtd:2},{ingId:217,qtd:1},{ingId:213,qtd:100}] }, // Tapioca PP Q.branco
+  { id: 364, prodId: 64, rendimento: 1, unidade: 'un', itens: [{ingId:213,qtd:100},{ingId:202,qtd:2},{ingId:203,qtd:2}] }, // Tapioca PQ
+  { id: 365, prodId: 65, rendimento: 1, unidade: 'un', itens: [{ingId:217,qtd:1},{ingId:225,qtd:40},{ingId:213,qtd:100},{ingId:226,qtd:30}] }, // Tapioca Rucula
+  // Doces
+  { id: 366, prodId: 66, rendimento: 1, unidade: 'un', itens: [{ingId:205,qtd:50},{ingId:206,qtd:2},{ingId:207,qtd:60}] }, // Brigadeiro unitário (lote)
+  { id: 367, prodId: 67, rendimento: 1, unidade: 'un', itens: [{ingId:206,qtd:1.22},{ingId:239,qtd:850},{ingId:240,qtd:500},{ingId:241,qtd:100},{ingId:214,qtd:4},{ingId:242,qtd:30}] }, // Pão de Mel (lote)
+  { id: 368, prodId: 68, rendimento: 1, unidade: 'un', itens: [{ingId:243,qtd:175},{ingId:206,qtd:2},{ingId:244,qtd:30},{ingId:245,qtd:700}] }, // Camafeu (lote)
+  { id: 369, prodId: 69, rendimento: 1, unidade: 'un', itens: [{ingId:246,qtd:350},{ingId:206,qtd:3},{ingId:247,qtd:1},{ingId:248,qtd:70},{ingId:244,qtd:50},{ingId:249,qtd:200}] }, // Palha Italiana (lote)
+  // Sucos
+  { id: 370, prodId: 70, rendimento: 1, unidade: 'un', itens: [{ingId:231,qtd:30}] }, // Shake proteico
+  { id: 371, prodId: 71, rendimento: 1, unidade: 'un', itens: [{ingId:232,qtd:1},{ingId:231,qtd:30}] }, // Shake proteico com café
+  { id: 372, prodId: 72, rendimento: 1, unidade: 'un', itens: [{ingId:236,qtd:1}] }, // Suco Maracujá
+  { id: 373, prodId: 73, rendimento: 1, unidade: 'un', itens: [{ingId:237,qtd:1}] }, // Suco Caju
+  { id: 374, prodId: 74, rendimento: 1, unidade: 'un', itens: [{ingId:238,qtd:1}] }, // Suco Frutas Vermelhas
+]);
 
 // vitrines[unit][day] = [{prodId, qty, slot}]
 let vitrines = getStorage('ddv_vitrines', {});
@@ -1733,7 +1932,7 @@ let apoioProducao = getStorage('ddv_apoio_producao', {});
 // planoSemanal[unit][prodId][day] = qty padrão a produzir
 let planoSemanal = getStorage('ddv_plano_semanal', {});
 
-let nextId = getStorage('ddv_nextid', 10);
+let nextId = getStorage('ddv_nextid', 5000);
 nextId = Math.max(
   nextId,
   ...produtos.map(p => p.id || 0),
