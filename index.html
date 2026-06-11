@@ -8,27 +8,27 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
-  --cream: #F6F8F7;
-  --warm: #EEF6F2;
-  --brown: #0F766E;
-  --brown-mid: #0D9488;
-  --brown-light: #5EEAD4;
-  --gold: #14B8A6;
-  --gold-light: #CCFBF1;
+  --cream: #F9FAFB;
+  --warm: #F1F5F9;
+  --brown: #1E293B;
+  --brown-mid: #334155;
+  --brown-light: #94A3B8;
+  --gold: #F59E0B;
+  --gold-light: #FEF3C7;
   --green: #16A34A;
   --green-light: #86EFAC;
   --red: #DC2626;
   --red-light: #FCA5A5;
   --blue: #2563EB;
-  --text: #111827;
-  --text-mid: #4B5563;
-  --text-light: #6B7280;
-  --border: #E5E7EB;
+  --text: #0F172A;
+  --text-mid: #475569;
+  --text-light: #94A3B8;
+  --border: #E2E8F0;
   --surface: #FFFFFF;
-  --surface-soft: #F9FAFB;
-  --ink: #111827;
-  --shadow: 0 16px 40px rgba(17, 24, 39, 0.07);
-  --shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.06);
+  --surface-soft: #F8FAFC;
+  --ink: #0F172A;
+  --shadow: 0 4px 24px rgba(15,23,42,0.08);
+  --shadow-soft: 0 1px 3px rgba(15,23,42,0.06);
   --radius: 8px;
   --font-sans: 'Plus Jakarta Sans', sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
@@ -46,7 +46,7 @@ body {
 
 button, input, select, textarea { font: inherit; }
 button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
-  outline: 3px solid rgba(20,184,166,0.22);
+  outline: 3px solid rgba(37,99,235,0.22);
   outline-offset: 2px;
 }
 
@@ -133,8 +133,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   gap: 6px;
 }
 .nav-btn.active {
-  color: var(--brown);
-  background: var(--gold-light);
+  color: var(--blue);
+  background: #EFF6FF;
   font-weight: 600;
 }
 .nav-btn:hover:not(.active) { color: var(--text); background: var(--surface-soft); }
@@ -185,7 +185,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
   border-color: var(--brown);
   background: var(--surface);
-  box-shadow: 0 0 0 4px rgba(20,184,166,0.12);
+  box-shadow: 0 0 0 4px rgba(37,99,235,0.10);
 }
 .form-group textarea { resize: vertical; min-height: 70px; }
 
@@ -206,8 +206,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-soft); }
 .btn-primary { background: var(--brown); color: #fff; }
 .btn-primary:hover { background: var(--brown-mid); }
-.btn-gold { background: var(--gold-light); color: var(--brown); border: 1px solid rgba(20,184,166,0.20); }
-.btn-gold:hover { background: #A7F3D0; }
+.btn-gold { background: var(--gold-light); color: #92400E; border: 1px solid rgba(245,158,11,0.25); }
+.btn-gold:hover { background: #FDE68A; }
 .btn-green { background: var(--green); color: #fff; }
 .btn-green:hover { background: var(--green-light); }
 .btn-red { background: var(--red); color: #fff; font-size: 12px; padding: 6px 12px; }
@@ -259,7 +259,7 @@ tr:hover td { background: var(--surface-soft); }
   transition: all .15s;
   font-family: var(--font-sans);
 }
-.day-tab.active { background: var(--brown); border-color: var(--brown); color: #fff; box-shadow: 0 8px 18px rgba(15,118,110,0.18); }
+.day-tab.active { background: var(--brown); border-color: var(--brown); color: #fff; box-shadow: 0 8px 18px rgba(30,41,59,0.15); }
 .day-tab:hover:not(.active) { border-color: var(--brown); color: var(--brown); background: var(--warm); }
 
 /* VITRINE GRID */
@@ -292,7 +292,7 @@ tr:hover td { background: var(--surface-soft); }
   box-shadow: var(--shadow-soft);
   cursor: pointer;
 }
-.slot-list-row:hover { border-color: rgba(20,184,166,0.42); background: var(--warm); }
+.slot-list-row:hover { border-color: rgba(37,99,235,0.35); background: var(--warm); }
 .slot-list-row.empty { color: var(--text-light); background: var(--surface-soft); }
 .slot-list-row.expired { border-color: rgba(220,38,38,0.35); background: #FFF7F7; }
 .slot-list-code,
@@ -330,7 +330,7 @@ tr:hover td { background: var(--surface-soft); }
   text-align: right;
 }
 .apoio-entry input:last-child { border-right: 0; }
-.apoio-entry input:focus { background: #ECFDF5; box-shadow: inset 0 0 0 2px rgba(15,118,110,0.24); }
+.apoio-entry input:focus { background: #EFF6FF; box-shadow: inset 0 0 0 2px rgba(30,41,59,0.20); }
 .apoio-table {
   width: 100%;
   border-collapse: collapse;
@@ -420,7 +420,7 @@ tr:hover td { background: var(--surface-soft); }
   position: absolute;
   inset: 48px 10px 10px;
   border-radius: 10px;
-  background: linear-gradient(115deg, rgba(255,255,255,0.62), rgba(255,255,255,0.12) 38%, rgba(20,184,166,0.08));
+  background: linear-gradient(115deg, rgba(255,255,255,0.62), rgba(255,255,255,0.12) 38%, rgba(37,99,235,0.10));
   border: 1px solid rgba(148,163,184,0.32);
   pointer-events: none;
 }
@@ -478,8 +478,8 @@ tr:hover td { background: var(--surface-soft); }
   box-shadow: inset 0 -5px 0 rgba(15,23,42,0.06), 0 4px 10px rgba(15,23,42,0.05);
   min-width: 0;
 }
-.vitrine-slot:hover { border-color: var(--brown); background: #ECFDF5; transform: translateY(-1px); }
-.vitrine-slot.filled { background: #FFFFFF; border-style: solid; border-color: rgba(20,184,166,0.44); box-shadow: inset 0 -5px 0 rgba(20,184,166,0.14), 0 5px 12px rgba(15,23,42,0.07); }
+.vitrine-slot:hover { border-color: var(--brown); background: #EFF6FF; transform: translateY(-1px); }
+.vitrine-slot.filled { background: #FFFFFF; border-style: solid; border-color: rgba(37,99,235,0.35); box-shadow: inset 0 -5px 0 rgba(37,99,235,0.08), 0 5px 12px rgba(15,23,42,0.07); }
 .vitrine-slot.filled:hover { border-color: var(--brown); }
 .vitrine-slot.sold {
   border-color: rgba(22,163,74,0.55);
@@ -570,7 +570,7 @@ tr:hover td { background: var(--surface-soft); }
   border-radius: 50%;
   font-size: 11px;
   font-weight: 700;
-  color: var(--brown);
+  color: #92400E;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -591,7 +591,7 @@ tr:hover td { background: var(--surface-soft); }
   border-bottom: 1px solid var(--border);
 }
 .cronograma-row:last-child { border-bottom: none; }
-.crono-time { font-size: 13px; font-weight: 700; color: var(--brown); }
+.crono-time { font-size: 13px; font-weight: 700; color: var(--blue); }
 .crono-task { font-size: 13px; }
 .crono-resp { font-size: 11px; color: var(--text-light); }
 
@@ -814,7 +814,7 @@ tr:hover td { background: var(--surface-soft); }
   font-family: var(--font-sans);
 }
 .sheet-input:focus, .sheet-select:focus {
-  background: #ECFDF5;
+  background: #EFF6FF;
   box-shadow: inset 0 0 0 2px var(--brown);
 }
 .sheet-readonly {
@@ -981,7 +981,7 @@ tr:hover td { background: var(--surface-soft); }
 <!-- ===================== PAGE: PRODUTOS ===================== -->
 <div class="page" id="page-produtos">
   <h2 class="section-title">Cadastro de Produtos</h2>
-  <p class="section-sub">Curva ABC, validade e responsável de produção</p>
+  <p class="section-sub">Gerencie fabricações e produtos de revenda</p>
 
   <div class="stats-row" id="abc-stats">
     <div class="stat-card"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Produtos</div></div>
@@ -994,6 +994,11 @@ tr:hover td { background: var(--surface-soft); }
     <div class="abc-bar-a" style="width:0%"></div>
     <div class="abc-bar-b" style="width:0%"></div>
     <div class="abc-bar-c" style="width:0%"></div>
+  </div>
+
+  <div class="toggle-row" id="produtos-tipo-tabs" style="margin-bottom:16px;">
+    <button class="toggle-btn active" id="tab-fab-btn" onclick="setProdutosTipo('fabricacao')">Fabricação</button>
+    <button class="toggle-btn" id="tab-rev-btn" onclick="setProdutosTipo('revenda')">Revenda</button>
   </div>
 
   <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
@@ -1061,9 +1066,17 @@ tr:hover td { background: var(--surface-soft); }
   </div>
 
   <!-- TABS -->
-  <div class="toggle-row" id="cmv-tabs" style="margin-bottom:16px;">
-    <button class="toggle-btn active" id="cmv-tab-ing" onclick="setCmvTab('ingredientes')">🧂 Ingredientes</button>
-    <button class="toggle-btn" id="cmv-tab-rec" onclick="setCmvTab('receitas')">📋 Receitas</button>
+  <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px;">
+    <div class="toggle-row" id="cmv-tabs" style="margin-bottom:0;">
+      <button class="toggle-btn active" id="cmv-tab-fab" onclick="setCmvSection('fabricacao')">Fabricação</button>
+      <button class="toggle-btn" id="cmv-tab-rev" onclick="setCmvSection('revenda')">Revenda</button>
+    </div>
+  </div>
+
+  <!-- INNER TABS for fabricação -->
+  <div class="toggle-row" id="cmv-fab-inner-tabs" style="margin-bottom:16px;">
+    <button class="toggle-btn active" id="cmv-tab-ing" onclick="setCmvTab('ingredientes')">Ingredientes</button>
+    <button class="toggle-btn" id="cmv-tab-rec" onclick="setCmvTab('receitas')">Receitas</button>
   </div>
 
   <!-- PAINEL INGREDIENTES -->
@@ -1128,6 +1141,29 @@ tr:hover td { background: var(--surface-soft); }
         <div class="sheet-actions">
           <button class="btn btn-ghost btn-sm" onclick="addReceitaRow()">+ Adicionar linha</button>
         </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- PAINEL REVENDA CMV -->
+  <div id="cmv-panel-revenda" style="display:none;">
+    <p class="section-sub" style="margin-bottom:12px;">Produtos de revenda: margem calculada sobre custo de aquisição vs preço de venda.</p>
+    <div class="sheet-card">
+      <div class="table-wrap">
+        <table class="sheet-table">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Custo compra (R$)</th>
+              <th>Preço venda (R$)</th>
+              <th>Margem R$</th>
+              <th>Margem %</th>
+              <th>CMV %</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="revenda-tbody"></tbody>
+        </table>
       </div>
     </div>
   </div>
@@ -1205,6 +1241,14 @@ tr:hover td { background: var(--surface-soft); }
   <div class="modal">
     <div class="modal-title" id="modal-produto-title">Novo Produto</div>
     <div class="form-row full"><div class="form-group"><label>Nome do produto</label><input type="text" id="p-nome"></div></div>
+    <div class="form-row">
+      <div class="form-group"><label>Tipo de produto</label>
+        <select id="p-tipo">
+          <option value="fabricacao">Fabricação — produto que fazemos</option>
+          <option value="revenda">Revenda — produto que compramos</option>
+        </select>
+      </div>
+    </div>
     <div class="form-row three">
       <div class="form-group"><label>Curva ABC</label>
         <select id="p-curva"><option value="A">A — Alta demanda</option><option value="B">B — Média</option><option value="C">C — Baixa</option></select>
@@ -1612,255 +1656,18 @@ function setStorage(key, val) {
 }
 
 let produtos = getStorage('ddv_produtos', [
-  // Mini Salgados
-  { id: 1, nome: 'Salgadinhos fritos', curva: 'A', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 1.20, resp: 'Tiago', unidade: 'ambas', obs: 'Coxinha, bolinha de queijo, risoles, croquete, kibe' },
-  { id: 2, nome: 'Pastelzinho frito', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.20, resp: 'Tiago', unidade: 'ambas', obs: '' },
-  { id: 3, nome: 'Pão de queijo especial', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 2.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Recheios: frango, catupiry, peito de peru, queijo, presunto e queijo, parmesão. R$78/kg' },
-  { id: 4, nome: 'Pão de mandioquinha', curva: 'B', validade: 2, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 2.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Recheios: peito de peru ou quatro queijos. R$62/kg' },
-  { id: 5, nome: 'Mini trouxinha', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.20, resp: 'Tiago', unidade: 'ambas', obs: 'Massa folha recheada de frango. R$65/kg' },
-  { id: 6, nome: 'Mini quiche', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Recheios: quatro queijos, alho poró, queijo com bacon' },
-  { id: 7, nome: 'Mini quiche vegano', curva: 'C', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 3.50, resp: 'Alexandre', unidade: 'ambas', obs: '' },
-  { id: 8, nome: 'Mini pizza', curva: 'A', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.20, resp: 'Tiago', unidade: 'ambas', obs: 'Presunto e queijo, frango, brócolis, mussarela. R$56/kg' },
-  { id: 9, nome: 'Mini pão de queijo', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 1.00, resp: 'Alexandre', unidade: 'ambas', obs: 'R$69/kg' },
-  { id: 10, nome: 'Mini esfirra', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 1.50, resp: 'Tiago', unidade: 'ambas', obs: 'Recheios: carne, frango ou calabresa' },
-  { id: 11, nome: 'Mini empada massa podre', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Recheios: palmito ou frango' },
-  { id: 12, nome: 'Mini empada massa fina', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Recheios: palmito ou frango' },
-  { id: 13, nome: 'Mini cuscuz', curva: 'C', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 3.50, resp: 'Tiago', unidade: 'ambas', obs: 'De frango, atum ou legumes' },
-  { id: 14, nome: 'Mini croissant', curva: 'B', validade: 2, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 2.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Presunto e queijo, frango, queijo, peito de peru. R$69/kg' },
-  { id: 15, nome: 'Gravatinha de parmesão', curva: 'B', validade: 3, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'Massa folhada torcida com parmesão. R$89/kg' },
-  { id: 16, nome: 'Enroladinhos', curva: 'A', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 2.00, resp: 'Tiago', unidade: 'ambas', obs: 'Presunto, calabresa, frango, peito de peru, queijo, salsicha. R$58/kg' },
-  { id: 17, nome: 'Cortadinho folhado', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 1.80, resp: 'Tiago', unidade: 'ambas', obs: 'Presunto, calabresa, frango, peito de peru, queijo, salsicha. R$69/kg' },
-  { id: 18, nome: 'Chipa', curva: 'B', validade: 2, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 2.20, resp: 'Alexandre', unidade: 'ambas', obs: 'Semelhante ao pão de queijo, com mais polvilho e parmesão. R$75/kg' },
-  { id: 19, nome: 'Brusqueta', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 3.20, resp: 'Tiago', unidade: 'ambas', obs: 'Torrada com tomate, parmesão e manjericão. R$85/kg' },
-  { id: 20, nome: 'Hamburguete', curva: 'C', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Tiago', unidade: 'ambas', obs: 'Salgado assado recheado de hambúrguer, tomate, presunto e queijo' },
-  { id: 21, nome: 'Empada unitária', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 9.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Massa podre amanteigada. Recheios: palmito ou frango' },
-  { id: 22, nome: 'Quiche unitário', curva: 'B', validade: 2, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 9.90, resp: 'Alexandre', unidade: 'ambas', obs: 'Recheios: quatro queijos, alho poró, queijo com bacon' },
-  // Salgados Assados
-  { id: 23, nome: 'Salgado assado', curva: 'A', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 8.50, resp: 'Tiago', unidade: 'ambas', obs: 'Esfirra fechada de carne, frango, bauru' },
-  { id: 24, nome: 'Esfirra aberta', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 7.50, resp: 'Tiago', unidade: 'ambas', obs: 'Carne, queijo, calabresa. R$62/kg' },
-  { id: 25, nome: 'Ciabatta', curva: 'B', validade: 2, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 12.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Brócolis, antepasto de berinjela, escarola com bacon, espinafre. R$67/kg' },
-  { id: 26, nome: 'Croissant', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 9.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Presunto e queijo, frango, queijo, peito de peru. R$65/kg' },
-  { id: 27, nome: 'Napoleão', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 8.50, resp: 'Tiago', unidade: 'ambas', obs: 'Massa folha recheada de peito de peru e queijo branco. R$59/kg' },
-  { id: 28, nome: 'Pizza enrolada', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Tiago', unidade: 'ambas', obs: 'Presunto e queijo ou mortadela e queijo. R$52.50/kg' },
-  { id: 29, nome: 'Focaccia', curva: 'B', validade: 2, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 11.90, resp: 'Alexandre', unidade: 'ambas', obs: 'Rúcula, tomate seco e queijo branco. R$76/kg' },
-  { id: 30, nome: 'Hotdog folhado', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 11.90, resp: 'Tiago', unidade: 'ambas', obs: 'Massa folhada com salsicha, vinagrete e maionese com batata palha. R$65/kg' },
-  { id: 31, nome: 'Torta em pedaço', curva: 'A', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 9.90, resp: 'Alexandre', unidade: 'ambas', obs: 'Frango com catupiry ou presunto, queijo e catupiry' },
-  { id: 32, nome: 'Pão de ervas', curva: 'B', validade: 2, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 9.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Pão com ervas finas recheado de dois queijos. R$65/kg' },
-  // Lanches Frios
-  { id: 33, nome: 'Lanche na baguete', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 75.00, resp: 'Tiago', unidade: 'ambas', obs: '~22 pedaços. Presunto e queijo, peito de peru, rúcula c/ tomate seco, salame, frango' },
-  { id: 34, nome: 'Lanchinho no pão de batata', curva: 'A', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 6.50, resp: 'Tiago', unidade: 'ambas', obs: 'Recheio + tomate, alface e maionese. R$68/kg' },
-  { id: 35, nome: 'Lanche marroquinho', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 35.00, resp: 'Tiago', unidade: 'ambas', obs: 'Pão folha tipo wrap + cenoura, tomate, alface e maionese. R$62/kg' },
-  { id: 36, nome: 'Sanduíche de patê de frango', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 7.50, resp: 'Tiago', unidade: 'ambas', obs: 'No pão de ervas' },
-  { id: 37, nome: 'Mini pão de batata de frango', curva: 'B', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 6.50, resp: 'Alexandre', unidade: 'ambas', obs: 'R$68/kg' },
-  { id: 38, nome: 'Cachorro quente', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 6.50, resp: 'Tiago', unidade: 'ambas', obs: '' },
-  { id: 39, nome: 'Lanche de pernil', curva: 'B', validade: 1, categoria: 'Salgado', vitrine: 'salgada', custo: 0, preco: 9.00, resp: 'Tiago', unidade: 'ambas', obs: '' },
-  { id: 40, nome: 'Pão croc', curva: 'C', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 3.00, resp: 'Alexandre', unidade: 'ambas', obs: '' },
-  // Outros / Avulsos
-  { id: 41, nome: 'Milho cozido', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 4.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 42, nome: 'Salada unitária 150g', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 12.75, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 43, nome: 'Pizza montada pronta', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 59.90, resp: 'Tiago', unidade: 'ambas', obs: '' },
-  { id: 44, nome: 'Presunto fatiado', curva: 'B', validade: 5, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 1.25, resp: 'Lucas', unidade: 'ambas', obs: 'R$42/kg' },
-  { id: 45, nome: 'Mussarela fatiada', curva: 'B', validade: 5, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 2.25, resp: 'Lucas', unidade: 'ambas', obs: 'R$69/kg' },
-  { id: 46, nome: 'Mortadela fatiada', curva: 'C', validade: 5, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Lucas', unidade: 'ambas', obs: 'R$42/kg' },
-  { id: 47, nome: 'Requeijão', curva: 'B', validade: 7, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 12.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  // Pão de Bolinha
-  { id: 48, nome: 'Pão de bolinha salgado', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'doce', custo: 0, preco: 45.00, resp: 'Alexandre', unidade: 'ambas', obs: '30 bolinhas. Quatro queijos, frango, presunto e queijo. R$68/kg' },
-  { id: 49, nome: 'Pão de bolinha doce', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'doce', custo: 0, preco: 43.00, resp: 'Alexandre', unidade: 'ambas', obs: '30 bolinhas. Doce de leite, chocolate, misto. R$72.50/kg' },
-  // Tortas & Quiches
-  { id: 50, nome: 'Torta de liquidificador', curva: 'A', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 65.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Redonda ou quadrada. até 800g R$52 / até 1kg R$65 / até 1,2kg R$78. R$69/kg' },
-  { id: 51, nome: 'Torta massa podre', curva: 'A', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 65.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Massa amanteigada. até 800g R$52 / até 1kg R$65 / até 1,2kg R$78. R$69/kg' },
-  { id: 52, nome: 'Torta massa salgada', curva: 'B', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 65.00, resp: 'Alexandre', unidade: 'ambas', obs: 'R$69/kg' },
-  { id: 53, nome: 'Torta massa fina', curva: 'B', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 65.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Redonda ou quadrada. R$69/kg' },
-  { id: 54, nome: 'Quiche', curva: 'A', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 62.00, resp: 'Alexandre', unidade: 'ambas', obs: 'até 800g R$49.50 / até 1kg R$62 / até 1,2kg R$74.50. Quatro queijos, alho poró, abobrinha, queijo c/ bacon, peito de peru, espinafre. R$69/kg' },
-  // Pães
-  { id: 55, nome: 'Pão francês', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 1.10, resp: 'Alexandre', unidade: 'ambas', obs: 'R$19.99/kg' },
-  // Doces Panificação
-  { id: 56, nome: 'Bisnaguinha c/ glacê', curva: 'B', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 3.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Pão doce com açúcar derretido por cima. R$52/kg' },
-  { id: 57, nome: 'Trança doce', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 7.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Pão doce polvilhado no açúcar. R$52/kg' },
-  { id: 58, nome: 'Húngaro doce', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 4.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Massa de pão doce. Coco com leite condensado ou frutas cristalizadas. R$52/kg' },
-  { id: 59, nome: 'Húngaro doce folhado', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 4.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Massa folhada doce. Coco ou frutas cristalizadas. R$68/kg' },
-  { id: 60, nome: 'Croissant mini chocolate', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 4.00, resp: 'Alexandre', unidade: 'ambas', obs: 'R$68/kg' },
-  { id: 61, nome: 'Croissant unitário chocolate', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 8.00, resp: 'Alexandre', unidade: 'ambas', obs: 'R$68/kg' },
-  { id: 62, nome: 'Croissant mini doce de nozes', curva: 'C', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 6.00, resp: 'Alexandre', unidade: 'ambas', obs: 'R$68/kg' },
-  { id: 63, nome: 'Croissant unitário doce de nozes', curva: 'C', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 10.00, resp: 'Alexandre', unidade: 'ambas', obs: 'R$68/kg' },
-  { id: 64, nome: 'Cupcake', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 7.50, resp: 'Anderson', unidade: 'ambas', obs: 'Cenoura, limão, chocolate, maracujá, red velvet' },
-  { id: 65, nome: 'Muffin', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 5.50, resp: 'Anderson', unidade: 'ambas', obs: 'Cenoura, limão, chocolate, maracujá, red velvet' },
-  { id: 66, nome: 'Catarina (Strudel)', curva: 'C', validade: 2, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Folhado. Maçã com creme, banana com creme, maçã com chocolate, banana com chocolate. R$68/kg' },
-  { id: 67, nome: 'Mini sonho', curva: 'B', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 4.50, resp: 'Anderson', unidade: 'ambas', obs: 'Recheado de creme. R$58/kg' },
-  { id: 68, nome: 'Mini sonho especial', curva: 'B', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 5.00, resp: 'Anderson', unidade: 'ambas', obs: 'Ninho com nutella, maracujá, limão, goiabada, doce de leite' },
-  { id: 69, nome: 'Pão de mel', curva: 'B', validade: 7, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 9.80, resp: 'Anderson', unidade: 'ambas', obs: '~110g, doce de leite com cobertura de chocolate. R$85/kg' },
-  { id: 70, nome: 'Carolina cristalizada', curva: 'B', validade: 5, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 2.00, resp: 'Anderson', unidade: 'ambas', obs: 'R$45/kg' },
-  { id: 71, nome: 'Carolina de creme de avelã', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 3.50, resp: 'Anderson', unidade: 'ambas', obs: 'R$95/kg' },
-  { id: 72, nome: 'Bolinho de chuva', curva: 'A', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 1.50, resp: 'Anderson', unidade: 'ambas', obs: 'Com ou sem banana, polvilhado em açúcar e canela. R$58/kg' },
-  { id: 73, nome: 'Rosquinha frita', curva: 'B', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 4.50, resp: 'Anderson', unidade: 'ambas', obs: 'Polvilhada em açúcar e canela. R$58/kg' },
-  { id: 74, nome: 'Queijadinha', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 6.50, resp: 'Anderson', unidade: 'ambas', obs: 'Bolinho de coco e queijo' },
-  { id: 75, nome: 'Maria Mole', curva: 'B', validade: 5, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 2.00, resp: 'Anderson', unidade: 'ambas', obs: 'Polvilhada em coco ralado. R$85/kg' },
-  { id: 76, nome: 'Samantha', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 5.50, resp: 'Anderson', unidade: 'ambas', obs: 'Carolina em formato de rosquinha polvilhada no açúcar. R$60/kg' },
-  { id: 77, nome: 'Bem casado', curva: 'B', validade: 5, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 16.50, resp: 'Anderson', unidade: 'ambas', obs: 'Pacote com 8 unidades. Doce de leite ou goiabada' },
-  { id: 78, nome: 'Donuts', curva: 'B', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 8.80, resp: 'Anderson', unidade: 'ambas', obs: 'Doce de leite, chocolate, geleia de frutas, creme' },
-  { id: 79, nome: 'Palha Italiana', curva: 'B', validade: 7, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Brigadeiro com bolacha maisena polvilhado no açúcar. R$75/kg' },
-  // Bolos Caseiros
-  { id: 80, nome: 'Pedaço de bolo', curva: 'A', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 4.00, resp: 'Anderson', unidade: 'ambas', obs: 'Chocomousse, cenoura, limão, laranja, formigueiro, coco com amendoim' },
-  { id: 81, nome: 'Bolo inglês', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 28.00, resp: 'Anderson', unidade: 'ambas', obs: '~8 fatias. Chocomousse, cenoura, limão, laranja, formigueiro, coco c/ amendoim, indiano' },
-  { id: 82, nome: 'Bolo em tira', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 28.00, resp: 'Anderson', unidade: 'ambas', obs: 'R$59/kg' },
-  { id: 83, nome: 'Bolo redondo pequeno', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 18.00, resp: 'Anderson', unidade: 'ambas', obs: '~6 fatias. Chocomousse, cenoura, limão, laranja, formigueiro, coco c/ amendoim, indiano, fubá, fubá c/ milho, milho' },
-  { id: 84, nome: 'Bolo redondo vitrine', curva: 'A', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 28.00, resp: 'Anderson', unidade: 'ambas', obs: '~8 fatias. Chocomousse, cenoura, limão, laranja, formigueiro, coco c/ amendoim, indiano, fubá, fubá c/ milho, milho' },
-  { id: 85, nome: 'Bolo redondo família', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 72.00, resp: 'Anderson', unidade: 'ambas', obs: '~20 fatias. R$59/kg' },
-  { id: 86, nome: 'Bolo família Fubá', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 50.00, resp: 'Anderson', unidade: 'ambas', obs: '~20 fatias' },
-  { id: 87, nome: 'Bolo de milho em pedaço', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 5.50, resp: 'Anderson', unidade: 'ambas', obs: '' },
-  { id: 88, nome: 'Brownie', curva: 'A', validade: 5, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 7.50, resp: 'Anderson', unidade: 'ambas', obs: '~80g, massa de chocolate com nozes, cobertura de ganache. R$88/kg' },
-  { id: 89, nome: 'Kuffa', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 6.00, resp: 'Anderson', unidade: 'ambas', obs: '~80g, bolo de frutas cristalizadas com farofa de açúcar. R$45/kg' },
-  { id: 90, nome: 'Cuca', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 6.00, resp: 'Anderson', unidade: 'ambas', obs: '~80g, bolo de banana com chocolate e farofa de açúcar. R$45/kg' },
-  { id: 91, nome: 'Rocambole', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 28.00, resp: 'Anderson', unidade: 'ambas', obs: 'Recheado de doce de leite ou goiabada' },
-  { id: 92, nome: 'Bolo vulcão ninho', curva: 'B', validade: 2, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 47.00, resp: 'Anderson', unidade: 'ambas', obs: 'Chocomousse recheado com nutella, cobertura de ninho' },
-  { id: 93, nome: 'Bolo vulcão cenoura', curva: 'B', validade: 2, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 42.00, resp: 'Anderson', unidade: 'ambas', obs: 'Bolo de cenoura com cobertura de brigadeiro' },
-  { id: 94, nome: 'Bolo goiabada com queijo', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 7.50, resp: 'Anderson', unidade: 'ambas', obs: 'Embalado individualmente' },
-  // Bolos Gelados
-  { id: 95, nome: 'Bolo de cenoura cremoso', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$62/kg' },
-  { id: 96, nome: 'Bolo de milho cremoso', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$62/kg' },
-  { id: 97, nome: 'Bolo gelado embrulhado', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$85/kg' },
-  { id: 98, nome: 'Bolo Papai Noel', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$98/kg' },
-  { id: 99, nome: 'Bolo confeitado sabores', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$85/kg' },
-  { id: 100, nome: 'Naked Cake', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$98/kg' },
-  // Tortas Doces
-  { id: 101, nome: 'Torta morango', curva: 'A', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Pequeno 800g-1kg | Vitrine 1,8kg-2kg | Família 2,5kg-3kg. R$82/kg' },
-  { id: 102, nome: 'Torta limão', curva: 'A', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Pequeno 800g-1kg | Vitrine 1,8kg-2kg | Família 2,5kg-3kg. R$82/kg' },
-  { id: 103, nome: 'Torta maracujá', curva: 'A', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$82/kg' },
-  { id: 104, nome: 'Torta maçã', curva: 'B', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$82/kg' },
-  { id: 105, nome: 'Torta holandesa', curva: 'B', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$82/kg' },
-  { id: 106, nome: 'Ganache com nozes', curva: 'B', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$109/kg' },
-  { id: 107, nome: 'Pavê', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$78/kg' },
-  // Sobremesas Especiais
-  { id: 108, nome: 'Torta Natalina', curva: 'C', validade: 3, categoria: 'Torta', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Chocolate com frutas vermelhas. R$109.90/kg' },
-  { id: 109, nome: 'Pavlova', curva: 'C', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Frutas vermelhas ou frutas amarelas. R$109.90/kg' },
-  { id: 110, nome: 'Guirlanda de pistache', curva: 'C', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$119.90/kg' },
-  { id: 111, nome: 'Charlotte café c/ chocolate', curva: 'C', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$109.90/kg' },
-  { id: 112, nome: 'Naked Cake especial', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$98.90/kg' },
-  { id: 113, nome: 'Bolo brownie c/ nozes', curva: 'C', validade: 3, categoria: 'Bolo', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$109.90/kg' },
-  // Sobremesas Clássicas
-  { id: 114, nome: 'Pudim', curva: 'A', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$68/kg' },
-  { id: 115, nome: 'Caçarola Italiana', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$62/kg' },
-  { id: 116, nome: 'Brigadeirão', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$72/kg' },
-  { id: 117, nome: 'Gelatina mosaico', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$68/kg' },
-  { id: 118, nome: 'Banoffee', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$88/kg' },
-  { id: 119, nome: 'Sorvetão artesanal', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$92/kg' },
-  { id: 120, nome: 'Manjar de ameixa', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$79/kg' },
-  { id: 121, nome: 'Cheesecake', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Goiabada ou frutas vermelhas. R$85/kg' },
-  { id: 122, nome: 'Pirâmide de carolinas', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'Chocolate, creme, limão ou doce de leite. R$92/kg' },
-  { id: 123, nome: 'Mousse de chocolate', curva: 'A', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$79/kg' },
-  { id: 124, nome: 'Mousse de maracujá', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$79/kg' },
-  { id: 125, nome: 'Gelado de abacaxi', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$79/kg' },
-  { id: 126, nome: 'Gelado de coco', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$79/kg' },
-  { id: 127, nome: 'Pavê de amendoim', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 0, resp: 'Anderson', unidade: 'ambas', obs: 'R$85/kg' },
-  // Docinhos de Festa
-  { id: 128, nome: 'Camafeu', curva: 'B', validade: 7, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 9.50, resp: 'Anderson', unidade: 'ambas', obs: 'Doce de nozes com leite condensado coberto com açúcar derretido' },
-  { id: 129, nome: 'Mini docinhos', curva: 'A', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 2.30, resp: 'Anderson', unidade: 'ambas', obs: 'Brigadeiro, bicho de pé, beijinho' },
-  { id: 130, nome: 'Brigadeiro grande', curva: 'A', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 6.50, resp: 'Anderson', unidade: 'ambas', obs: 'Enrolado ou no potinho' },
-  { id: 131, nome: 'Brigadeiro gourmet', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 8.50, resp: 'Anderson', unidade: 'ambas', obs: 'Com chocolate belga' },
-  { id: 132, nome: 'Mini docinhos especiais', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 1.50, resp: 'Anderson', unidade: 'ambas', obs: 'Olho de sogra, ninho ou cajuzinho' },
-  { id: 133, nome: 'Mini pão de mel', curva: 'B', validade: 5, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 4.50, resp: 'Anderson', unidade: 'ambas', obs: 'Recheado com doce de leite, brigadeiro ou beijinho' },
-  { id: 134, nome: 'Mini camafeu', curva: 'C', validade: 7, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 3.50, resp: 'Anderson', unidade: 'ambas', obs: 'Doce de nozes com leite condensado e açúcar derretido' },
-  // Bolachas & Biscoitos
-  { id: 135, nome: 'Petit four', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Canela, chocolate, baunilha, baunilha c/ goiabada. ~15g cada. R$60/kg' },
-  { id: 136, nome: 'Petit four decorado', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Massa amanteigada confeitada com glacê. R$98/kg' },
-  { id: 137, nome: 'Cookies', curva: 'A', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Massa de chocolate ou baunilha com gotas de chocolate. R$60/kg' },
-  { id: 138, nome: 'Mantecal', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Massa amanteigada com gota de goiabada ao centro. R$60/kg' },
-  { id: 139, nome: 'Ferradura', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Formato de ferradura com pontas mergulhadas em chocolate. R$60/kg' },
-  { id: 140, nome: 'Sequilho', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Massa sequilho com raspas de limão. R$60/kg' },
-  { id: 141, nome: 'Broinha de fubá', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Tradicional, com gotas de chocolate ou com goiabada. R$42/kg' },
-  { id: 142, nome: 'Beliscão', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0.70, resp: 'Anderson', unidade: 'ambas', obs: 'Massa amanteigada recheada com pedaço de goiabada. R$70/kg' },
-  // Mini Sobremesas
-  { id: 143, nome: 'Carolina', curva: 'A', validade: 1, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 2.80, resp: 'Anderson', unidade: 'ambas', obs: 'Doce de leite, creme, chocolate ou limão. R$69/kg' },
-  { id: 144, nome: 'Mini tortinha doce', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 4.90, resp: 'Anderson', unidade: 'ambas', obs: 'Limão, morango, maçã ou maracujá' },
-  // Sobremesas Unitárias
-  { id: 145, nome: 'Salada de fruta grande', curva: 'A', validade: 1, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 7.50, resp: 'Lucas', unidade: 'ambas', obs: 'Frutas picadas com açúcar e suco de laranja' },
-  { id: 146, nome: 'Salada de fruta pequena', curva: 'A', validade: 1, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 5.00, resp: 'Lucas', unidade: 'ambas', obs: 'Frutas picadas com açúcar e suco de laranja' },
-  { id: 147, nome: 'Bomba', curva: 'A', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 9.90, resp: 'Anderson', unidade: 'ambas', obs: 'Doce de leite, creme, chocolate ou limão' },
-  { id: 148, nome: 'Tortinha unitária', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 14.50, resp: 'Anderson', unidade: 'ambas', obs: 'Limão, morango, maçã ou maracujá' },
-  { id: 149, nome: 'Mousse no potinho', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 9.50, resp: 'Anderson', unidade: 'ambas', obs: '' },
-  { id: 150, nome: 'Quindim', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 7.50, resp: 'Anderson', unidade: 'ambas', obs: '' },
-  { id: 151, nome: 'Banoffee unitário', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 9.80, resp: 'Anderson', unidade: 'ambas', obs: '' },
-  { id: 152, nome: 'Gelado de abacaxi unitário', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 9.80, resp: 'Anderson', unidade: 'ambas', obs: '' },
-  { id: 153, nome: 'Doce de potinho caseiro', curva: 'B', validade: 3, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 6.50, resp: 'Anderson', unidade: 'ambas', obs: 'Abóbora ou mamão. ~160g' },
-  { id: 154, nome: 'Pé de moleque', curva: 'B', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 3.00, resp: 'Anderson', unidade: 'ambas', obs: '' },
-  { id: 155, nome: 'Canjica', curva: 'C', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 7.50, resp: 'Anderson', unidade: 'ambas', obs: '' },
-  { id: 156, nome: 'Arroz doce', curva: 'B', validade: 2, categoria: 'Doce', vitrine: 'sobremesa', custo: 0, preco: 7.50, resp: 'Anderson', unidade: 'ambas', obs: '' },
-  // Especiais de Natal
-  { id: 157, nome: 'Panetone caseiro', curva: 'C', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 16.80, resp: 'Alexandre', unidade: 'ambas', obs: 'Com frutas cristalizadas' },
-  { id: 158, nome: 'Chocotone caseiro', curva: 'C', validade: 14, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 17.80, resp: 'Alexandre', unidade: 'ambas', obs: 'Com gotas de chocolate' },
-  { id: 159, nome: 'Mini panetone', curva: 'C', validade: 7, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 5.00, resp: 'Alexandre', unidade: 'ambas', obs: 'Com frutas cristalizadas' },
-  { id: 160, nome: 'Mini chocotone', curva: 'C', validade: 7, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 5.50, resp: 'Alexandre', unidade: 'ambas', obs: 'Com gotas de chocolate' },
-  { id: 161, nome: 'Rabanada', curva: 'C', validade: 1, categoria: 'Doce', vitrine: 'doce', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'Fatias de pão assadas, polvilhadas em açúcar e canela. R$58/kg' },
-  // Bebidas
-  { id: 162, nome: 'Garrafa de café 1L', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 35.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 163, nome: 'Garrafa térmica 1,8L', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 40.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 164, nome: 'Nescau 1L', curva: 'B', validade: 7, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 17.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 165, nome: 'Nescau Fast', curva: 'B', validade: 7, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 9.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 166, nome: 'Garrafa de chá 1L', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 18.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 167, nome: 'Coca-Cola 2L', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 14.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 168, nome: 'Refrigerante 2L', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 12.00, resp: 'Lucas', unidade: 'ambas', obs: 'Guaraná, Sprite, Fanta uva, Fanta laranja' },
-  { id: 169, nome: 'Del Valle 1L', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 10.50, resp: 'Lucas', unidade: 'ambas', obs: 'Laranja, uva, caju, maracujá' },
-  { id: 170, nome: 'Del Valle 200ml', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 4.90, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 171, nome: 'Água 1,5L', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 6.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 172, nome: 'Água 1,5L c/ gás', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 7.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 173, nome: 'Água 500ml', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 4.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 174, nome: 'Água 500ml c/ gás', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 4.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 175, nome: 'Água 300ml', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 3.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 176, nome: 'Água 300ml c/ gás', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 4.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 177, nome: 'Água saborizada 1L', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 10.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 178, nome: 'Água de coco 1L', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 21.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 179, nome: 'Suco natural 1L', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 29.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 180, nome: 'Natural One 1,5L', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 30.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 181, nome: 'Natural One 900ml', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 23.75, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 182, nome: 'Suco de laranja integral', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 19.90, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 183, nome: 'Suco de uva integral', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 19.90, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 184, nome: 'Leite 1L', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 15.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 185, nome: 'Leite ZERO lactose 1L', curva: 'C', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 25.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 186, nome: 'Iogurte', curva: 'B', validade: 7, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 4.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 187, nome: 'Vinho quente', curva: 'C', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 35.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  // Cafeteria — Quentes
-  { id: 188, nome: 'Café casa PEQ', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 5.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 189, nome: 'Café casa GD', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 7.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 190, nome: 'Expresso PEQ', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 8.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 191, nome: 'Expresso GD', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 11.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 192, nome: 'Macchiato PEQ', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 9.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 193, nome: 'Macchiato GD', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 12.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 194, nome: 'Pingado casa PEQ', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 8.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 195, nome: 'Pingado casa GD', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 10.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 196, nome: 'Pingado expresso PEQ', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 9.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 197, nome: 'Pingado expresso GD', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 11.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 198, nome: 'Chocolate quente PEQ', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 9.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 199, nome: 'Chocolate quente GD', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 12.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 200, nome: 'Cappuccino PEQ', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 9.50, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 201, nome: 'Cappuccino GD', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 12.00, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  // Cafeteria — Geladas
-  { id: 202, nome: 'Cappuccino gelado', curva: 'A', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 14.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 203, nome: 'Chocolate gelado', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 14.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 204, nome: 'Ovomaltine gelado', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 15.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  { id: 205, nome: 'Café gelado', curva: 'B', validade: 1, categoria: 'Bebida', vitrine: 'todas', custo: 0, preco: 15.80, resp: 'Lucas', unidade: 'ambas', obs: '' },
-  // Pratos Especiais
-  { id: 206, nome: 'Pernil assado', curva: 'B', validade: 2, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$86/kg' },
-  { id: 207, nome: 'Salpicão', curva: 'B', validade: 3, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$85/kg' },
-  { id: 208, nome: 'Antepasto de berinjela', curva: 'B', validade: 5, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$87/kg' },
-  { id: 209, nome: 'Maionese de legumes', curva: 'B', validade: 3, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$78/kg' },
-  { id: 210, nome: 'Farofa salgada', curva: 'B', validade: 5, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$78/kg' },
-  { id: 211, nome: 'Farofa doce', curva: 'C', validade: 5, categoria: 'Outro', vitrine: 'doce', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$78/kg' },
-  { id: 212, nome: 'Agridoce', curva: 'C', validade: 7, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$92/kg' },
-  { id: 213, nome: 'Pasta cream cheese c/ geleia', curva: 'C', validade: 5, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$98/kg' },
-  { id: 214, nome: 'Terrine de tomate cereja confitado', curva: 'C', validade: 3, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 0, resp: 'Alexandre', unidade: 'ambas', obs: 'R$98/kg' },
-  // Assados (peça)
-  { id: 215, nome: 'Leitoa', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 130.00, resp: 'Alexandre', unidade: 'ambas', obs: '~150g = 1 porção' },
-  { id: 216, nome: 'Pernil (peça)', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 85.00, resp: 'Alexandre', unidade: 'ambas', obs: '~150g = 1 porção' },
-  { id: 217, nome: 'Peru', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 75.00, resp: 'Alexandre', unidade: 'ambas', obs: '~150g = 1 porção' },
-  { id: 218, nome: 'Chester', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 75.00, resp: 'Alexandre', unidade: 'ambas', obs: '~150g = 1 porção' },
-  { id: 219, nome: 'Tender', curva: 'C', validade: 1, categoria: 'Outro', vitrine: 'salgada', custo: 0, preco: 60.00, resp: 'Alexandre', unidade: 'ambas', obs: '~150g = 1 porção' },
+  { id: 1, nome: 'Pão de queijo especial', curva: 'A', validade: 1, categoria: 'Pão', vitrine: 'salgada', custo: 0, preco: 2.00, resp: 'Alexandre', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 2, nome: 'Torta de frango cremosa', curva: 'A', validade: 2, categoria: 'Torta', vitrine: 'salgada', custo: 0, preco: 65.00, resp: 'Alexandre', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 3, nome: 'Bolo de chocolate', curva: 'B', validade: 3, categoria: 'Bolo', vitrine: 'doce', custo: 0, preco: 85.00, resp: 'Tiago', unidade: 'ambas', obs: '', tipo: 'fabricacao' },
+  { id: 4, nome: 'Refrigerante lata 350ml', curva: 'B', validade: 180, categoria: 'Bebida', vitrine: 'todas', custo: 3.20, preco: 6.00, resp: 'Lucas', unidade: 'ambas', obs: 'Coca-Cola', tipo: 'revenda' },
+  { id: 5, nome: 'Água mineral 500ml', curva: 'A', validade: 365, categoria: 'Bebida', vitrine: 'todas', custo: 0.80, preco: 3.00, resp: 'Lucas', unidade: 'ambas', obs: '', tipo: 'revenda' },
+  { id: 6, nome: 'Suco de caixinha 200ml', curva: 'B', validade: 90, categoria: 'Bebida', vitrine: 'todas', custo: 1.50, preco: 4.00, resp: 'Lucas', unidade: 'ambas', obs: '', tipo: 'revenda' },
 ]);
 
 let ingredientes = getStorage('ddv_ingredientes', [
-  { id: 101, nome: 'Farinha de trigo', unidade: 'g', qtdCompra: 5000, custoCompra: 18.90, fatia: null, historico: [{ id: 1, qtdCompra: 5000, custoCompra: 18.90, fornecedor: '', data: '' }] },
-  { id: 102, nome: 'Açúcar', unidade: 'g', qtdCompra: 5000, custoCompra: 19.50, fatia: null, historico: [{ id: 2, qtdCompra: 5000, custoCompra: 19.50, fornecedor: '', data: '' }] },
-  { id: 103, nome: 'Ovos', unidade: 'un', qtdCompra: 30, custoCompra: 24.00, fatia: null, historico: [{ id: 3, qtdCompra: 30, custoCompra: 24.00, fornecedor: '', data: '' }] },
-  { id: 104, nome: 'Leite', unidade: 'ml', qtdCompra: 1000, custoCompra: 5.80, fatia: null, historico: [{ id: 4, qtdCompra: 1000, custoCompra: 5.80, fornecedor: '', data: '' }] },
+  { id: 101, nome: 'Farinha de trigo', unidade: 'g', qtdCompra: 5000, custoCompra: 18.90, fatia: null, historico: [{ id: 1001, qtdCompra: 5000, custoCompra: 18.90, fornecedor: '', data: '' }] },
+  { id: 102, nome: 'Queijo mussarela', unidade: 'g', qtdCompra: 1000, custoCompra: 32.00, fatia: 30, historico: [{ id: 1002, qtdCompra: 1000, custoCompra: 32.00, fornecedor: '', data: '' }] },
+  { id: 103, nome: 'Chocolate em pó', unidade: 'g', qtdCompra: 400, custoCompra: 14.50, fatia: null, historico: [{ id: 1003, qtdCompra: 400, custoCompra: 14.50, fornecedor: '', data: '' }] },
 ]);
 
 // Migração aplicada após nextId ser inicializado (ver bloco abaixo)
@@ -1886,6 +1693,9 @@ nextId = Math.max(
   ...receitas.map(r => r.id || 0),
   ...perdas.map(p => p.id || 0)
 );
+
+// Migração: garantir que todos os produtos tenham tipo
+produtos = produtos.map(p => ({ ...p, tipo: p.tipo || 'fabricacao' }));
 
 // Migração: garantir que ingredientes antigos tenham historico e fatia
 ingredientes = ingredientes.map(ing => {
@@ -2577,7 +2387,7 @@ function burstHeartsAtSlot(slotNumber) {
     heart.textContent = '♥';
     heart.style.left = `${x}px`;
     heart.style.top = `${y}px`;
-    heart.style.color = i % 2 ? '#16A34A' : '#14B8A6';
+    heart.style.color = i % 2 ? '#16A34A' : '#2563EB';
     heart.style.setProperty('--dx', `${(Math.random() * 120 - 60).toFixed(0)}px`);
     heart.style.animationDelay = `${i * 35}ms`;
     document.body.appendChild(heart);
@@ -2787,12 +2597,22 @@ function removeCrono(idx) {
 // ============================================================
 // PRODUTOS
 // ============================================================
+let currentProdutosTipo = 'fabricacao';
+
+function setProdutosTipo(tipo) {
+  currentProdutosTipo = tipo;
+  document.getElementById('tab-fab-btn')?.classList.toggle('active', tipo === 'fabricacao');
+  document.getElementById('tab-rev-btn')?.classList.toggle('active', tipo === 'revenda');
+  renderProdutos();
+}
+
 function renderProdutos() {
   const search = document.getElementById('filter-search').value.toLowerCase();
   const curvaFilter = document.getElementById('filter-curva').value;
   const vitrineFilter = document.getElementById('filter-vitrine').value;
 
   const filtered = produtos.filter(p =>
+    (p.tipo || 'fabricacao') === currentProdutosTipo &&
     (!curvaFilter || p.curva === curvaFilter) &&
     (!vitrineFilter || inferProductVitrine(p) === vitrineFilter) &&
     (!search || p.nome.toLowerCase().includes(search))
@@ -2818,15 +2638,16 @@ function renderProdutos() {
     </tr>
   `).join('') || `<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto encontrado</td></tr>`;
 
-  // Stats
-  document.getElementById('stat-total').textContent = produtos.length;
-  document.getElementById('stat-a').textContent = produtos.filter(p => p.curva === 'A').length;
-  document.getElementById('stat-b').textContent = produtos.filter(p => p.curva === 'B').length;
-  document.getElementById('stat-c').textContent = produtos.filter(p => p.curva === 'C').length;
+  // Stats (per tipo)
+  const produtosTipo = produtos.filter(p => (p.tipo || 'fabricacao') === currentProdutosTipo);
+  document.getElementById('stat-total').textContent = produtosTipo.length;
+  document.getElementById('stat-a').textContent = produtosTipo.filter(p => p.curva === 'A').length;
+  document.getElementById('stat-b').textContent = produtosTipo.filter(p => p.curva === 'B').length;
+  document.getElementById('stat-c').textContent = produtosTipo.filter(p => p.curva === 'C').length;
 
-  const total = produtos.length || 1;
-  const pA = (produtos.filter(p => p.curva==='A').length / total * 100).toFixed(0);
-  const pB = (produtos.filter(p => p.curva==='B').length / total * 100).toFixed(0);
+  const total = produtosTipo.length || 1;
+  const pA = (produtosTipo.filter(p => p.curva==='A').length / total * 100).toFixed(0);
+  const pB = (produtosTipo.filter(p => p.curva==='B').length / total * 100).toFixed(0);
   const pC = (100 - pA - pB);
   const bar = document.getElementById('abc-bar');
   bar.children[0].style.width = pA + '%';
@@ -2846,6 +2667,7 @@ function openProdModal(prod) {
   document.getElementById('p-resp').value = prod ? prod.resp : 'Alexandre';
   document.getElementById('p-unidade').value = prod ? prod.unidade : 'ambas';
   document.getElementById('p-obs').value = prod ? prod.obs : '';
+  document.getElementById('p-tipo').value = prod ? (prod.tipo || 'fabricacao') : 'fabricacao';
   document.getElementById('modal-produto-title').textContent = prod ? 'Editar Produto' : 'Novo Produto';
   openModal('modal-produto');
 }
@@ -2882,6 +2704,7 @@ function saveProduto() {
     resp: document.getElementById('p-resp').value,
     unidade: document.getElementById('p-unidade').value,
     obs: document.getElementById('p-obs').value,
+    tipo: document.getElementById('p-tipo').value,
   };
 
   if (id) {
@@ -2943,6 +2766,25 @@ function getProdutoReceitaRendimento(prodId) {
 
 let currentCmvTab = 'ingredientes';
 let currentReceitaView = 'flat';
+let currentCmvSection = 'fabricacao';
+
+function setCmvSection(section) {
+  currentCmvSection = section;
+  const isFab = section === 'fabricacao';
+  document.getElementById('cmv-fab-inner-tabs').style.display = isFab ? '' : 'none';
+  document.getElementById('cmv-panel-revenda').style.display = isFab ? 'none' : '';
+  document.getElementById('cmv-tab-fab').classList.toggle('active', isFab);
+  document.getElementById('cmv-tab-rev').classList.toggle('active', !isFab);
+  if (isFab) {
+    // Let setCmvTab manage ingredientes/receitas panels
+    setCmvTab(currentCmvTab);
+  } else {
+    // Hide fab panels when showing revenda
+    document.getElementById('cmv-panel-ingredientes').style.display = 'none';
+    document.getElementById('cmv-panel-receitas').style.display = 'none';
+    renderRevendaCMV();
+  }
+}
 
 function setCmvTab(tab) {
   currentCmvTab = tab;
@@ -2950,6 +2792,51 @@ function setCmvTab(tab) {
   document.getElementById('cmv-panel-receitas').style.display = tab === 'receitas' ? '' : 'none';
   document.getElementById('cmv-tab-ing').classList.toggle('active', tab === 'ingredientes');
   document.getElementById('cmv-tab-rec').classList.toggle('active', tab === 'receitas');
+}
+
+function renderRevendaCMV() {
+  const tbody = document.getElementById('revenda-tbody');
+  if (!tbody) return;
+  const revenda = produtos.filter(p => (p.tipo || 'fabricacao') === 'revenda');
+  if (!revenda.length) {
+    tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Adicione produtos com tipo "Revenda" na página de Produtos.</td></tr>';
+    return;
+  }
+  tbody.innerHTML = revenda.map(p => {
+    const custo = Number(p.custo) || 0;
+    const preco = Number(p.preco) || 0;
+    const margem = preco - custo;
+    const margemPct = preco > 0 ? (margem / preco) * 100 : 0;
+    const cmv = preco > 0 ? (custo / preco) * 100 : 0;
+    const statusClass = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+    return `<tr>
+      <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span></td>
+      <td><input class="sheet-input" type="number" step="0.01" value="${custo || ''}" onblur="updateRevendaCusto(${p.id}, this.value)" placeholder="0,00"></td>
+      <td><input class="sheet-input" type="number" step="0.01" value="${preco || ''}" onblur="updateRevendaPreco(${p.id}, this.value)" placeholder="0,00"></td>
+      <td><span class="sheet-readonly">${preco > 0 ? 'R$ ' + margem.toFixed(2) : '—'}</span></td>
+      <td><span class="sheet-readonly">${preco > 0 ? margemPct.toFixed(1) + '%' : '—'}</span></td>
+      <td><span class="sheet-readonly">${preco > 0 ? '<span class="badge ' + statusClass + '">' + cmv.toFixed(1) + '%</span>' : '—'}</span></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))">✏️</button></td>
+    </tr>`;
+  }).join('');
+}
+
+function updateRevendaCusto(prodId, value) {
+  const p = produtos.find(pr => pr.id === prodId);
+  if (!p) return;
+  p.custo = parseFloat(value) || 0;
+  saveAll();
+  renderRevendaCMV();
+  renderProdutos();
+}
+
+function updateRevendaPreco(prodId, value) {
+  const p = produtos.find(pr => pr.id === prodId);
+  if (!p) return;
+  p.preco = parseFloat(value) || 0;
+  saveAll();
+  renderRevendaCMV();
+  renderProdutos();
 }
 
 function setReceitaView(view) {
