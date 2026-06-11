@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vitrines · Delícias da Vovó</title>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500&family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -31,7 +31,6 @@
   --shadow-soft: 0 1px 2px rgba(17, 24, 39, 0.06);
   --radius: 8px;
   --font-sans: 'Plus Jakarta Sans', sans-serif;
-  --font-serif: 'Fraunces', serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 
@@ -39,9 +38,7 @@
 
 body {
   font-family: var(--font-sans);
-  background:
-    radial-gradient(circle at top left, rgba(20,184,166,0.10), transparent 30%),
-    var(--cream);
+  background: var(--cream);
   color: var(--text);
   min-height: 100vh;
   line-height: 1.45;
@@ -69,11 +66,11 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   box-shadow: var(--shadow-soft);
 }
 .header-logo {
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
   color: var(--text);
   font-size: 17px;
-  font-weight: 400;
-  letter-spacing: 0;
+  font-weight: 700;
+  letter-spacing: -0.3px;
 }
 .header-logo span { color: var(--text-light); font-weight: 500; font-size: 12px; display: block; line-height: 1.2; margin-top: 2px; font-family: var(--font-sans); letter-spacing: 0; }
 .unit-switcher {
@@ -148,12 +145,13 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* SECTION TITLE */
 .section-title {
-  font-family: var(--font-serif);
-  font-size: 26px;
+  font-family: var(--font-sans);
+  font-size: 22px;
+  font-weight: 700;
   line-height: 1.15;
   color: var(--text);
   margin-bottom: 6px;
-  letter-spacing: 0;
+  letter-spacing: -0.3px;
 }
 .section-sub { font-size: 14px; color: var(--text-light); margin-bottom: 24px; }
 
@@ -450,7 +448,7 @@ tr:hover td { background: var(--surface-soft); }
   font-size: 14px;
   font-weight: 700;
   color: var(--text);
-  font-family: var(--font-serif);
+  font-family: var(--font-sans);
 }
 .vitrine-category-note {
   font-size: 12px;
@@ -627,7 +625,7 @@ tr:hover td { background: var(--surface-soft); }
   align-items: center;
   justify-content: space-between;
 }
-.pedido-title { font-family: var(--font-serif); font-size: 18px; color: #fff; font-weight: 400; }
+.pedido-title { font-family: var(--font-sans); font-size: 18px; color: #fff; font-weight: 700; }
 .pedido-sub { font-size: 12px; color: rgba(255,255,255,0.78); margin-top: 2px; }
 .pedido-item {
   display: grid;
@@ -679,7 +677,7 @@ tr:hover td { background: var(--surface-soft); }
   max-height: 90vh;
   overflow-y: auto;
 }
-.modal-title { font-family: var(--font-serif); font-size: 18px; color: var(--text); margin-bottom: 16px; font-weight: 400; }
+.modal-title { font-family: var(--font-sans); font-size: 17px; color: var(--text); margin-bottom: 16px; font-weight: 700; }
 .modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 16px; }
 
 /* TOAST */
@@ -838,6 +836,22 @@ tr:hover td { background: var(--surface-soft); }
 .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
 .empty-state .empty-icon { font-size: 40px; margin-bottom: 10px; }
 .empty-state p { font-size: 14px; }
+
+/* CMV STATS */
+#cmv-stat-card-medio { border-bottom: 3px solid var(--border); }
+#cmv-stats-row .stat-card { padding: 14px 16px; }
+
+/* RECEITAS GROUPED */
+.receita-grupo-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; background: var(--surface-soft);
+  border-bottom: 1px solid var(--border); border-radius: 6px 6px 0 0;
+}
+.receita-cat-header {
+  font-size: 11px; font-weight: 800; text-transform: uppercase;
+  letter-spacing: 0.8px; color: var(--text-mid); padding: 8px 0;
+  border-bottom: 2px solid var(--border); margin-bottom: 8px;
+}
 
 /* RESPONSIVE */
 @media (max-width: 640px) {
@@ -1023,47 +1037,76 @@ tr:hover td { background: var(--surface-soft); }
 
 <!-- ===================== PAGE: CMV ===================== -->
 <div class="page" id="page-cmv">
-  <h2 class="section-title">CMV</h2>
-  <p class="section-sub">Preencha direto nas células. Uma linha de receita representa um ingrediente usado em um produto.</p>
+  <h2 class="section-title">CMV — Custo da Mercadoria Vendida</h2>
+  <p class="section-sub">Cadastre ingredientes com histórico de compras e monte receitas por produto.</p>
 
-  <div class="stats-row">
-    <div class="stat-card"><div class="stat-value" id="cmv-stat-ingredientes">0</div><div class="stat-label">Ingredientes</div></div>
-    <div class="stat-card"><div class="stat-value" id="cmv-stat-receitas">0</div><div class="stat-label">Receitas</div></div>
-    <div class="stat-card"><div class="stat-value" id="cmv-stat-medio">0%</div><div class="stat-label">CMV médio</div></div>
-    <div class="stat-card"><div class="stat-value" id="cmv-stat-alertas">0</div><div class="stat-label">Acima de 35%</div></div>
+  <div class="stats-row" id="cmv-stats-row">
+    <div class="stat-card">
+      <div class="stat-value" id="cmv-stat-ingredientes">0</div>
+      <div class="stat-label">Ingredientes</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-value" id="cmv-stat-receitas">0</div>
+      <div class="stat-label">Receitas cadastradas</div>
+    </div>
+    <div class="stat-card" id="cmv-stat-card-medio">
+      <div class="stat-value" id="cmv-stat-medio" style="font-size:22px;">—</div>
+      <div class="stat-label">CMV médio</div>
+      <div id="cmv-medio-bar" style="height:4px;border-radius:999px;background:var(--border);margin-top:6px;overflow:hidden;"><div id="cmv-medio-fill" style="height:100%;width:0%;background:var(--green);border-radius:999px;transition:width .4s;"></div></div>
+    </div>
+    <div class="stat-card" id="cmv-stat-card-alertas">
+      <div class="stat-value" id="cmv-stat-alertas">0</div>
+      <div class="stat-label">Produtos acima de 35%</div>
+    </div>
   </div>
 
-  <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
-    <button class="btn btn-primary" onclick="addIngredienteRow()">+ Linha de ingrediente</button>
-    <button class="btn btn-gold" onclick="addReceitaRow()">+ Linha de receita</button>
+  <!-- TABS -->
+  <div class="toggle-row" id="cmv-tabs" style="margin-bottom:16px;">
+    <button class="toggle-btn active" id="cmv-tab-ing" onclick="setCmvTab('ingredientes')">🧂 Ingredientes</button>
+    <button class="toggle-btn" id="cmv-tab-rec" onclick="setCmvTab('receitas')">📋 Receitas</button>
   </div>
 
-  <div style="display:grid; gap:18px;">
-    <div>
-      <div class="vitrine-section-label">Ingredientes</div>
-      <div class="sheet-card">
-        <div class="table-wrap">
-          <table class="sheet-table">
-            <thead>
-              <tr>
-                <th>Ingrediente</th>
-                <th>Unidade</th>
-                <th>Qtd. compra</th>
-                <th>Custo compra</th>
-                <th>Custo base</th>
-                <th></th>
-              </tr>
-            </thead>
-            <tbody id="ingredientes-tbody"></tbody>
-          </table>
-        </div>
-        <div class="sheet-actions">
-          <button class="btn btn-ghost btn-sm" onclick="addIngredienteRow()">+ Adicionar linha</button>
-        </div>
+  <!-- PAINEL INGREDIENTES -->
+  <div id="cmv-panel-ingredientes">
+    <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
+      <button class="btn btn-primary" onclick="addIngredienteRow()">+ Novo ingrediente</button>
+    </div>
+    <div class="sheet-card">
+      <div class="table-wrap">
+        <table class="sheet-table">
+          <thead>
+            <tr>
+              <th>Ingrediente</th>
+              <th>Unidade</th>
+              <th>Fornecedor atual</th>
+              <th>Data compra</th>
+              <th>Qtd. compra</th>
+              <th>Custo compra</th>
+              <th>Custo base</th>
+              <th>Derivados</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="ingredientes-tbody"></tbody>
+        </table>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn btn-ghost btn-sm" onclick="addIngredienteRow()">+ Adicionar linha</button>
       </div>
     </div>
-    <div>
-      <div class="vitrine-section-label">Receitas</div>
+  </div>
+
+  <!-- PAINEL RECEITAS -->
+  <div id="cmv-panel-receitas" style="display:none;">
+    <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
+      <button class="btn btn-gold" onclick="addReceitaRow()">+ Nova linha de receita</button>
+      <div class="toggle-row" style="margin-bottom:0;">
+        <button class="toggle-btn active" id="rec-view-flat" onclick="setReceitaView('flat')">Lista</button>
+        <button class="toggle-btn" id="rec-view-grouped" onclick="setReceitaView('grouped')">Por produto</button>
+        <button class="toggle-btn" id="rec-view-category" onclick="setReceitaView('category')">Por categoria</button>
+      </div>
+    </div>
+    <div id="receitas-container">
       <div class="sheet-card">
         <div class="table-wrap">
           <table class="sheet-table">
@@ -1208,9 +1251,9 @@ tr:hover td { background: var(--surface-soft); }
 
 <!-- Modal: Ingrediente -->
 <div class="modal-overlay" id="modal-ingrediente">
-  <div class="modal">
+  <div class="modal" style="max-width:500px;">
     <div class="modal-title" id="modal-ingrediente-title">Novo Ingrediente</div>
-    <div class="form-row full"><div class="form-group"><label>Nome do ingrediente</label><input type="text" id="ing-nome" placeholder="ex: Farinha de trigo"></div></div>
+    <div class="form-row full"><div class="form-group"><label>Nome do ingrediente</label><input type="text" id="ing-nome" placeholder="ex: Mussarela fatiada"></div></div>
     <div class="form-row">
       <div class="form-group"><label>Unidade base</label>
         <select id="ing-unidade">
@@ -1219,13 +1262,43 @@ tr:hover td { background: var(--surface-soft); }
           <option value="un">un</option>
         </select>
       </div>
-      <div class="form-group"><label>Quantidade comprada</label><input type="number" id="ing-qtd" min="0.001" step="0.001" placeholder="ex: 5000"></div>
+      <div class="form-group"><label>Peso por fatia (g) — opcional</label><input type="number" id="ing-fatia" min="0" step="0.1" placeholder="ex: 30"></div>
     </div>
-    <div class="form-row full"><div class="form-group"><label>Custo da compra (R$)</label><input type="number" id="ing-custo" min="0" step="0.01" placeholder="ex: 18,90"></div></div>
+    <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin:12px 0 6px;text-transform:uppercase;letter-spacing:0.4px;">Última compra</div>
+    <div class="form-row">
+      <div class="form-group"><label>Fornecedor</label><input type="text" id="ing-fornecedor" placeholder="ex: Makro, Atacadão…"></div>
+      <div class="form-group"><label>Data da compra</label><input type="date" id="ing-data"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Quantidade comprada</label><input type="number" id="ing-qtd" min="0.001" step="0.001" placeholder="ex: 5000"></div>
+      <div class="form-group"><label>Custo da compra (R$)</label><input type="number" id="ing-custo" min="0" step="0.01" placeholder="ex: 18,90"></div>
+    </div>
     <input type="hidden" id="ing-id">
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-ingrediente')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveIngrediente()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Modal: Histórico de Compras -->
+<div class="modal-overlay" id="modal-historico">
+  <div class="modal" style="max-width:640px;">
+    <div class="modal-title" id="modal-historico-title">Histórico de Compras</div>
+    <div id="historico-list" style="margin-bottom:16px;"></div>
+    <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">Registrar nova compra</div>
+    <div class="form-row">
+      <div class="form-group"><label>Fornecedor</label><input type="text" id="hist-fornecedor" placeholder="ex: Makro"></div>
+      <div class="form-group"><label>Data</label><input type="date" id="hist-data"></div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Quantidade comprada</label><input type="number" id="hist-qtd" min="0.001" step="0.001" placeholder="ex: 1000"></div>
+      <div class="form-group"><label>Custo total (R$)</label><input type="number" id="hist-custo" min="0" step="0.01" placeholder="ex: 18,90"></div>
+    </div>
+    <input type="hidden" id="hist-ing-id">
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-historico')">Fechar</button>
+      <button class="btn btn-primary" onclick="saveHistoricoCompra()">Registrar compra</button>
     </div>
   </div>
 </div>
@@ -1784,11 +1857,13 @@ let produtos = getStorage('ddv_produtos', [
 ]);
 
 let ingredientes = getStorage('ddv_ingredientes', [
-  { id: 101, nome: 'Farinha de trigo', unidade: 'g', qtdCompra: 5000, custoCompra: 18.90 },
-  { id: 102, nome: 'Açúcar', unidade: 'g', qtdCompra: 5000, custoCompra: 19.50 },
-  { id: 103, nome: 'Ovos', unidade: 'un', qtdCompra: 30, custoCompra: 24.00 },
-  { id: 104, nome: 'Leite', unidade: 'ml', qtdCompra: 1000, custoCompra: 5.80 },
+  { id: 101, nome: 'Farinha de trigo', unidade: 'g', qtdCompra: 5000, custoCompra: 18.90, fatia: null, historico: [{ id: 1, qtdCompra: 5000, custoCompra: 18.90, fornecedor: '', data: '' }] },
+  { id: 102, nome: 'Açúcar', unidade: 'g', qtdCompra: 5000, custoCompra: 19.50, fatia: null, historico: [{ id: 2, qtdCompra: 5000, custoCompra: 19.50, fornecedor: '', data: '' }] },
+  { id: 103, nome: 'Ovos', unidade: 'un', qtdCompra: 30, custoCompra: 24.00, fatia: null, historico: [{ id: 3, qtdCompra: 30, custoCompra: 24.00, fornecedor: '', data: '' }] },
+  { id: 104, nome: 'Leite', unidade: 'ml', qtdCompra: 1000, custoCompra: 5.80, fatia: null, historico: [{ id: 4, qtdCompra: 1000, custoCompra: 5.80, fornecedor: '', data: '' }] },
 ]);
+
+// Migração aplicada após nextId ser inicializado (ver bloco abaixo)
 
 let receitas = getStorage('ddv_receitas', []);
 
@@ -1811,6 +1886,20 @@ nextId = Math.max(
   ...receitas.map(r => r.id || 0),
   ...perdas.map(p => p.id || 0)
 );
+
+// Migração: garantir que ingredientes antigos tenham historico e fatia
+ingredientes = ingredientes.map(ing => {
+  if (!ing.historico) {
+    ing.historico = (ing.qtdCompra || ing.custoCompra)
+      ? [{ id: ++nextId, qtdCompra: ing.qtdCompra || 0, custoCompra: ing.custoCompra || 0, fornecedor: '', data: '' }]
+      : [];
+  }
+  if (ing.fatia === undefined) ing.fatia = null;
+  // Garante qtdCompra/custoCompra sincronizados com historico mais recente
+  const ultimo = ing.historico[ing.historico.length - 1];
+  if (ultimo) { ing.qtdCompra = ultimo.qtdCompra; ing.custoCompra = ultimo.custoCompra; }
+  return ing;
+});
 
 function saveAll() {
   setStorage('ddv_produtos', produtos);
@@ -1958,10 +2047,16 @@ async function loadFromSupabase() {
       }));
     }
     if (ingData?.length) {
-      ingredientes = ingData.map(i => ({
-        id: i.id, nome: i.nome, unidade: i.unidade,
-        qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra)
-      }));
+      const localIngredientes = getStorage('ddv_ingredientes', []);
+      ingredientes = ingData.map(i => {
+        const local = localIngredientes.find(l => l.id === i.id);
+        return {
+          id: i.id, nome: i.nome, unidade: i.unidade,
+          qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra),
+          fatia: local?.fatia ?? null,
+          historico: local?.historico || [{ id: i.id * 1000, qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra), fornecedor: '', data: '' }]
+        };
+      });
     }
     if (recData?.length) {
       receitas = recData.map(r => ({
@@ -2811,8 +2906,14 @@ function money(v) {
   return `R$ ${(Number(v) || 0).toFixed(2)}`;
 }
 
+function getUltimaCompra(ing) {
+  const hist = ing.historico || [];
+  return hist.length ? hist[hist.length - 1] : { qtdCompra: ing.qtdCompra || 0, custoCompra: ing.custoCompra || 0, fornecedor: '', data: '' };
+}
+
 function custoIngredienteUnit(ing) {
-  return (Number(ing.custoCompra) || 0) / ((Number(ing.qtdCompra) || 1));
+  const uc = getUltimaCompra(ing);
+  return (Number(uc.custoCompra) || 0) / ((Number(uc.qtdCompra) || 1));
 }
 
 function getReceitaCusto(receita) {
@@ -2840,6 +2941,25 @@ function getProdutoReceitaRendimento(prodId) {
   return Number(receita?.rendimento) || 1;
 }
 
+let currentCmvTab = 'ingredientes';
+let currentReceitaView = 'flat';
+
+function setCmvTab(tab) {
+  currentCmvTab = tab;
+  document.getElementById('cmv-panel-ingredientes').style.display = tab === 'ingredientes' ? '' : 'none';
+  document.getElementById('cmv-panel-receitas').style.display = tab === 'receitas' ? '' : 'none';
+  document.getElementById('cmv-tab-ing').classList.toggle('active', tab === 'ingredientes');
+  document.getElementById('cmv-tab-rec').classList.toggle('active', tab === 'receitas');
+}
+
+function setReceitaView(view) {
+  currentReceitaView = view;
+  document.getElementById('rec-view-flat').classList.toggle('active', view === 'flat');
+  document.getElementById('rec-view-grouped').classList.toggle('active', view === 'grouped');
+  document.getElementById('rec-view-category').classList.toggle('active', view === 'category');
+  renderReceitaSheet();
+}
+
 function renderCMV() {
   renderIngredientes();
   renderReceitaSheet();
@@ -2854,17 +2974,49 @@ function renderCMV() {
   });
 
   const media = cmvs.length ? cmvs.reduce((a, b) => a + b, 0) / cmvs.length : 0;
+  const alertas = cmvs.filter(v => v > 35).length;
   document.getElementById('cmv-stat-ingredientes').textContent = ingredientes.length;
   document.getElementById('cmv-stat-receitas').textContent = receitas.length;
-  document.getElementById('cmv-stat-medio').textContent = `${media.toFixed(0)}%`;
-  document.getElementById('cmv-stat-alertas').textContent = cmvs.filter(v => v > 35).length;
+
+  const medioEl = document.getElementById('cmv-stat-medio');
+  medioEl.textContent = cmvs.length ? `${media.toFixed(1)}%` : '—';
+  const cor = media === 0 ? 'var(--text)' : media < 25 ? 'var(--green)' : media < 35 ? '#D97706' : 'var(--red)';
+  medioEl.style.color = cor;
+  const fill = document.getElementById('cmv-medio-fill');
+  if (fill) {
+    fill.style.width = `${Math.min(media, 100)}%`;
+    fill.style.background = cor;
+  }
+
+  const alertasEl = document.getElementById('cmv-stat-alertas');
+  alertasEl.textContent = alertas;
+  alertasEl.style.color = alertas > 0 ? 'var(--red)' : 'var(--green)';
+  const alertaCard = document.getElementById('cmv-stat-card-alertas');
+  if (alertaCard) alertaCard.style.borderColor = alertas > 0 ? 'rgba(220,38,38,0.3)' : 'var(--border)';
 }
 
 function renderIngredientes() {
   const tbody = document.getElementById('ingredientes-tbody');
-  tbody.innerHTML = ingredientes.map(ing => `
-    <tr>
-      <td><input class="sheet-input" value="${ing.nome || ''}" onblur="updateIngredienteCell(${ing.id}, 'nome', this.value)" placeholder="ex: Farinha"></td>
+  tbody.innerHTML = ingredientes.map(ing => {
+    const uc = getUltimaCompra(ing);
+    const custoUnit = custoIngredienteUnit(ing);
+    let derivados = `<span style="color:var(--text-light);font-size:12px;">${money(custoUnit)}/${ing.unidade}</span>`;
+    if (ing.unidade === 'g') {
+      derivados = `<div style="font-size:11px;line-height:1.6;">`;
+      derivados += `<span style="color:var(--text-mid);">${money(custoUnit)}/g</span>`;
+      derivados += `<br><span style="color:var(--text-mid);">${money(custoUnit*100)}/100g</span>`;
+      if (ing.fatia) {
+        derivados += `<br><span style="color:var(--brown);font-weight:700;">${money(custoUnit * ing.fatia)}/fatia (${ing.fatia}g)</span>`;
+      }
+      derivados += `</div>`;
+    } else if (ing.unidade === 'ml') {
+      derivados = `<span style="font-size:11px;color:var(--text-mid);">${money(custoUnit)}/ml<br>${money(custoUnit*1000)}/L</span>`;
+    } else {
+      derivados = `<span style="font-size:11px;color:var(--text-mid);">${money(custoUnit)}/un</span>`;
+    }
+    const nCompras = (ing.historico || []).length;
+    return `<tr>
+      <td><input class="sheet-input" value="${ing.nome || ''}" onblur="updateIngredienteCell(${ing.id}, 'nome', this.value)" placeholder="ex: Farinha" style="min-width:130px;"></td>
       <td>
         <select class="sheet-select" onchange="updateIngredienteCell(${ing.id}, 'unidade', this.value)">
           <option value="g" ${ing.unidade === 'g' ? 'selected' : ''}>g</option>
@@ -2872,44 +3024,167 @@ function renderIngredientes() {
           <option value="un" ${ing.unidade === 'un' ? 'selected' : ''}>un</option>
         </select>
       </td>
-      <td><input class="sheet-input" type="number" min="0" step="0.001" value="${ing.qtdCompra || ''}" onchange="updateIngredienteCell(${ing.id}, 'qtdCompra', this.value)" onblur="updateIngredienteCell(${ing.id}, 'qtdCompra', this.value)" placeholder="5000"></td>
-      <td><input class="sheet-input" type="number" min="0" step="0.01" value="${ing.custoCompra || ''}" onchange="updateIngredienteCell(${ing.id}, 'custoCompra', this.value)" onblur="updateIngredienteCell(${ing.id}, 'custoCompra', this.value)" placeholder="18.90"></td>
-      <td><span class="sheet-readonly">${money(custoIngredienteUnit(ing))} / ${ing.unidade}</span></td>
-      <td>
+      <td><span class="sheet-readonly" style="font-size:12px;color:var(--text);">${uc.fornecedor || '<span style="color:var(--text-light);">—</span>'}</span></td>
+      <td><span class="sheet-readonly" style="font-size:12px;">${uc.data ? new Date(uc.data + 'T00:00').toLocaleDateString('pt-BR') : '<span style="color:var(--text-light);">—</span>'}</span></td>
+      <td><span class="sheet-readonly" style="font-size:12px;">${uc.qtdCompra || '—'} ${ing.unidade}</span></td>
+      <td><span class="sheet-readonly" style="font-size:12px;">${uc.custoCompra ? money(uc.custoCompra) : '—'}</span></td>
+      <td style="min-width:110px;">${derivados}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick="openHistoricoModal(${ing.id})" title="Histórico de compras" style="margin-right:2px;">
+          🛒 ${nCompras > 0 ? `<span style="font-size:10px;background:var(--gold-light);color:var(--brown);border-radius:999px;padding:1px 5px;">${nCompras}</span>` : ''}
+        </button>
+        <button class="btn btn-ghost btn-sm" onclick="editIngrediente(${ing.id})" title="Editar ingrediente">✏️</button>
         <button class="btn btn-ghost btn-sm" onclick="deleteIngrediente(${ing.id})" style="color:var(--red)">×</button>
       </td>
-    </tr>
-  `).join('') || `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum ingrediente cadastrado</td></tr>`;
+    </tr>`;
+  }).join('') || `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum ingrediente cadastrado</td></tr>`;
+}
+
+function renderReceitaRow(receita) {
+  const prod = produtos.find(p => p.id === receita.prodId);
+  const custoTotal = prod ? getProdutoReceitaCusto(prod.id) : getReceitaCusto(receita);
+  const rendimento = prod ? getProdutoReceitaRendimento(prod.id) : (Number(receita.rendimento) || 1);
+  const custoUn = custoTotal / rendimento;
+  const cmv = prod?.preco ? (custoUn / prod.preco) * 100 : 0;
+  const status = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+  return `<tr>
+    <td>
+      <select class="sheet-select" onchange="updateReceitaCell(${receita.id}, 'prodId', this.value)">
+        ${produtos.map(p => `<option value="${p.id}" ${p.id === receita.prodId ? 'selected' : ''}>${p.nome}</option>`).join('')}
+      </select>
+    </td>
+    <td>${renderReceitaIngredientesCell(receita)}</td>
+    <td>${renderReceitaQtdCell(receita)}</td>
+    <td><input class="sheet-input" type="number" min="1" step="1" value="${receita.rendimento || 1}" onchange="updateReceitaCell(${receita.id}, 'rendimento', this.value)" onblur="updateReceitaCell(${receita.id}, 'rendimento', this.value)"></td>
+    <td><input class="sheet-input" value="${receita.unidade || 'un.'}" onblur="updateReceitaCell(${receita.id}, 'unidade', this.value)"></td>
+    <td><span class="sheet-readonly">${money(custoUn)}</span></td>
+    <td><span class="sheet-readonly"><span class="badge ${status}">${cmv.toFixed(0)}%</span></span></td>
+    <td><button class="btn btn-ghost btn-sm" onclick="deleteReceita(${receita.id})" style="color:var(--red)">×</button></td>
+  </tr>`;
 }
 
 function renderReceitaSheet() {
-  const tbody = document.getElementById('receitas-tbody');
+  if (currentReceitaView === 'flat') {
+    renderReceitaFlat();
+  } else if (currentReceitaView === 'grouped') {
+    renderReceitaGrouped();
+  } else {
+    renderReceitaByCategory();
+  }
+}
+
+function renderReceitaFlat() {
+  const container = document.getElementById('receitas-container');
+  if (!container) return;
+  container.innerHTML = `
+    <div class="sheet-card">
+      <div class="table-wrap">
+        <table class="sheet-table">
+          <thead><tr>
+            <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th>
+            <th>Rendimento</th><th>Unid.</th><th>Custo un.</th><th>CMV</th><th></th>
+          </tr></thead>
+          <tbody id="receitas-tbody">${receitas.length
+            ? receitas.map(renderReceitaRow).join('')
+            : '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma receita cadastrada</td></tr>'
+          }</tbody>
+        </table>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn btn-ghost btn-sm" onclick="addReceitaRow()">+ Adicionar linha</button>
+      </div>
+    </div>`;
+}
+
+function renderReceitaGrouped() {
+  const container = document.getElementById('receitas-container');
+  if (!container) return;
   if (!receitas.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma receita cadastrada</td></tr>';
+    container.innerHTML = `<div class="card"><p style="color:var(--text-light);text-align:center;padding:20px;">Nenhuma receita cadastrada</p></div>`;
     return;
   }
-
-  tbody.innerHTML = receitas.map(receita => {
-    const prod = produtos.find(p => p.id === receita.prodId);
-    const custoTotal = prod ? getProdutoReceitaCusto(prod.id) : getReceitaCusto(receita);
-    const rendimento = prod ? getProdutoReceitaRendimento(prod.id) : (Number(receita.rendimento) || 1);
-    const custoUn = custoTotal / rendimento;
+  const byProd = {};
+  receitas.forEach(r => {
+    const key = r.prodId;
+    if (!byProd[key]) byProd[key] = [];
+    byProd[key].push(r);
+  });
+  container.innerHTML = Object.entries(byProd).map(([prodId, linhas]) => {
+    const prod = produtos.find(p => p.id == prodId);
+    const custoUn = prod ? getProdutoReceitaCusto(prod.id) / getProdutoReceitaRendimento(prod.id) : 0;
     const cmv = prod?.preco ? (custoUn / prod.preco) * 100 : 0;
     const status = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
-    return `<tr>
-      <td>
-        <select class="sheet-select" onchange="updateReceitaCell(${receita.id}, 'prodId', this.value)">
-          ${produtos.map(p => `<option value="${p.id}" ${p.id === receita.prodId ? 'selected' : ''}>${p.nome}</option>`).join('')}
-        </select>
-      </td>
-      <td>${renderReceitaIngredientesCell(receita)}</td>
-      <td>${renderReceitaQtdCell(receita)}</td>
-      <td><input class="sheet-input" type="number" min="1" step="1" value="${receita.rendimento || 1}" onchange="updateReceitaCell(${receita.id}, 'rendimento', this.value)" onblur="updateReceitaCell(${receita.id}, 'rendimento', this.value)"></td>
-      <td><input class="sheet-input" value="${receita.unidade || 'un.'}" onblur="updateReceitaCell(${receita.id}, 'unidade', this.value)"></td>
-      <td><span class="sheet-readonly">${money(custoUn)}</span></td>
-      <td><span class="sheet-readonly"><span class="badge ${status}">${cmv.toFixed(0)}%</span></span></td>
-      <td><button class="btn btn-ghost btn-sm" onclick="deleteReceita(${receita.id})" style="color:var(--red)">×</button></td>
-    </tr>`;
+    return `
+      <div class="sheet-card" style="margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid var(--border);background:var(--surface-soft);">
+          <div>
+            <span style="font-weight:700;font-size:14px;">${prod?.nome || 'Produto desconhecido'}</span>
+            <span style="font-size:11px;color:var(--text-light);margin-left:8px;">${prod?.categoria || ''}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <span style="font-size:12px;color:var(--text-mid);">Custo un: <strong>${money(custoUn)}</strong></span>
+            <span class="badge ${status}">${cmv.toFixed(0)}%</span>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table class="sheet-table">
+            <thead><tr>
+              <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th>
+              <th>Rendimento</th><th>Unid.</th><th>Custo un.</th><th>CMV</th><th></th>
+            </tr></thead>
+            <tbody>${linhas.map(renderReceitaRow).join('')}</tbody>
+          </table>
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function renderReceitaByCategory() {
+  const container = document.getElementById('receitas-container');
+  if (!container) return;
+  if (!receitas.length) {
+    container.innerHTML = `<div class="card"><p style="color:var(--text-light);text-align:center;padding:20px;">Nenhuma receita cadastrada</p></div>`;
+    return;
+  }
+  const byCategoria = {};
+  receitas.forEach(r => {
+    const prod = produtos.find(p => p.id === r.prodId);
+    const cat = prod?.categoria || 'Outros';
+    if (!byCategoria[cat]) byCategoria[cat] = {};
+    if (!byCategoria[cat][r.prodId]) byCategoria[cat][r.prodId] = [];
+    byCategoria[cat][r.prodId].push(r);
+  });
+  container.innerHTML = Object.entries(byCategoria).sort(([a],[b]) => a.localeCompare(b)).map(([cat, prods]) => {
+    const prodBlocks = Object.entries(prods).map(([prodId, linhas]) => {
+      const prod = produtos.find(p => p.id == prodId);
+      const custoUn = prod ? getProdutoReceitaCusto(prod.id) / getProdutoReceitaRendimento(prod.id) : 0;
+      const cmv = prod?.preco ? (custoUn / prod.preco) * 100 : 0;
+      const status = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+      return `
+        <div style="border-left:3px solid var(--border);margin:0 0 12px 8px;padding-left:0;">
+          <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface-soft);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
+            <span style="font-weight:600;font-size:13px;">${prod?.nome || 'Produto desconhecido'}</span>
+            <div style="display:flex;gap:8px;align-items:center;">
+              <span style="font-size:12px;color:var(--text-mid);">${money(custoUn)}/un</span>
+              <span class="badge ${status}">${cmv.toFixed(0)}%</span>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table class="sheet-table">
+              <thead><tr>
+                <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th>
+                <th>Rendimento</th><th>Unid.</th><th>Custo un.</th><th>CMV</th><th></th>
+              </tr></thead>
+              <tbody>${linhas.map(renderReceitaRow).join('')}</tbody>
+            </table>
+          </div>
+        </div>`;
+    }).join('');
+    return `
+      <div style="margin-bottom:20px;">
+        <div style="font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--text-mid);padding:6px 0;border-bottom:2px solid var(--border);margin-bottom:8px;">${cat}</div>
+        ${prodBlocks}
+      </div>`;
   }).join('');
 }
 
@@ -2930,7 +3205,7 @@ function renderReceitaQtdCell(receita) {
 }
 
 function addIngredienteRow() {
-  ingredientes.push({ id: ++nextId, nome: '', unidade: 'g', qtdCompra: 0, custoCompra: 0 });
+  ingredientes.push({ id: ++nextId, nome: '', unidade: 'g', qtdCompra: 0, custoCompra: 0, fatia: null, historico: [] });
   saveAll();
   renderCMV();
 }
@@ -2993,8 +3268,12 @@ function openIngredienteModal(ing = null) {
   document.getElementById('ing-id').value = ing ? ing.id : '';
   document.getElementById('ing-nome').value = ing ? ing.nome : '';
   document.getElementById('ing-unidade').value = ing ? ing.unidade : 'g';
-  document.getElementById('ing-qtd').value = ing ? ing.qtdCompra : '';
-  document.getElementById('ing-custo').value = ing ? ing.custoCompra : '';
+  document.getElementById('ing-fatia').value = ing?.fatia || '';
+  const uc = ing ? getUltimaCompra(ing) : {};
+  document.getElementById('ing-qtd').value = uc.qtdCompra || '';
+  document.getElementById('ing-custo').value = uc.custoCompra || '';
+  document.getElementById('ing-fornecedor').value = uc.fornecedor || '';
+  document.getElementById('ing-data').value = uc.data || '';
   document.getElementById('modal-ingrediente-title').textContent = ing ? 'Editar Ingrediente' : 'Novo Ingrediente';
   openModal('modal-ingrediente');
 }
@@ -3004,27 +3283,118 @@ function saveIngrediente() {
   const nome = document.getElementById('ing-nome').value.trim();
   const qtdCompra = parseFloat(document.getElementById('ing-qtd').value) || 0;
   const custoCompra = parseFloat(document.getElementById('ing-custo').value) || 0;
-  if (!nome || !qtdCompra || !custoCompra) return showToast('Preencha ingrediente, quantidade e custo', 'error');
-
-  const data = {
-    nome,
-    unidade: document.getElementById('ing-unidade').value,
-    qtdCompra,
-    custoCompra
-  };
+  const fornecedor = document.getElementById('ing-fornecedor').value.trim();
+  const dataCompra = document.getElementById('ing-data').value;
+  const fatia = parseFloat(document.getElementById('ing-fatia').value) || null;
+  if (!nome) return showToast('Preencha o nome do ingrediente', 'error');
 
   if (id) {
     const idx = ingredientes.findIndex(i => i.id == id);
-    ingredientes[idx] = { ...ingredientes[idx], ...data };
+    const ing = ingredientes[idx];
+    ing.nome = nome;
+    ing.unidade = document.getElementById('ing-unidade').value;
+    ing.fatia = fatia;
+    // Se preencheu nova compra, registra no histórico
+    if (qtdCompra && custoCompra) {
+      if (!ing.historico) ing.historico = [];
+      const uc = getUltimaCompra(ing);
+      const mudou = uc.qtdCompra !== qtdCompra || uc.custoCompra !== custoCompra || uc.fornecedor !== fornecedor;
+      if (mudou) {
+        ing.historico.push({ id: ++nextId, qtdCompra, custoCompra, fornecedor, data: dataCompra });
+      }
+      ing.qtdCompra = qtdCompra;
+      ing.custoCompra = custoCompra;
+    }
   } else {
-    data.id = ++nextId;
-    ingredientes.push(data);
+    const novo = {
+      id: ++nextId,
+      nome,
+      unidade: document.getElementById('ing-unidade').value,
+      qtdCompra, custoCompra, fatia,
+      historico: (qtdCompra && custoCompra) ? [{ id: ++nextId, qtdCompra, custoCompra, fornecedor, data: dataCompra }] : []
+    };
+    ingredientes.push(novo);
   }
 
   saveAll();
   closeModal('modal-ingrediente');
   renderCMV();
   showToast('Ingrediente salvo ✓', 'success');
+}
+
+function openHistoricoModal(ingId) {
+  const ing = ingredientes.find(i => i.id === ingId);
+  if (!ing) return;
+  document.getElementById('hist-ing-id').value = ingId;
+  document.getElementById('hist-fornecedor').value = '';
+  document.getElementById('hist-data').value = '';
+  document.getElementById('hist-qtd').value = '';
+  document.getElementById('hist-custo').value = '';
+  document.getElementById('modal-historico-title').textContent = `Histórico — ${ing.nome}`;
+
+  const hist = (ing.historico || []).slice().reverse();
+  document.getElementById('historico-list').innerHTML = hist.length
+    ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
+        <thead><tr>
+          <th style="text-align:left;padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);">Data</th>
+          <th style="text-align:left;padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);">Fornecedor</th>
+          <th style="text-align:right;padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);">Qtd.</th>
+          <th style="text-align:right;padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);">Custo</th>
+          <th style="text-align:right;padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);">/unit</th>
+          <th style="padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);"></th>
+        </tr></thead>
+        <tbody>${hist.map((h, rIdx) => {
+          const cuUn = (Number(h.custoCompra)||0) / (Number(h.qtdCompra)||1);
+          const isLatest = rIdx === 0;
+          return `<tr style="${isLatest ? 'background:#F0FDF4;' : ''}">
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);">${h.data ? new Date(h.data+'T00:00').toLocaleDateString('pt-BR') : '—'}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);">${h.fornecedor || '—'} ${isLatest ? '<span style="font-size:10px;color:var(--green);font-weight:700;">ATUAL</span>' : ''}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--font-mono);">${h.qtdCompra} ${ing.unidade}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--font-mono);">${money(h.custoCompra)}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--font-mono);">${money(cuUn)}/${ing.unidade}</td>
+            <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">
+              ${!isLatest ? `<button class="btn btn-ghost btn-sm" onclick="deleteHistoricoEntry(${ingId},${h.id})" style="color:var(--red);padding:2px 8px;">×</button>` : ''}
+            </td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`
+    : `<p style="color:var(--text-light);font-size:13px;padding:8px 0;">Nenhuma compra registrada ainda.</p>`;
+
+  openModal('modal-historico');
+}
+
+function saveHistoricoCompra() {
+  const ingId = parseInt(document.getElementById('hist-ing-id').value);
+  const ing = ingredientes.find(i => i.id === ingId);
+  if (!ing) return;
+  const qtdCompra = parseFloat(document.getElementById('hist-qtd').value) || 0;
+  const custoCompra = parseFloat(document.getElementById('hist-custo').value) || 0;
+  const fornecedor = document.getElementById('hist-fornecedor').value.trim();
+  const dataCompra = document.getElementById('hist-data').value;
+  if (!qtdCompra || !custoCompra) return showToast('Preencha quantidade e custo', 'error');
+
+  if (!ing.historico) ing.historico = [];
+  ing.historico.push({ id: ++nextId, qtdCompra, custoCompra, fornecedor, data: dataCompra });
+  ing.qtdCompra = qtdCompra;
+  ing.custoCompra = custoCompra;
+  saveAll();
+  refreshProductCostsFromRecipes();
+  renderCMV();
+  showToast('Compra registrada ✓', 'success');
+  openHistoricoModal(ingId);
+}
+
+function deleteHistoricoEntry(ingId, entryId) {
+  const ing = ingredientes.find(i => i.id === ingId);
+  if (!ing || !ing.historico) return;
+  ing.historico = ing.historico.filter(h => h.id !== entryId);
+  const uc = getUltimaCompra(ing);
+  ing.qtdCompra = uc.qtdCompra;
+  ing.custoCompra = uc.custoCompra;
+  saveAll();
+  refreshProductCostsFromRecipes();
+  renderCMV();
+  openHistoricoModal(ingId);
 }
 
 function editIngrediente(id) {
