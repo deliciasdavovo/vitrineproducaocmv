@@ -1586,6 +1586,7 @@ tr:hover td { background: var(--surface-soft); }
         </select>
       </div>
       <div class="form-group"><label>Peso por fatia (g) — opcional</label><input type="number" id="ing-fatia" min="0" step="0.1" placeholder="ex: 30"></div>
+      <div class="form-group"><label>Peso por unidade (g) — opcional</label><input type="number" id="ing-pesoUn" min="0" step="0.1" placeholder="ex: 395 para lata 395g"></div>
     </div>
     <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin:12px 0 6px;text-transform:uppercase;letter-spacing:0.4px;">Última compra</div>
     <div class="form-row">
@@ -2498,6 +2499,7 @@ async function loadFromSupabase() {
           id: i.id, nome: i.nome, unidade: i.unidade,
           qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra),
           fatia: local?.fatia ?? null,
+          pesoUn: local?.pesoUn ?? null,
           historico: local?.historico || [{ id: i.id * 1000, qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra), fornecedor: '', data: '' }]
         };
       });
@@ -3593,7 +3595,11 @@ function getUltimaCompra(ing) {
 
 function custoIngredienteUnit(ing) {
   const uc = getUltimaCompra(ing);
-  return (Number(uc.custoCompra) || 0) / ((Number(uc.qtdCompra) || 1));
+  const custoUn = (Number(uc.custoCompra) || 0) / ((Number(uc.qtdCompra) || 1));
+  if (ing.unidade === 'un' && Number(ing.pesoUn) > 0) {
+    return custoUn / Number(ing.pesoUn);
+  }
+  return custoUn;
 }
 
 function getReceitaCusto(receita) {
@@ -3953,6 +3959,12 @@ function renderIngredientes() {
       derivados += `</div>`;
     } else if (ing.unidade === 'ml') {
       derivados = `<span style="font-size:11px;color:var(--text-mid);">${money(custoUnit)}/ml<br>${money(custoUnit*1000)}/L</span>`;
+    } else if (ing.unidade === 'un' && Number(ing.pesoUn) > 0) {
+      derivados = `<div style="font-size:11px;line-height:1.6;">`;
+      derivados += `<span style="color:var(--text-mid);">${money(custoUnit)}/g</span>`;
+      derivados += `<br><span style="color:var(--text-mid);">${money(custoUnit * 100)}/100g</span>`;
+      derivados += `<br><span style="color:var(--text-light);font-size:10px;">1 un = ${ing.pesoUn}g</span>`;
+      derivados += `</div>`;
     } else {
       derivados = `<span style="font-size:11px;color:var(--text-mid);">${money(custoUnit)}/un</span>`;
     }
@@ -3981,7 +3993,33 @@ function renderIngredientes() {
   }).join('') || `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum ingrediente cadastrado</td></tr>`;
 }
 
-function renderReceitaRow(receita) {
+function renderReceitaRow(receita, showRendimento = true) {
+  const prod = produtos.find(p => p.id === receita.prodId);
+  const custoTotal = prod ? getProdutoReceitaCusto(prod.id) : getReceitaCusto(receita);
+  const rendimento = prod ? getProdutoReceitaRendimento(prod.id) : (Number(receita.rendimento) || 1);
+  const custoUn = custoTotal / rendimento;
+  const cmv = prod?.preco ? (custoUn / prod.preco) * 100 : 0;
+  const status = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+  const rendCells = showRendimento
+    ? `<td><input class="sheet-input" type="number" min="1" step="1" value="${receita.rendimento || 1}" onchange="updateReceitaCell(${receita.id}, 'rendimento', this.value)" onblur="updateReceitaCell(${receita.id}, 'rendimento', this.value)"></td>
+    <td><input class="sheet-input" value="${receita.unidade || 'un.'}" onblur="updateReceitaCell(${receita.id}, 'unidade', this.value)"></td>`
+    : `<td colspan="2" style="text-align:center;color:var(--text-light);font-size:11px;">—</td>`;
+  return `<tr>
+    <td>
+      <select class="sheet-select" onchange="updateReceitaCell(${receita.id}, 'prodId', this.value)">
+        ${produtos.map(p => `<option value="${p.id}" ${p.id === receita.prodId ? 'selected' : ''}>${p.nome}</option>`).join('')}
+      </select>
+    </td>
+    <td>${renderReceitaIngredientesCell(receita)}</td>
+    <td>${renderReceitaQtdCell(receita)}</td>
+    ${rendCells}
+    <td><span class="sheet-readonly">${money(custoUn)}</span></td>
+    <td><span class="sheet-readonly"><span class="badge ${status}">${cmv.toFixed(0)}%</span></span></td>
+    <td><button class="btn btn-ghost btn-sm" onclick="deleteReceita(${receita.id})" style="color:var(--red)">×</button></td>
+  </tr>`;
+}
+
+function renderReceitaRowCompact(receita) {
   const prod = produtos.find(p => p.id === receita.prodId);
   const custoTotal = prod ? getProdutoReceitaCusto(prod.id) : getReceitaCusto(receita);
   const rendimento = prod ? getProdutoReceitaRendimento(prod.id) : (Number(receita.rendimento) || 1);
@@ -3996,8 +4034,6 @@ function renderReceitaRow(receita) {
     </td>
     <td>${renderReceitaIngredientesCell(receita)}</td>
     <td>${renderReceitaQtdCell(receita)}</td>
-    <td><input class="sheet-input" type="number" min="1" step="1" value="${receita.rendimento || 1}" onchange="updateReceitaCell(${receita.id}, 'rendimento', this.value)" onblur="updateReceitaCell(${receita.id}, 'rendimento', this.value)"></td>
-    <td><input class="sheet-input" value="${receita.unidade || 'un.'}" onblur="updateReceitaCell(${receita.id}, 'unidade', this.value)"></td>
     <td><span class="sheet-readonly">${money(custoUn)}</span></td>
     <td><span class="sheet-readonly"><span class="badge ${status}">${cmv.toFixed(0)}%</span></span></td>
     <td><button class="btn btn-ghost btn-sm" onclick="deleteReceita(${receita.id})" style="color:var(--red)">×</button></td>
@@ -4017,6 +4053,7 @@ function renderReceitaSheet() {
 function renderReceitaFlat() {
   const container = document.getElementById('receitas-container');
   if (!container) return;
+  const seenProdIds = new Set();
   container.innerHTML = `
     <div class="sheet-card">
       <div class="table-wrap">
@@ -4026,7 +4063,11 @@ function renderReceitaFlat() {
             <th>Rendimento</th><th>Unid.</th><th>Custo un.</th><th>CMV</th><th></th>
           </tr></thead>
           <tbody id="receitas-tbody">${receitas.length
-            ? receitas.map(renderReceitaRow).join('')
+            ? receitas.map(r => {
+                const firstOfProduct = !seenProdIds.has(r.prodId);
+                if (firstOfProduct) seenProdIds.add(r.prodId);
+                return renderReceitaRow(r, firstOfProduct);
+              }).join('')
             : '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma receita cadastrada</td></tr>'
           }</tbody>
         </table>
@@ -4052,7 +4093,9 @@ function renderReceitaGrouped() {
   });
   container.innerHTML = Object.entries(byProd).map(([prodId, linhas]) => {
     const prod = produtos.find(p => p.id == prodId);
-    const custoUn = prod ? getProdutoReceitaCusto(prod.id) / getProdutoReceitaRendimento(prod.id) : 0;
+    const rendimento = getProdutoReceitaRendimento(prod?.id || 0) || linhas[0]?.rendimento || 1;
+    const unidade = linhas[0]?.unidade || 'un.';
+    const custoUn = prod ? getProdutoReceitaCusto(prod.id) / rendimento : 0;
     const cmv = prod?.preco ? (custoUn / prod.preco) * 100 : 0;
     const status = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
     return `
@@ -4062,7 +4105,8 @@ function renderReceitaGrouped() {
             <span style="font-weight:700;font-size:14px;">${prod?.nome || 'Produto desconhecido'}</span>
             <span style="font-size:11px;color:var(--text-light);margin-left:8px;">${prod?.categoria || ''}</span>
           </div>
-          <div style="display:flex;align-items:center;gap:8px;">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span style="font-size:12px;color:var(--text-mid);">Rendimento: <input class="sheet-input" type="number" min="1" step="1" value="${rendimento}" onchange="updateProdutoRendimento(${prodId}, 'rendimento', this.value)" style="width:60px;display:inline-block;margin:0 4px;"><input class="sheet-input" value="${escHtml(unidade)}" onblur="updateProdutoRendimento(${prodId}, 'unidade', this.value)" style="width:55px;display:inline-block;margin:0;"></span>
             <span style="font-size:12px;color:var(--text-mid);">Custo un: <strong>${money(custoUn)}</strong></span>
             <span class="badge ${status}">${cmv.toFixed(0)}%</span>
           </div>
@@ -4071,9 +4115,9 @@ function renderReceitaGrouped() {
           <table class="sheet-table">
             <thead><tr>
               <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th>
-              <th>Rendimento</th><th>Unid.</th><th>Custo un.</th><th>CMV</th><th></th>
+              <th>Custo un.</th><th>CMV</th><th></th>
             </tr></thead>
-            <tbody>${linhas.map(renderReceitaRow).join('')}</tbody>
+            <tbody>${linhas.map(renderReceitaRowCompact).join('')}</tbody>
           </table>
         </div>
         <div class="sheet-actions">
@@ -4101,14 +4145,17 @@ function renderReceitaByCategory() {
   container.innerHTML = Object.entries(byCategoria).sort(([a],[b]) => a.localeCompare(b)).map(([cat, prods]) => {
     const prodBlocks = Object.entries(prods).map(([prodId, linhas]) => {
       const prod = produtos.find(p => p.id == prodId);
-      const custoUn = prod ? getProdutoReceitaCusto(prod.id) / getProdutoReceitaRendimento(prod.id) : 0;
+      const rendimento = getProdutoReceitaRendimento(prod?.id || 0) || linhas[0]?.rendimento || 1;
+      const unidade = linhas[0]?.unidade || 'un.';
+      const custoUn = prod ? getProdutoReceitaCusto(prod.id) / rendimento : 0;
       const cmv = prod?.preco ? (custoUn / prod.preco) * 100 : 0;
       const status = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
       return `
         <div style="border-left:3px solid var(--border);margin:0 0 12px 8px;padding-left:0;">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface-soft);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
             <span style="font-weight:600;font-size:13px;">${prod?.nome || 'Produto desconhecido'}</span>
-            <div style="display:flex;gap:8px;align-items:center;">
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span style="font-size:12px;color:var(--text-mid);">Rend: <input class="sheet-input" type="number" min="1" step="1" value="${rendimento}" onchange="updateProdutoRendimento(${prodId}, 'rendimento', this.value)" style="width:55px;display:inline-block;margin:0 4px;"><input class="sheet-input" value="${escHtml(unidade)}" onblur="updateProdutoRendimento(${prodId}, 'unidade', this.value)" style="width:50px;display:inline-block;margin:0;"></span>
               <span style="font-size:12px;color:var(--text-mid);">${money(custoUn)}/un</span>
               <span class="badge ${status}">${cmv.toFixed(0)}%</span>
             </div>
@@ -4117,9 +4164,9 @@ function renderReceitaByCategory() {
             <table class="sheet-table">
               <thead><tr>
                 <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th>
-                <th>Rendimento</th><th>Unid.</th><th>Custo un.</th><th>CMV</th><th></th>
+                <th>Custo un.</th><th>CMV</th><th></th>
               </tr></thead>
-              <tbody>${linhas.map(renderReceitaRow).join('')}</tbody>
+              <tbody>${linhas.map(renderReceitaRowCompact).join('')}</tbody>
             </table>
           </div>
           <div class="sheet-actions">
@@ -4145,9 +4192,10 @@ function renderReceitaIngredientesCell(receita) {
 function renderReceitaQtdCell(receita) {
   const item = receita.itens?.[0] || {};
   const ing = ingredientes.find(i => i.id === item.ingId);
+  const unitLabel = (ing?.unidade === 'un' && Number(ing?.pesoUn) > 0) ? 'g' : (ing?.unidade || '');
   return `<div style="display:flex;align-items:center;">
     <input class="sheet-input" type="number" min="0" step="0.001" value="${item.qtd || ''}" onchange="updateReceitaItemCell(${receita.id}, 'qtd', this.value)" onblur="updateReceitaItemCell(${receita.id}, 'qtd', this.value)" placeholder="250">
-    <span class="sheet-readonly" style="padding-left:0;">${ing?.unidade || ''}</span>
+    <span class="sheet-readonly" style="padding-left:0;">${unitLabel}</span>
   </div>`;
 }
 
@@ -4210,7 +4258,7 @@ function submitQuickInsumo() {
   let ing = ingredientes.find(i => (i.nome || '').toLowerCase() === nome.toLowerCase());
   const existed = !!ing;
   if (!ing) {
-    ing = { id: ++nextId, nome, unidade: unidadeEl?.value || 'g', qtdCompra: 0, custoCompra: 0, fatia: null, historico: [] };
+    ing = { id: ++nextId, nome, unidade: unidadeEl?.value || 'g', qtdCompra: 0, custoCompra: 0, fatia: null, pesoUn: null, historico: [] };
     ingredientes.push(ing);
   } else if (unidadeEl?.value) {
     ing.unidade = unidadeEl.value;
@@ -4280,6 +4328,16 @@ function updateReceitaCell(id, field, value) {
   renderProdutos();
 }
 
+function updateProdutoRendimento(prodId, field, value) {
+  receitas.filter(r => r.prodId == prodId).forEach(r => {
+    r[field] = field === 'rendimento' ? parseFloat(value) || 1 : (value || 'un.');
+  });
+  saveAll();
+  refreshProductCostsFromRecipes();
+  renderCMV();
+  renderProdutos();
+}
+
 function updateReceitaItemCell(id, field, value) {
   const receita = receitas.find(r => r.id === id);
   if (!receita) return;
@@ -4305,6 +4363,7 @@ function openIngredienteModal(ing = null) {
   document.getElementById('ing-nome').value = ing ? ing.nome : '';
   document.getElementById('ing-unidade').value = ing ? ing.unidade : 'g';
   document.getElementById('ing-fatia').value = ing?.fatia || '';
+  document.getElementById('ing-pesoUn').value = ing?.pesoUn || '';
   const uc = ing ? getUltimaCompra(ing) : {};
   document.getElementById('ing-qtd').value = uc.qtdCompra || '';
   document.getElementById('ing-custo').value = uc.custoCompra || '';
@@ -4322,6 +4381,7 @@ function saveIngrediente() {
   const fornecedor = document.getElementById('ing-fornecedor').value.trim();
   const dataCompra = document.getElementById('ing-data').value;
   const fatia = parseFloat(document.getElementById('ing-fatia').value) || null;
+  const pesoUn = parseFloat(document.getElementById('ing-pesoUn').value) || null;
   if (!nome) return showToast('Preencha o nome do ingrediente', 'error');
 
   if (id) {
@@ -4330,6 +4390,7 @@ function saveIngrediente() {
     ing.nome = nome;
     ing.unidade = document.getElementById('ing-unidade').value;
     ing.fatia = fatia;
+    ing.pesoUn = pesoUn;
     // Se preencheu nova compra, registra no histórico
     if (qtdCompra && custoCompra) {
       if (!ing.historico) ing.historico = [];
@@ -4346,7 +4407,7 @@ function saveIngrediente() {
       id: ++nextId,
       nome,
       unidade: document.getElementById('ing-unidade').value,
-      qtdCompra, custoCompra, fatia,
+      qtdCompra, custoCompra, fatia, pesoUn,
       historico: (qtdCompra && custoCompra) ? [{ id: ++nextId, qtdCompra, custoCompra, fornecedor, data: dataCompra }] : []
     };
     ingredientes.push(novo);
@@ -4468,7 +4529,10 @@ function addReceitaItem(item = {}) {
   row.className = 'form-row receita-item-row';
   row.innerHTML = `
     <div class="form-group"><label>Ingrediente</label>
-      <select class="rec-ing">${ingredientes.map(ing => `<option value="${ing.id}">${ing.nome} (${ing.unidade})</option>`).join('')}</select>
+      <select class="rec-ing">${ingredientes.map(ing => {
+        const efUnit = (ing.unidade === 'un' && Number(ing.pesoUn) > 0) ? 'g' : ing.unidade;
+        return `<option value="${ing.id}">${ing.nome} (${efUnit})</option>`;
+      }).join('')}</select>
     </div>
     <div class="form-group"><label>Quantidade usada</label><input type="number" class="rec-qtd" min="0" step="0.001" placeholder="ex: 250"></div>
     <button class="btn btn-ghost btn-sm" type="button" onclick="this.parentElement.remove()" style="align-self:end;">×</button>
