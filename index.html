@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Vitrines � Del�cias da Vov�</title>
+<title>Vitrines · Delícias da Vovó</title>
 <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
@@ -614,7 +614,7 @@ tr:hover td { background: var(--surface-soft); }
 .perda-detail { font-size: 12px; color: var(--text-light); }
 .perda-custo { font-size: 13px; font-weight: 700; color: var(--red); white-space: nowrap; }
 
-/* PEDIDO DE PRODU��O */
+/* PEDIDO DE PRODUÇÃO */
 .pedido-header {
   background: linear-gradient(135deg, var(--brown), var(--gold));
   color: #fff;
@@ -968,8 +968,8 @@ tr:hover td { background: var(--surface-soft); }
 <!-- HEADER -->
 <div class="header">
   <div class="header-logo">
-    Del�cias da Vov�
-    <span>Gest�o de Vitrines</span>
+    Delícias da Vovó
+    <span>Gestão de Vitrines</span>
   </div>
   <div class="unit-switcher">
     <button class="unit-btn active" onclick="setUnit('matriz')">Matriz</button>
@@ -986,13 +986,13 @@ tr:hover td { background: var(--surface-soft); }
   <button class="nav-btn" onclick="showPage('insumos')">Insumos & Fichas</button>
   <button class="nav-btn" onclick="showPage('cmv')">CMV</button>
   <button class="nav-btn" onclick="showPage('perdas')">Perdas</button>
-  <button class="nav-btn" onclick="showPage('pedido')">Pedido de Produ��o</button>
+  <button class="nav-btn" onclick="showPage('pedido')">Pedido de Produção</button>
 </div>
 
 <!-- ===================== PAGE: VITRINE ===================== -->
 <div class="page active" id="page-vitrine">
   <h2 class="section-title">Vitrine da Semana</h2>
-  <p class="section-sub" id="vitrine-unidade-label">Unidade: Matriz � clique em uma posi��o para adicionar produto</p>
+  <p class="section-sub" id="vitrine-unidade-label">Unidade: Matriz — clique em uma posição para adicionar produto</p>
 
   <div class="day-tabs" id="day-tabs">
     <button class="day-tab active" onclick="setDay('seg')">Seg</button>
@@ -1000,7 +1000,7 @@ tr:hover td { background: var(--surface-soft); }
     <button class="day-tab" onclick="setDay('qua')">Qua</button>
     <button class="day-tab" onclick="setDay('qui')">Qui</button>
     <button class="day-tab" onclick="setDay('sex')">Sex</button>
-    <button class="day-tab" onclick="setDay('sab')">S�b</button>
+    <button class="day-tab" onclick="setDay('sab')">Sáb</button>
     <button class="day-tab" onclick="setDay('dom')">Dom</button>
   </div>
 
@@ -1020,7 +1020,7 @@ tr:hover td { background: var(--surface-soft); }
       <div class="vitrine-view" id="vitrine-view-lista">
         <div class="vitrine-slot-list" id="vitrine-slot-list"></div>
       </div>
-      <button class="btn btn-ghost btn-sm" onclick="openAddSlotModal()" style="margin-top:8px;">+ Adicionar posi��o</button>
+      <button class="btn btn-ghost btn-sm" onclick="openAddSlotModal()" style="margin-top:8px;">+ Adicionar posição</button>
     </div>
     <!-- Lista -->
     <div class="vitrine-panel">
@@ -1051,7 +1051,7 @@ tr:hover td { background: var(--surface-soft); }
 <!-- ===================== PAGE: CRONOGRAMA ===================== -->
 <div class="page" id="page-cronograma">
   <h2 class="section-title">Cronograma do Dia</h2>
-  <p class="section-sub">Hor�rios de produ��o e respons�veis por tarefa</p>
+  <p class="section-sub">Horários de produção e responsáveis por tarefa</p>
 
   <div class="day-tabs" id="crono-day-tabs">
     <button class="day-tab active" onclick="setCronoDay('seg')">Seg</button>
@@ -1059,7 +1059,7 @@ tr:hover td { background: var(--surface-soft); }
     <button class="day-tab" onclick="setCronoDay('qua')">Qua</button>
     <button class="day-tab" onclick="setCronoDay('qui')">Qui</button>
     <button class="day-tab" onclick="setCronoDay('sex')">Sex</button>
-    <button class="day-tab" onclick="setCronoDay('sab')">S�b</button>
+    <button class="day-tab" onclick="setCronoDay('sab')">Sáb</button>
     <button class="day-tab" onclick="setCronoDay('dom')">Dom</button>
   </div>
 
@@ -1070,7 +1070,7 @@ tr:hover td { background: var(--surface-soft); }
           <tr>
             <th>Hora</th>
             <th>Tarefa</th>
-            <th>Respons�vel</th>
+            <th>Responsável</th>
             <th>Produto</th>
             <th>Qtd</th>
             <th></th>
@@ -1085,15 +1085,15 @@ tr:hover td { background: var(--surface-soft); }
   </div>
 
   <div style="margin-top:32px;">
-    <h2 class="section-title" style="font-size:18px;">Plano de Produ��o Semanal</h2>
-    <p class="section-sub">Quantidade padr�o de cada produto por dia da semana � entra automaticamente no Pedido de Produ��o do dia.</p>
+    <h2 class="section-title" style="font-size:18px;">Plano de Produção Semanal</h2>
+    <p class="section-sub">Quantidade padrão de cada produto por dia da semana — entra automaticamente no Pedido de Produção do dia.</p>
     <div class="sheet-card">
       <div class="table-wrap">
         <table class="sheet-table">
           <thead>
             <tr>
               <th>Produto</th>
-              <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>S�b</th><th>Dom</th>
+              <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th>
               <th>Total</th>
             </tr>
           </thead>
@@ -1107,7 +1107,7 @@ tr:hover td { background: var(--surface-soft); }
 <!-- ===================== PAGE: PRODUTOS ===================== -->
 <div class="page" id="page-produtos">
   <h2 class="section-title">Cadastro de Produtos</h2>
-  <p class="section-sub">Gerencie fabrica��es e produtos de revenda</p>
+  <p class="section-sub">Gerencie fabricações e produtos de revenda</p>
 
   <div class="stats-row" id="abc-stats">
     <div class="stat-card"><div class="stat-value" id="stat-total">0</div><div class="stat-label">Produtos</div></div>
@@ -1123,7 +1123,7 @@ tr:hover td { background: var(--surface-soft); }
   </div>
 
   <div class="toggle-row" id="produtos-tipo-tabs" style="margin-bottom:16px;">
-    <button class="toggle-btn active" id="tab-fab-btn" onclick="setProdutosTipo('fabricacao')">Fabrica��o</button>
+    <button class="toggle-btn active" id="tab-fab-btn" onclick="setProdutosTipo('fabricacao')">Fabricação</button>
     <button class="toggle-btn" id="tab-rev-btn" onclick="setProdutosTipo('revenda')">Revenda</button>
   </div>
 
@@ -1143,7 +1143,7 @@ tr:hover td { background: var(--surface-soft); }
     </select>
     <select id="filter-encomenda" class="form-group" style="width:auto;" onchange="renderProdutos()">
       <option value="">Todos os tipos de venda</option>
-      <option value="false">Balc�o</option>
+      <option value="false">Balcão</option>
       <option value="true">Por encomenda</option>
     </select>
     <input type="text" id="filter-search" placeholder="Buscar produto..." style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);" oninput="renderProdutos()">
@@ -1202,12 +1202,12 @@ tr:hover td { background: var(--surface-soft); }
 
 <!-- ===================== PAGE: INSUMOS & FICHAS ===================== -->
 <div class="page" id="page-insumos">
-  <h2 class="section-title">Insumos & Fichas T�cnicas</h2>
-  <p class="section-sub">Cadastre os insumos com hist�rico de compras e monte as fichas t�cnicas de cada produto. Preencha como numa planilha: <strong>Enter</strong> pula para a pr�xima coluna e, na �ltima coluna, cria uma nova linha.</p>
+  <h2 class="section-title">Insumos & Fichas Técnicas</h2>
+  <p class="section-sub">Cadastre os insumos com histórico de compras e monte as fichas técnicas de cada produto. Preencha como numa planilha: <strong>Enter</strong> pula para a próxima coluna e, na última coluna, cria uma nova linha.</p>
 
   <div class="toggle-row" id="insumos-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
     <button class="toggle-btn active" id="insumos-tab-ing" onclick="setInsumosTab('ingredientes')">Insumos</button>
-    <button class="toggle-btn" id="insumos-tab-rec" onclick="setInsumosTab('receitas')">Fichas T�cnicas</button>
+    <button class="toggle-btn" id="insumos-tab-rec" onclick="setInsumosTab('receitas')">Fichas Técnicas</button>
     <button class="toggle-btn" id="insumos-tab-rev" onclick="setInsumosTab('revenda')">Revenda</button>
   </div>
 
@@ -1322,8 +1322,8 @@ tr:hover td { background: var(--surface-soft); }
 
 <!-- ===================== PAGE: CMV ===================== -->
 <div class="page" id="page-cmv">
-  <h2 class="section-title">CMV � Custo da Mercadoria Vendida</h2>
-  <p class="section-sub">CMV dos produtos de produ��o e de revenda. Os custos v�m dos insumos e fichas t�cnicas cadastrados na aba Insumos &amp; Fichas.</p>
+  <h2 class="section-title">CMV — Custo da Mercadoria Vendida</h2>
+  <p class="section-sub">CMV dos produtos de produção e de revenda. Os custos vêm dos insumos e fichas técnicas cadastrados na aba Insumos &amp; Fichas.</p>
 
   <div class="stats-row" id="cmv-stats-row">
     <div class="stat-card">
@@ -1332,11 +1332,11 @@ tr:hover td { background: var(--surface-soft); }
     </div>
     <div class="stat-card">
       <div class="stat-value" id="cmv-stat-receitas">0</div>
-      <div class="stat-label">Fichas t�cnicas</div>
+      <div class="stat-label">Fichas técnicas</div>
     </div>
     <div class="stat-card" id="cmv-stat-card-medio">
-      <div class="stat-value" id="cmv-stat-medio" style="font-size:22px;">�</div>
-      <div class="stat-label">CMV m�dio</div>
+      <div class="stat-value" id="cmv-stat-medio" style="font-size:22px;">—</div>
+      <div class="stat-label">CMV médio</div>
       <div id="cmv-medio-bar" style="height:4px;border-radius:999px;background:var(--border);margin-top:6px;overflow:hidden;"><div id="cmv-medio-fill" style="height:100%;width:0%;background:var(--green);border-radius:999px;transition:width .4s;"></div></div>
     </div>
     <div class="stat-card" id="cmv-stat-card-alertas">
@@ -1345,15 +1345,15 @@ tr:hover td { background: var(--surface-soft); }
     </div>
   </div>
 
-  <!-- TABS: apenas produtos (produ��o e revenda) -->
+  <!-- TABS: apenas produtos (produção e revenda) -->
   <div class="toggle-row" id="cmv-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
-    <button class="toggle-btn active" id="cmv-tab-prod" onclick="setCmvTab('producao')">Produtos Produ��o</button>
+    <button class="toggle-btn active" id="cmv-tab-prod" onclick="setCmvTab('producao')">Produtos Produção</button>
     <button class="toggle-btn" id="cmv-tab-rev" onclick="setCmvTab('revenda')">Produtos Revenda</button>
   </div>
 
-  <!-- PAINEL PRODUTOS PRODU��O -->
+  <!-- PAINEL PRODUTOS PRODUÇÃO -->
   <div id="cmv-panel-producao">
-    <p class="section-sub" style="margin-bottom:12px;">Resumo dos produtos de fabrica��o: custo da ficha t�cnica, CMV, lucro e margem por unidade.</p>
+    <p class="section-sub" style="margin-bottom:12px;">Resumo dos produtos de fabricação: custo da ficha técnica, CMV, lucro e margem por unidade.</p>
     <div class="sheet-card">
       <div class="table-wrap">
         <table class="sheet-table">
@@ -1361,7 +1361,7 @@ tr:hover td { background: var(--surface-soft); }
             <tr>
               <th>Produto</th>
               <th>Categoria</th>
-              <th>Pre�o venda (R$)</th>
+              <th>Preço venda (R$)</th>
               <th>Custo ficha</th>
               <th>Rend.</th>
               <th>Custo un.</th>
@@ -1378,7 +1378,7 @@ tr:hover td { background: var(--surface-soft); }
 
   <!-- PAINEL REVENDA CMV -->
   <div id="cmv-panel-revenda" style="display:none;">
-    <p class="section-sub" style="margin-bottom:12px;">Produtos comprados prontos: informe a �ltima compra (quantidade e valor pago) e o custo unit�rio, margem e CMV saem sozinhos.</p>
+    <p class="section-sub" style="margin-bottom:12px;">Produtos comprados prontos: informe a última compra (quantidade e valor pago) e o custo unitário, margem e CMV saem sozinhos.</p>
     <div class="sheet-card">
       <div class="table-wrap">
         <table class="sheet-table">
@@ -1388,7 +1388,7 @@ tr:hover td { background: var(--surface-soft); }
               <th>Qtd. comprada</th>
               <th>Valor da compra (R$)</th>
               <th>Custo un.</th>
-              <th>Pre�o venda (R$)</th>
+              <th>Preço venda (R$)</th>
               <th>Margem R$</th>
               <th>Margem %</th>
               <th>CMV %</th>
@@ -1408,20 +1408,20 @@ tr:hover td { background: var(--surface-soft); }
 <!-- ===================== PAGE: PERDAS ===================== -->
 <div class="page" id="page-perdas">
   <h2 class="section-title">Controle de Perdas & Feedback</h2>
-  <p class="section-sub">Registre produtos estragados, devolu��es e feedback de clientes</p>
+  <p class="section-sub">Registre produtos estragados, devoluções e feedback de clientes</p>
 
   <div class="stats-row">
-    <div class="stat-card"><div class="stat-value" id="perdas-total-mes" style="color:var(--red)">R$0</div><div class="stat-label">Perdas este m�s</div></div>
-    <div class="stat-card"><div class="stat-value" id="perdas-qtd">0</div><div class="stat-label">Ocorr�ncias</div></div>
-    <div class="stat-card"><div class="stat-value" id="perdas-produto-top">�</div><div class="stat-label">Produto +perdido</div></div>
-    <div class="stat-card"><div class="stat-value" id="perdas-motivo-top">�</div><div class="stat-label">Motivo principal</div></div>
+    <div class="stat-card"><div class="stat-value" id="perdas-total-mes" style="color:var(--red)">R$0</div><div class="stat-label">Perdas este mês</div></div>
+    <div class="stat-card"><div class="stat-value" id="perdas-qtd">0</div><div class="stat-label">Ocorrências</div></div>
+    <div class="stat-card"><div class="stat-value" id="perdas-produto-top">—</div><div class="stat-label">Produto +perdido</div></div>
+    <div class="stat-card"><div class="stat-value" id="perdas-motivo-top">—</div><div class="stat-label">Motivo principal</div></div>
   </div>
 
   <div style="display:flex; gap:8px; margin-bottom:16px; flex-wrap:wrap; align-items:center;">
     <select id="filter-perda-tipo" style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);" onchange="renderPerdas()">
       <option value="">Todos os tipos</option>
       <option value="vencimento">Vencimento</option>
-      <option value="producao">Erro de produ��o</option>
+      <option value="producao">Erro de produção</option>
       <option value="cliente">Feedback cliente</option>
       <option value="acidente">Acidente</option>
       <option value="outro">Outro</option>
@@ -1437,7 +1437,7 @@ tr:hover td { background: var(--surface-soft); }
             <th>Produto</th>
             <th>Qtd</th>
             <th>Tipo</th>
-            <th>Descri��o</th>
+            <th>Descrição</th>
             <th></th>
           </tr>
         </thead>
@@ -1452,8 +1452,8 @@ tr:hover td { background: var(--surface-soft); }
 
 <!-- ===================== PAGE: PEDIDO ===================== -->
 <div class="page" id="page-pedido">
-  <h2 class="section-title">Pedido de Produ��o</h2>
-  <p class="section-sub">Gerado automaticamente com base no plano semanal + vitrine planejada + cronograma, descontando sobras e somando reposi��o de perdas</p>
+  <h2 class="section-title">Pedido de Produção</h2>
+  <p class="section-sub">Gerado automaticamente com base no plano semanal + vitrine planejada + cronograma, descontando sobras e somando reposição de perdas</p>
 
   <div class="day-tabs" id="pedido-day-tabs">
     <button class="day-tab active" onclick="setPedidoDay('seg')">Seg</button>
@@ -1461,13 +1461,13 @@ tr:hover td { background: var(--surface-soft); }
     <button class="day-tab" onclick="setPedidoDay('qua')">Qua</button>
     <button class="day-tab" onclick="setPedidoDay('qui')">Qui</button>
     <button class="day-tab" onclick="setPedidoDay('sex')">Sex</button>
-    <button class="day-tab" onclick="setPedidoDay('sab')">S�b</button>
+    <button class="day-tab" onclick="setPedidoDay('sab')">Sáb</button>
     <button class="day-tab" onclick="setPedidoDay('dom')">Dom</button>
   </div>
 
   <div class="pedido-header">
     <div>
-      <div class="pedido-title" id="pedido-title">Produ��o � Segunda-feira</div>
+      <div class="pedido-title" id="pedido-title">Produção — Segunda-feira</div>
       <div class="pedido-sub" id="pedido-unidade">Matriz</div>
     </div>
     <button class="btn btn-gold" onclick="imprimirPedido()">Imprimir</button>
@@ -1478,9 +1478,9 @@ tr:hover td { background: var(--surface-soft); }
       <span>Produto</span>
       <span>Qtd.</span>
       <span>Sobra</span>
-      <span>+Reposi��o</span>
-      <span>Respons�vel</span>
-      <span>Hor�rio</span>
+      <span>+Reposição</span>
+      <span>Responsável</span>
+      <span>Horário</span>
     </div>
     <div id="pedido-list"></div>
   </div>
@@ -1498,14 +1498,14 @@ tr:hover td { background: var(--surface-soft); }
     <div class="form-row">
       <div class="form-group"><label>Tipo de produto</label>
         <select id="p-tipo" onchange="toggleProdutoTipoFields()">
-          <option value="fabricacao">Fabrica��o � produto que fazemos</option>
-          <option value="revenda">Revenda � produto que compramos</option>
+          <option value="fabricacao">Fabricação — produto que fazemos</option>
+          <option value="revenda">Revenda — produto que compramos</option>
         </select>
       </div>
     </div>
     <div class="form-row three">
       <div class="form-group"><label>Curva ABC</label>
-        <select id="p-curva"><option value="A">A � Alta demanda</option><option value="B">B � M�dia</option><option value="C">C � Baixa</option></select>
+        <select id="p-curva"><option value="A">A — Alta demanda</option><option value="B">B — Média</option><option value="C">C — Baixa</option></select>
       </div>
       <div class="form-group"><label>Validade (dias)</label><input type="number" id="p-validade" min="1" placeholder="ex: 3"></div>
       <div class="form-group"><label>Categoria</label>
@@ -1513,9 +1513,9 @@ tr:hover td { background: var(--surface-soft); }
       </div>
     </div>
     <div class="form-row three">
-      <div class="form-group"><label>Custo unit�rio (R$)</label><input type="number" id="p-custo" step="0.01" placeholder="0,00"></div>
-      <div class="form-group"><label>Pre�o de venda (R$)</label><input type="number" id="p-preco" step="0.01" placeholder="0,00"></div>
-      <div class="form-group"><label>Pre�o por</label>
+      <div class="form-group"><label>Custo unitário (R$)</label><input type="number" id="p-custo" step="0.01" placeholder="0,00"></div>
+      <div class="form-group"><label>Preço de venda (R$)</label><input type="number" id="p-preco" step="0.01" placeholder="0,00"></div>
+      <div class="form-group"><label>Preço por</label>
         <select id="p-preco-unidade"><option value="un">Unidade</option><option value="kg">Kg</option></select>
       </div>
     </div>
@@ -1525,23 +1525,23 @@ tr:hover td { background: var(--surface-soft); }
       </div>
       <div class="form-group"><label>Venda</label>
         <select id="p-encomenda">
-          <option value="false">Vitrine / balc�o</option>
+          <option value="false">Vitrine / balcão</option>
           <option value="true">Por encomenda</option>
         </select>
       </div>
     </div>
     <div class="form-row" id="p-revenda-row" style="display:none;">
-      <div class="form-group"><label>Qtd. comprada (�ltima compra)</label><input type="number" id="p-qtd-comprada" min="0" step="1" placeholder="ex: 12"></div>
+      <div class="form-group"><label>Qtd. comprada (última compra)</label><input type="number" id="p-qtd-comprada" min="0" step="1" placeholder="ex: 12"></div>
       <div class="form-group"><label>Valor da compra (R$)</label><input type="number" id="p-valor-compra" min="0" step="0.01" placeholder="ex: 18,43"></div>
     </div>
     <div class="form-row">
-      <div class="form-group" id="p-resp-group"><label>Respons�vel produ��o</label>
+      <div class="form-group" id="p-resp-group"><label>Responsável produção</label>
         <select id="p-resp">
           <option>Alexandre</option><option>Tiago</option><option>Anderson</option><option>Lucas</option><option>Outro</option>
         </select>
       </div>
     </div>
-    <div class="form-row full"><div class="form-group"><label>Observa��es</label><textarea id="p-obs" rows="2"></textarea></div></div>
+    <div class="form-row full"><div class="form-group"><label>Observações</label><textarea id="p-obs" rows="2"></textarea></div></div>
     <input type="hidden" id="p-id">
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-produto')">Cancelar</button>
@@ -1585,11 +1585,11 @@ tr:hover td { background: var(--surface-soft); }
           <option value="un">un</option>
         </select>
       </div>
-      <div class="form-group"><label>Conte�do por unidade (g/ml)</label><input type="number" id="ing-fatia" min="0" step="0.1" placeholder="ex: 395"></div>
+      <div class="form-group"><label>Conteúdo por unidade (g/ml)</label><input type="number" id="ing-fatia" min="0" step="0.1" placeholder="ex: 395"></div>
     </div>
-    <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin:12px 0 6px;text-transform:uppercase;letter-spacing:0.4px;">�ltima compra</div>
+    <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin:12px 0 6px;text-transform:uppercase;letter-spacing:0.4px;">Última compra</div>
     <div class="form-row">
-      <div class="form-group"><label>Fornecedor</label><input type="text" id="ing-fornecedor" placeholder="ex: Makro, Atacad�o�"></div>
+      <div class="form-group"><label>Fornecedor</label><input type="text" id="ing-fornecedor" placeholder="ex: Makro, Atacadão…"></div>
       <div class="form-group"><label>Data da compra</label><input type="date" id="ing-data"></div>
     </div>
     <div class="form-row">
@@ -1604,10 +1604,10 @@ tr:hover td { background: var(--surface-soft); }
   </div>
 </div>
 
-<!-- Modal: Hist�rico de Compras -->
+<!-- Modal: Histórico de Compras -->
 <div class="modal-overlay" id="modal-historico">
   <div class="modal" style="max-width:640px;">
-    <div class="modal-title" id="modal-historico-title">Hist�rico de Compras</div>
+    <div class="modal-title" id="modal-historico-title">Histórico de Compras</div>
     <div id="historico-list" style="margin-bottom:16px;"></div>
     <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">Registrar nova compra</div>
     <div class="form-row">
@@ -1682,7 +1682,7 @@ tr:hover td { background: var(--surface-soft); }
 <!-- Modal: Slot Vitrine -->
 <div class="modal-overlay" id="modal-slot">
   <div class="modal">
-    <div class="modal-title">Adicionar � Vitrine</div>
+    <div class="modal-title">Adicionar à Vitrine</div>
     <div class="form-row full">
       <div class="form-group"><label>Produto</label>
         <select id="slot-produto"></select>
@@ -1690,7 +1690,7 @@ tr:hover td { background: var(--surface-soft); }
     </div>
     <div class="form-row">
       <div class="form-group"><label>Quantidade na vitrine</label><input type="number" id="slot-qty" min="1" value="1"></div>
-      <div class="form-group"><label>Espa�o na vitrine</label><select id="slot-pos"></select></div>
+      <div class="form-group"><label>Espaço na vitrine</label><select id="slot-pos"></select></div>
     </div>
     <div class="form-row">
       <div class="form-group"><label>Quantidade produzida</label><input type="number" id="slot-produced" min="0" value="0"></div>
@@ -1709,20 +1709,20 @@ tr:hover td { background: var(--surface-soft); }
   <div class="modal">
     <div class="modal-title">Tarefa do Cronograma</div>
     <div class="form-row">
-      <div class="form-group"><label>Hor�rio</label><input type="time" id="crono-hora"></div>
-      <div class="form-group"><label>Respons�vel</label>
+      <div class="form-group"><label>Horário</label><input type="time" id="crono-hora"></div>
+      <div class="form-group"><label>Responsável</label>
         <select id="crono-resp">
           <option>Alexandre</option><option>Tiago</option><option>Anderson</option><option>Lucas</option><option>Todos</option>
         </select>
       </div>
     </div>
-    <div class="form-row full"><div class="form-group"><label>Tarefa</label><input type="text" id="crono-tarefa" placeholder="ex: Assar p�o de queijo � 2� fornada"></div></div>
+    <div class="form-row full"><div class="form-group"><label>Tarefa</label><input type="text" id="crono-tarefa" placeholder="ex: Assar pão de queijo — 2ª fornada"></div></div>
     <div class="form-row full">
       <div class="form-group"><label>Produto relacionado (opcional)</label>
-        <select id="crono-produto"><option value="">� nenhum �</option></select>
+        <select id="crono-produto"><option value="">— nenhum —</option></select>
       </div>
     </div>
-    <div class="form-row full"><div class="form-group"><label>Quantidade a produzir</label><input type="number" id="crono-qty" min="0" value="0" placeholder="0 = sem quantidade espec�fica"></div></div>
+    <div class="form-row full"><div class="form-group"><label>Quantidade a produzir</label><input type="number" id="crono-qty" min="0" value="0" placeholder="0 = sem quantidade específica"></div></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-crono')">Cancelar</button>
       <button class="btn btn-primary" onclick="saveCrono()">Salvar</button>
@@ -1739,13 +1739,13 @@ tr:hover td { background: var(--surface-soft); }
       <div class="form-group"><label>Motivo</label>
         <select id="slot-loss-type">
           <option value="vencimento">Fora da validade</option>
-          <option value="producao">Erro de produ��o</option>
+          <option value="producao">Erro de produção</option>
           <option value="acidente">Acidente</option>
           <option value="outro">Outro</option>
         </select>
       </div>
     </div>
-    <div class="form-row full"><div class="form-group"><label>Observa��o</label><textarea id="slot-loss-obs" rows="2" placeholder="ex: ficou tempo demais na vitrine"></textarea></div></div>
+    <div class="form-row full"><div class="form-group"><label>Observação</label><textarea id="slot-loss-obs" rows="2" placeholder="ex: ficou tempo demais na vitrine"></textarea></div></div>
     <input type="hidden" id="slot-loss-slot">
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-slot-loss')">Cancelar</button>
@@ -1768,7 +1768,7 @@ tr:hover td { background: var(--surface-soft); }
       <div class="form-group"><label>Tipo</label>
         <select id="perda-tipo">
           <option value="vencimento">Vencimento / Estragou</option>
-          <option value="producao">Erro de produ��o</option>
+          <option value="producao">Erro de produção</option>
           <option value="cliente">Feedback de cliente</option>
           <option value="acidente">Acidente (queda, etc.)</option>
           <option value="outro">Outro</option>
@@ -1776,7 +1776,7 @@ tr:hover td { background: var(--surface-soft); }
       </div>
       <div class="form-group"><label>Data</label><input type="date" id="perda-data"></div>
     </div>
-    <div class="form-row full"><div class="form-group"><label>Descri��o / feedback</label><textarea id="perda-obs" placeholder="ex: A torta de frango do turno da manh� estragou porque ficou fora da geladeira..." rows="3"></textarea></div></div>
+    <div class="form-row full"><div class="form-group"><label>Descrição / feedback</label><textarea id="perda-obs" placeholder="ex: A torta de frango do turno da manhã estragou porque ficou fora da geladeira..." rows="3"></textarea></div></div>
     <div class="modal-actions">
       <button class="btn btn-ghost" onclick="closeModal('modal-perda')">Cancelar</button>
       <button class="btn btn-red" onclick="savePerda()">Registrar Perda</button>
@@ -1801,7 +1801,7 @@ let currentCronoDay = 'seg';
 let currentPedidoDay = 'seg';
 let currentVitrineMode = 'slots';
 
-const dayNames = { seg:'Segunda-feira', ter:'Ter�a-feira', qua:'Quarta-feira', qui:'Quinta-feira', sex:'Sexta-feira', sab:'S�bado', dom:'Domingo' };
+const dayNames = { seg:'Segunda-feira', ter:'Terça-feira', qua:'Quarta-feira', qui:'Quinta-feira', sex:'Sexta-feira', sab:'Sábado', dom:'Domingo' };
 const dayOrder = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
 
 function previousDay(day) {
@@ -1816,9 +1816,9 @@ function nowLocalInputValue() {
 }
 
 function formatDateTimeShort(value) {
-  if (!value) return '�';
+  if (!value) return '—';
   const d = new Date(value);
-  if (Number.isNaN(d.getTime())) return '�';
+  if (Number.isNaN(d.getTime())) return '—';
   return d.toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
 }
 
@@ -1831,7 +1831,7 @@ function hoursInDisplay(value) {
 
 function formatDisplayTime(value) {
   const hours = hoursInDisplay(value);
-  if (hours === null) return '�';
+  if (hours === null) return '—';
   if (hours < 1) return `${Math.round(hours * 60)} min`;
   if (hours < 24) return `${hours.toFixed(1)} h`;
   return `${Math.floor(hours / 24)} d ${Math.round(hours % 24)} h`;
@@ -1855,18 +1855,18 @@ const vitrineLayouts = {
   vilanova: {
     label: 'Vila Nova',
     sections: [
-      { id: 'salgada', title: 'Vitrine Salgada', start: 1, count: 16, shelves: 4, note: '4 prateleiras � 16 espa�os, sendo 2 para tortas', roles: ['Torta 1', 'Torta 2'] },
-      { id: 'doce', title: 'Vitrine Doce', start: 17, count: 8, shelves: 4, note: '4 prateleiras � 8 espa�os, sendo 2 para p�o de bolinha', roles: ['P�o de bolinha 1', 'P�o de bolinha 2'] },
-      { id: 'sobremesa', title: 'Vitrine Sobremesa', start: 25, count: 8, shelves: 3, note: '3 prateleiras � 8 espa�os, sendo 3 para doces de potinho', roles: ['Potinho 1', 'Potinho 2', 'Potinho 3'] }
+      { id: 'salgada', title: 'Vitrine Salgada', start: 1, count: 16, shelves: 4, note: '4 prateleiras · 16 espaços, sendo 2 para tortas', roles: ['Torta 1', 'Torta 2'] },
+      { id: 'doce', title: 'Vitrine Doce', start: 17, count: 8, shelves: 4, note: '4 prateleiras · 8 espaços, sendo 2 para pão de bolinha', roles: ['Pão de bolinha 1', 'Pão de bolinha 2'] },
+      { id: 'sobremesa', title: 'Vitrine Sobremesa', start: 25, count: 8, shelves: 3, note: '3 prateleiras · 8 espaços, sendo 3 para doces de potinho', roles: ['Potinho 1', 'Potinho 2', 'Potinho 3'] }
     ]
   },
   matriz: {
     label: 'Matriz',
     sections: [
-      { id: 'salgada', title: 'Vitrine Salgada 1', start: 1, count: 12, shelves: 3, note: '3 prateleiras � tortas e quiches', roles: ['Torta/quiche 1', 'Torta/quiche 2', 'Torta/quiche 3', 'Torta/quiche 4'] },
-      { id: 'salgada', title: 'Vitrine Salgada 2', start: 13, count: 12, shelves: 3, note: '3 prateleiras � salgados de apoio', roles: ['Torta/quiche 5', 'Torta/quiche 6', 'Torta/quiche 7', 'Torta/quiche 8'] },
-      { id: 'doce', title: 'Vitrine Doce', start: 25, count: 10, shelves: 3, note: '3 prateleiras � p�o de bolinha, bolos e bandejas', roles: ['P�o de bolinha', 'Bolos', 'Bandeja doces 1', 'Bandeja doces 2', 'Bandeja doces 3', 'Bandeja doces 4', 'Bandeja doces 5', 'Bandeja doces 6', 'Bandeja doces 7', 'Bandeja doces 8'] },
-      { id: 'sobremesa', title: 'Vitrine Sobremesa', start: 35, count: 25, shelves: 3, note: '3 prateleiras � potinhos, bolos cremosos, bandejas e grandes', roles: ['Potinho 1', 'Potinho 2', 'Potinho 3', 'Potinho 4', 'Potinho 5', 'Bolo cremoso 1', 'Bolo cremoso 2', 'Bandeja 1', 'Bandeja 2', 'Bandeja 3', 'Bandeja 4', 'Bandeja 5', 'Bandeja 6', 'Bandeja 7', 'Bandeja 8', 'Sobremesa grande 1', 'Sobremesa grande 2', 'Sobremesa grande 3', 'Sobremesa grande 4', 'Sobremesa grande 5', 'Sobremesa grande 6', 'Sobremesa grande 7', 'Sobremesa grande 8', 'Sobremesa grande 9', 'Sobremesa grande 10'] }
+      { id: 'salgada', title: 'Vitrine Salgada 1', start: 1, count: 12, shelves: 3, note: '3 prateleiras · tortas e quiches', roles: ['Torta/quiche 1', 'Torta/quiche 2', 'Torta/quiche 3', 'Torta/quiche 4'] },
+      { id: 'salgada', title: 'Vitrine Salgada 2', start: 13, count: 12, shelves: 3, note: '3 prateleiras · salgados de apoio', roles: ['Torta/quiche 5', 'Torta/quiche 6', 'Torta/quiche 7', 'Torta/quiche 8'] },
+      { id: 'doce', title: 'Vitrine Doce', start: 25, count: 10, shelves: 3, note: '3 prateleiras · pão de bolinha, bolos e bandejas', roles: ['Pão de bolinha', 'Bolos', 'Bandeja doces 1', 'Bandeja doces 2', 'Bandeja doces 3', 'Bandeja doces 4', 'Bandeja doces 5', 'Bandeja doces 6', 'Bandeja doces 7', 'Bandeja doces 8'] },
+      { id: 'sobremesa', title: 'Vitrine Sobremesa', start: 35, count: 25, shelves: 3, note: '3 prateleiras · potinhos, bolos cremosos, bandejas e grandes', roles: ['Potinho 1', 'Potinho 2', 'Potinho 3', 'Potinho 4', 'Potinho 5', 'Bolo cremoso 1', 'Bolo cremoso 2', 'Bandeja 1', 'Bandeja 2', 'Bandeja 3', 'Bandeja 4', 'Bandeja 5', 'Bandeja 6', 'Bandeja 7', 'Bandeja 8', 'Sobremesa grande 1', 'Sobremesa grande 2', 'Sobremesa grande 3', 'Sobremesa grande 4', 'Sobremesa grande 5', 'Sobremesa grande 6', 'Sobremesa grande 7', 'Sobremesa grande 8', 'Sobremesa grande 9', 'Sobremesa grande 10'] }
     ]
   }
 };
@@ -1878,7 +1878,7 @@ function getLayoutSlots(unit = currentUnit) {
       localSlot: index + 1,
       sectionId: section.id,
       sectionTitle: section.title,
-      role: section.roles?.[index] || `Espa�o ${index + 1}`
+      role: section.roles?.[index] || `Espaço ${index + 1}`
     }))
   );
 }
@@ -1904,7 +1904,7 @@ function getShelfRows(section) {
 function getLayoutSummary(unit = currentUnit) {
   const total = getLayoutSlots(unit).length;
   const names = [...new Set(vitrineLayouts[unit].sections.map(section => section.title.replace(/\s+\d+$/, '').replace('Vitrine ', '')))].join(', ');
-  return `${vitrineLayouts[unit].label}: ${total} espa�os em ${names}`;
+  return `${vitrineLayouts[unit].label}: ${total} espaços em ${names}`;
 }
 
 const vitrineLabels = {
@@ -1934,7 +1934,7 @@ function setStorage(key, val) {
   localStorage.setItem(key, JSON.stringify(val));
 }
 
-const defaultCategorias = ['Bolo','P�o','Torta','Salgado','Doce','Bebida','Outro'];
+const defaultCategorias = ['Bolo','Pão','Torta','Salgado','Doce','Bebida','Outro'];
 const defaultVitrineTipos = [
   { id: 'salgada', nome: 'Salgada' },
   { id: 'doce', nome: 'Doce' },
@@ -1979,7 +1979,7 @@ let perdas = getStorage('ddv_perdas', []);
 let fechamentos = getStorage('ddv_fechamentos', {});
 // apoioProducao[unit][day] = [{id, prodId, nome, qty}]
 let apoioProducao = getStorage('ddv_apoio_producao', {});
-// planoSemanal[unit][prodId][day] = qty padr�o a produzir
+// planoSemanal[unit][prodId][day] = qty padrão a produzir
 let planoSemanal = getStorage('ddv_plano_semanal', {});
 
 let nextId = getStorage('ddv_nextid', 5000);
@@ -2014,7 +2014,7 @@ produtos = produtos.map(p => {
 });
 categorias = [...new Set([...categorias, ...produtos.map(p => p.categoria).filter(Boolean)])];
 
-// Migra��o: garantir que ingredientes antigos tenham historico e fatia
+// Migração: garantir que ingredientes antigos tenham historico e fatia
 ingredientes = ingredientes.map(ing => {
   if (!ing.historico) {
     ing.historico = (ing.qtdCompra || ing.custoCompra)
@@ -2116,7 +2116,7 @@ async function syncToSupabase() {
         tipo: p.tipo, data: p.data, obs: p.obs || '', source: p.source || null
       })));
     }
-    // Vitrine slots � delete todas da unidade e re-insere
+    // Vitrine slots — delete todas da unidade e re-insere
     await db.from('vitrine_slots').delete().eq('unit', currentUnit);
     const allSlots = [];
     Object.entries(vitrines[currentUnit] || {}).forEach(([dia, slots]) => {
@@ -2130,7 +2130,7 @@ async function syncToSupabase() {
       });
     });
     if (allSlots.length) await db.from('vitrine_slots').insert(allSlots);
-    // Cronograma � delete e re-insere por unidade
+    // Cronograma — delete e re-insere por unidade
     await db.from('cronograma').delete().eq('unit', currentUnit);
     const allTasks = [];
     Object.entries(cronograma[currentUnit] || {}).forEach(([dia, tasks]) => {
@@ -2143,7 +2143,7 @@ async function syncToSupabase() {
       });
     });
     if (allTasks.length) await db.from('cronograma').insert(allTasks);
-    // Apoio produ��o � delete e re-insere por unidade
+    // Apoio produção — delete e re-insere por unidade
     await db.from('apoio_producao').delete().eq('unit', currentUnit);
     const allApoio = [];
     Object.entries(apoioProducao[currentUnit] || {}).forEach(([dia, items]) => {
@@ -2154,7 +2154,7 @@ async function syncToSupabase() {
       });
     });
     if (allApoio.length) await db.from('apoio_producao').insert(allApoio);
-    // Plano semanal � delete e re-insere por unidade
+    // Plano semanal — delete e re-insere por unidade
     await db.from('plano_semanal').delete().eq('unit', currentUnit);
     const allPlano = [];
     Object.entries(planoSemanal[currentUnit] || {}).forEach(([prodId, days]) => {
@@ -2163,7 +2163,7 @@ async function syncToSupabase() {
       });
     });
     if (allPlano.length) await db.from('plano_semanal').insert(allPlano);
-    // Fechamentos � upsert (mant�m hist�rico)
+    // Fechamentos — upsert (mantém histórico)
     for (const [dia, items] of Object.entries(fechamentos[currentUnit] || {})) {
       if (!items?.length) continue;
       const today = new Date().toISOString().split('T')[0];
@@ -2410,7 +2410,7 @@ function renderVitrine() {
     saveAll();
   }
   document.getElementById('vitrine-unidade-label').textContent =
-    `${getLayoutSummary()} � clique em um espa�o para adicionar produto`;
+    `${getLayoutSummary()} — clique em um espaço para adicionar produto`;
 
   // Grade
   const grid = document.getElementById('vitrine-grid');
@@ -2425,7 +2425,7 @@ function renderVitrine() {
           <div class="vitrine-category-title">${section.title}</div>
           <div class="vitrine-category-note">${section.note}</div>
         </div>
-        <span class="vitrine-category-count">${section.count} espa�os</span>
+        <span class="vitrine-category-count">${section.count} espaços</span>
       </div>
       <div class="vitrine-grid"></div>
     `;
@@ -2440,7 +2440,7 @@ function renderVitrine() {
       for (let shelfOffset = 0; shelfOffset < row.count; shelfOffset++) {
         const offset = row.startOffset + shelfOffset;
         const slotNumber = section.start + offset;
-        const role = section.roles?.[offset] || `Espa�o ${offset + 1}`;
+        const role = section.roles?.[offset] || `Espaço ${offset + 1}`;
         const item = vitrine.find(v => v.slot === slotNumber);
         const prod = item ? produtos.find(p => p.id === item.prodId) : null;
         const expiration = item && prod ? getExpirationInfo(item, prod) : { expired: false };
@@ -2452,11 +2452,11 @@ function renderVitrine() {
           div.innerHTML += `
             <div class="slot-content">
               <div class="slot-name">${prod.nome}</div>
-              <div class="slot-qty">${item.qty} un. na vitrine${item.producedQty ? ` � prod. ${item.producedQty}` : ''}</div>
-              <div class="slot-qty">${item.entryAt ? `h� ${formatDisplayTime(item.entryAt)}` : 'sem hor�rio de entrada'}</div>
+              <div class="slot-qty">${item.qty} un. na vitrine${item.producedQty ? ` · prod. ${item.producedQty}` : ''}</div>
+              <div class="slot-qty">${item.entryAt ? `há ${formatDisplayTime(item.entryAt)}` : 'sem horário de entrada'}</div>
               ${expiration.expired ? '<div class="slot-expired">Fora do prazo</div>' : ''}
             </div>
-            <span class="slot-remove" onclick="removeSlot(${slotNumber}, event)">�</span>`;
+            <span class="slot-remove" onclick="removeSlot(${slotNumber}, event)">×</span>`;
         } else {
           div.innerHTML += `<span class="slot-plus" style="margin:auto;color:var(--border);font-size:20px;">+</span>`;
           div.onclick = () => openSlotModal(slotNumber);
@@ -2640,8 +2640,8 @@ function openSlotModal(slotNum, editIdx) {
   const vitrine = getVitrine();
   posSelect.innerHTML = layoutSlots.map(meta => {
     const used = vitrine.some((item, index) => item.slot === meta.slot && index !== editIdx);
-    const suffix = used ? ' � ocupado' : '';
-    return `<option value="${meta.slot}" ${used ? 'disabled' : ''}>${meta.sectionTitle} � ${meta.role}${suffix}</option>`;
+    const suffix = used ? ' — ocupado' : '';
+    return `<option value="${meta.slot}" ${used ? 'disabled' : ''}>${meta.sectionTitle} · ${meta.role}${suffix}</option>`;
   }).join('');
 
   const firstEmpty = layoutSlots.find(meta => !vitrine.some(item => item.slot === meta.slot));
@@ -2694,7 +2694,7 @@ function saveSlot() {
 
   if (!prodId) return;
   if (!getSlotMeta(pos)) {
-    showToast('Escolha um espa�o v�lido da vitrine', 'error');
+    showToast('Escolha um espaço válido da vitrine', 'error');
     return;
   }
 
@@ -2714,7 +2714,7 @@ function saveSlot() {
   saveAll();
   closeModal('modal-slot');
   renderVitrine();
-  showToast('Produto adicionado � vitrine ?', 'success');
+  showToast('Produto adicionado à vitrine ?', 'success');
 }
 
 function removeSlot(slotNum, e) {
@@ -2804,7 +2804,7 @@ function openContextSlotLoss() {
   if (!item) return;
   const prod = produtos.find(p => p.id === item.prodId);
   const expiration = getExpirationInfo(item, prod);
-  document.getElementById('slot-loss-title').textContent = prod ? `Perda � ${prod.nome}` : 'Anotar perda';
+  document.getElementById('slot-loss-title').textContent = prod ? `Perda · ${prod.nome}` : 'Anotar perda';
   document.getElementById('slot-loss-slot').value = contextSlotNumber;
   document.getElementById('slot-loss-qty').value = item.qty || 1;
   document.getElementById('slot-loss-type').value = expiration.expired ? 'vencimento' : 'outro';
@@ -2848,7 +2848,7 @@ function openFechamentoModal() {
   const tbody = document.getElementById('fechamento-tbody');
   const saved = getFechamento();
   document.getElementById('fechamento-sub').textContent =
-    `${currentUnit === 'matriz' ? 'Matriz' : 'Vila Nova'} � ${dayNames[currentDay]} � informe a sobra real no final do dia`;
+    `${currentUnit === 'matriz' ? 'Matriz' : 'Vila Nova'} · ${dayNames[currentDay]} · informe a sobra real no final do dia`;
 
   if (!vitrine.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum item planejado para fechar neste dia</td></tr>';
@@ -2864,7 +2864,7 @@ function openFechamentoModal() {
     const leftoverDefault = item.status === 'vendeu' || item.status === 'validade' || item.status === 'perda' ? 0 : '';
     return `<tr data-prod-id="${item.prodId}" data-slot="${item.slot}" data-planned="${item.qty}" data-entry="${item.entryAt || ''}">
       <td><span class="sheet-readonly">${prod ? prod.nome : 'Produto removido'}</span></td>
-      <td><span class="sheet-readonly">${meta ? `${meta.sectionTitle} � ${meta.role}` : item.slot}</span></td>
+      <td><span class="sheet-readonly">${meta ? `${meta.sectionTitle} · ${meta.role}` : item.slot}</span></td>
       <td><input class="sheet-input fechamento-produced" type="number" min="0" step="1" value="${old?.producedQty ?? item.producedQty ?? item.qty}" placeholder="0"></td>
       <td><input class="sheet-input fechamento-entry" type="datetime-local" value="${old?.entryAt || item.entryAt || nowLocalInputValue()}"></td>
       <td><span class="sheet-readonly">${formatDisplayTime(old?.entryAt || item.entryAt)}</span></td>
@@ -2899,7 +2899,7 @@ function saveFechamento() {
   saveAll();
   closeModal('modal-fechamento');
   renderPedido();
-  showToast('Fechamento salvo e produ��o atualizada ?', 'success');
+  showToast('Fechamento salvo e produção atualizada ?', 'success');
 }
 
 function syncValidadePerdasFromFechamento() {
@@ -2947,7 +2947,7 @@ function renderCronograma() {
   renderPlanoSemanal();
 
   const respOptions = ['Alexandre','Tiago','Anderson','Lucas','Todos'].map(r => `<option value="${r}">${r}</option>`).join('');
-  const prodOptions = '<option value="">� nenhum �</option>' + produtos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  const prodOptions = '<option value="">— nenhum —</option>' + produtos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
 
   const sorted = [...crono].sort((a, b) => (a.hora||'').localeCompare(b.hora||''));
   const realIdx = (t) => crono.indexOf(t);
@@ -2956,13 +2956,13 @@ function renderCronograma() {
     const idx = realIdx(t);
     return `<tr>
       <td><input class="sheet-input" type="time" value="${t.hora||''}" onchange="updateCronoCell(${idx},'hora',this.value)" style="min-width:80px;"></td>
-      <td><input class="sheet-input" value="${escHtml(t.tarefa||'')}" onblur="updateCronoCell(${idx},'tarefa',this.value)" placeholder="ex: Assar p�o de queijo" style="min-width:200px;"></td>
+      <td><input class="sheet-input" value="${escHtml(t.tarefa||'')}" onblur="updateCronoCell(${idx},'tarefa',this.value)" placeholder="ex: Assar pão de queijo" style="min-width:200px;"></td>
       <td><select class="sheet-select" onchange="updateCronoCell(${idx},'resp',this.value)">${respOptions.replace(`value="${t.resp||'Alexandre'}"`,`value="${t.resp||'Alexandre'}" selected`)}</select></td>
       <td><select class="sheet-select" onchange="updateCronoCell(${idx},'prodId',this.value)">${prodOptions.replace(`value="${t.prodId||''}"`,`value="${t.prodId||''}" selected`)}</select></td>
       <td><input class="sheet-input" type="number" min="0" value="${t.qty||''}" onblur="updateCronoCell(${idx},'qty',this.value)" placeholder="0" style="min-width:60px;text-align:center;"></td>
-      <td><button class="btn btn-ghost btn-sm" onclick="removeCrono(${idx})" style="color:var(--red)">�</button></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="removeCrono(${idx})" style="color:var(--red)">×</button></td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma tarefa � clique em "+ Adicionar linha"</td></tr>`;
+  }).join('') || `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma tarefa — clique em "+ Adicionar linha"</td></tr>`;
 }
 
 function addCronoRow() {
@@ -2993,7 +2993,7 @@ function removeCrono(idx) {
 }
 
 // ============================================================
-// PLANO DE PRODU��O SEMANAL
+// PLANO DE PRODUÇÃO SEMANAL
 // ============================================================
 function getPlanoSemanal() {
   if (!planoSemanal[currentUnit]) planoSemanal[currentUnit] = {};
@@ -3006,7 +3006,7 @@ function renderPlanoSemanal() {
   const plano = getPlanoSemanal();
   const prods = produtos.filter(p => (p.tipo || 'fabricacao') === 'fabricacao');
   if (!prods.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabrica��o cadastrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>';
     return;
   }
   tbody.innerHTML = prods.map(p => {
@@ -3014,8 +3014,8 @@ function renderPlanoSemanal() {
     const total = dayOrder.reduce((sum, d) => sum + (Number(days[d]) || 0), 0);
     return `<tr>
       <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span><span class="sheet-readonly" style="padding-top:0;font-size:11px;color:var(--text-light);">${p.resp || ''}</span></td>
-      ${dayOrder.map(d => `<td><input class="sheet-input" type="number" min="0" step="1" style="min-width:52px;text-align:center;" value="${days[d] || ''}" placeholder="�" onchange="updatePlanoQty(${p.id}, '${d}', this.value)"></td>`).join('')}
-      <td><span class="sheet-readonly" style="font-family:var(--font-mono);font-weight:700;text-align:right;">${total || '�'}</span></td>
+      ${dayOrder.map(d => `<td><input class="sheet-input" type="number" min="0" step="1" style="min-width:52px;text-align:center;" value="${days[d] || ''}" placeholder="—" onchange="updatePlanoQty(${p.id}, '${d}', this.value)"></td>`).join('')}
+      <td><span class="sheet-readonly" style="font-family:var(--font-mono);font-weight:700;text-align:right;">${total || '—'}</span></td>
     </tr>`;
   }).join('');
 }
@@ -3146,11 +3146,11 @@ function renderProdutos() {
   const respOptions = ['Alexandre','Tiago','Anderson','Lucas','Outro'].map(r => `<option value="${r}">${r}</option>`).join('');
   const curvaOptions = `<option value="A">A</option><option value="B">B</option><option value="C">C</option>`;
   const precoUnidadeOptions = selected => `<option value="un" ${selected === 'un' ? 'selected' : ''}>Unidade</option><option value="kg" ${selected === 'kg' ? 'selected' : ''}>Kg</option>`;
-  const encomendaOptions = selected => `<option value="false" ${!selected ? 'selected' : ''}>Balc�o</option><option value="true" ${selected ? 'selected' : ''}>Por encomenda</option>`;
+  const encomendaOptions = selected => `<option value="false" ${!selected ? 'selected' : ''}>Balcão</option><option value="true" ${selected ? 'selected' : ''}>Por encomenda</option>`;
 
   document.getElementById('produtos-thead').innerHTML = isRevenda
-    ? `<tr><th>Nome</th><th>Categoria</th><th>Curva</th><th>Venda</th><th>Validade</th><th>Qtd.Comprada</th><th>Valor Compra R$</th><th>Pre�o R$</th><th>Por</th><th>Hist.</th><th></th></tr>`
-    : `<tr><th>Nome</th><th>Categoria</th><th>Curva</th><th>Venda</th><th>Vitrine</th><th>Validade</th><th>Respons�vel</th><th>Pre�o R$</th><th>Por</th><th>Obs</th><th></th></tr>`;
+    ? `<tr><th>Nome</th><th>Categoria</th><th>Curva</th><th>Venda</th><th>Validade</th><th>Qtd.Comprada</th><th>Valor Compra R$</th><th>Preço R$</th><th>Por</th><th>Hist.</th><th></th></tr>`
+    : `<tr><th>Nome</th><th>Categoria</th><th>Curva</th><th>Venda</th><th>Vitrine</th><th>Validade</th><th>Responsável</th><th>Preço R$</th><th>Por</th><th>Obs</th><th></th></tr>`;
 
   const tbody = document.getElementById('produtos-tbody');
   tbody.innerHTML = filtered.map(p => {
@@ -3167,7 +3167,7 @@ function renderProdutos() {
         <td><input class="sheet-input" type="number" min="0" step="0.01" value="${p.preco||''}" onblur="updateProdutoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
         <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'precoUnidade',this.value)">${precoUnidadeOptions(getPrecoUnidadeLabel(p))}</select></td>
         <td><button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Historico de compras">Carrinho ${(p.historicoCompras || []).length || ''}</button></td>
-        <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">�</button></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
       </tr>`;
     }
     return `<tr>
@@ -3181,9 +3181,9 @@ function renderProdutos() {
       <td><input class="sheet-input" type="number" min="0" step="0.01" value="${p.preco||''}" onblur="updateProdutoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
       <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'precoUnidade',this.value)">${precoUnidadeOptions(getPrecoUnidadeLabel(p))}</select></td>
       <td><input class="sheet-input" value="${escHtml(p.obs||'')}" onblur="updateProdutoCell(${p.id},'obs',this.value)" placeholder="Obs..." style="min-width:100px;"></td>
-      <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">�</button></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
     </tr>`;
-  }).join('') || `<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto encontrado � clique em "+ Adicionar linha"</td></tr>`;
+  }).join('') || `<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto encontrado — clique em "+ Adicionar linha"</td></tr>`;
 
   // Stats (per tipo)
   const produtosTipo = produtos.filter(p => (p.tipo || 'fabricacao') === currentProdutosTipo);
@@ -3309,7 +3309,7 @@ function saveProduto() {
     valorCompra: parseFloat(document.getElementById('p-valor-compra').value) || 0,
   };
 
-  // Revenda n�o tem respons�vel de produ��o; custo unit�rio sai da compra
+  // Revenda não tem responsável de produção; custo unitário sai da compra
   if (data.tipo === 'revenda') {
     data.resp = '';
     data.vitrine = '';
@@ -3427,7 +3427,7 @@ function getCmvStatus(cmv) {
 }
 
 function renderCmvIndicator(cmv, calculavel) {
-  if (!calculavel) return '�';
+  if (!calculavel) return '—';
   const status = getCmvStatus(cmv);
   const width = Math.min(Math.max(cmv, 0), 100);
   return `<div class="cmv-cell">
@@ -3438,7 +3438,7 @@ function renderCmvIndicator(cmv, calculavel) {
 }
 
 function renderMarginIndicator(value, calculavel, suffix = '') {
-  if (!calculavel) return '�';
+  if (!calculavel) return '—';
   const good = Number(value) >= 0;
   const text = suffix ? `${Number(value).toFixed(1)}${suffix}` : money(value);
   return `<span class="margin-pill ${good ? 'margin-good' : 'margin-bad'}">${text}</span>`;
@@ -3508,7 +3508,7 @@ function renderProducaoCMV() {
   if (!tbody) return;
   const fabricacao = produtos.filter(p => (p.tipo || 'fabricacao') === 'fabricacao');
   if (!fabricacao.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabrica��o cadastrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>';
     return;
   }
   tbody.innerHTML = fabricacao.map(p => {
@@ -3523,15 +3523,15 @@ function renderProducaoCMV() {
     const margem = preco > 0 ? (lucro / preco) * 100 : 0;
     const statusClass = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
     return `<tr>
-      <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">${p.encomenda ? 'Por encomenda' : 'Balc�o'}</span></td>
-      <td><span class="sheet-readonly" style="font-size:12px;">${p.categoria || '�'}</span></td>
+      <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">${p.encomenda ? 'Por encomenda' : 'Balcão'}</span></td>
+      <td><span class="sheet-readonly" style="font-size:12px;">${p.categoria || '—'}</span></td>
       <td><input class="sheet-input" type="number" min="0" step="0.01" value="${preco || ''}" onblur="updateProducaoPreco(${p.id}, this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
       <td><span class="sheet-readonly">${temFicha ? money(custoTotal) : '<span style="color:var(--text-light);">sem ficha</span>'}</span></td>
-      <td><span class="sheet-readonly">${temFicha ? rendimento : '�'}</span></td>
-      <td><span class="sheet-readonly">${custoUn > 0 ? money(custoUn) + '/' + getPrecoUnidadeLabel(p) : '�'}</span></td>
-      <td><span class="sheet-readonly">${calculavel ? `<span class="badge ${statusClass}">${cmv.toFixed(1)}%</span>` : '�'}</span></td>
-      <td><span class="sheet-readonly" style="font-weight:600;color:${lucro >= 0 ? 'var(--green)' : 'var(--red)'};">${calculavel ? money(lucro) : '�'}</span></td>
-      <td><span class="sheet-readonly">${calculavel ? margem.toFixed(1) + '%' : '�'}</span></td>
+      <td><span class="sheet-readonly">${temFicha ? rendimento : '—'}</span></td>
+      <td><span class="sheet-readonly">${custoUn > 0 ? money(custoUn) + '/' + getPrecoUnidadeLabel(p) : '—'}</span></td>
+      <td><span class="sheet-readonly">${calculavel ? `<span class="badge ${statusClass}">${cmv.toFixed(1)}%</span>` : '—'}</span></td>
+      <td><span class="sheet-readonly" style="font-weight:600;color:${lucro >= 0 ? 'var(--green)' : 'var(--red)'};">${calculavel ? money(lucro) : '—'}</span></td>
+      <td><span class="sheet-readonly">${calculavel ? margem.toFixed(1) + '%' : '—'}</span></td>
     </tr>`;
   }).join('');
 }
@@ -3553,7 +3553,7 @@ function renderRevendaCMV() {
   const tbody = { set innerHTML(html) { tbodies.forEach(el => { el.innerHTML = html; }); } };
   const revenda = produtos.filter(p => (p.tipo || 'fabricacao') === 'revenda');
   if (!revenda.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o bot�o abaixo para adicionar.</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
     return;
   }
   const html = revenda.map(p => {
@@ -3569,16 +3569,16 @@ function renderRevendaCMV() {
     return `<tr>
       <td>
         <span class="sheet-readonly" style="font-weight:600;">${p.nome}</span>
-        <span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">${p.encomenda ? 'Por encomenda' : 'Balc�o'}</span>
+        <span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">${p.encomenda ? 'Por encomenda' : 'Balcão'}</span>
         <button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Historico de compras" style="margin-top:4px;">Carrinho ${(p.historicoCompras || []).length || ''}</button>
       </td>
       <td><input class="sheet-input" type="number" min="0" step="1" value="${qtd || ''}" onblur="updateRevendaCampo(${p.id}, 'qtdComprada', this.value)" placeholder="ex: 12"></td>
       <td><input class="sheet-input" type="number" min="0" step="0.01" value="${valor || ''}" onblur="updateRevendaCampo(${p.id}, 'valorCompra', this.value)" placeholder="ex: 18,43"></td>
-      <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${custo > 0 ? money(custo) + '/' + getPrecoUnidadeLabel(p) : '�'}</span></td>
+      <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${custo > 0 ? money(custo) + '/' + getPrecoUnidadeLabel(p) : '—'}</span></td>
       <td><input class="sheet-input" type="number" min="0" step="0.01" value="${preco || ''}" onblur="updateRevendaCampo(${p.id}, 'preco', this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
-      <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? money(margem) : '�'}</span></td>
-      <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? margemPct.toFixed(1) + '%' : '�'}</span></td>
-      <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? '<span class="badge ' + statusClass + '">' + cmv.toFixed(1) + '%</span>' : '�'}</span></td>
+      <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? money(margem) : '—'}</span></td>
+      <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? margemPct.toFixed(1) + '%' : '—'}</span></td>
+      <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? '<span class="badge ' + statusClass + '">' + cmv.toFixed(1) + '%</span>' : '—'}</span></td>
       <td><button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))">??</button></td>
     </tr>`;
   }).join('');
@@ -3589,7 +3589,7 @@ function updateRevendaCampo(prodId, campo, value) {
   const p = produtos.find(pr => pr.id === prodId);
   if (!p) return;
   p[campo] = parseFloat(value) || 0;
-  // Mant�m o custo unit�rio sincronizado com a �ltima compra
+  // Mantém o custo unitário sincronizado com a última compra
   if (p.qtdComprada > 0 && p.valorCompra > 0) {
     p.custo = p.valorCompra / p.qtdComprada;
     syncRevendaUltimaCompra(p);
@@ -3719,7 +3719,7 @@ function renderCMV() {
   document.getElementById('cmv-stat-receitas').textContent = receitas.length;
 
   const medioEl = document.getElementById('cmv-stat-medio');
-  medioEl.textContent = cmvs.length ? `${media.toFixed(1)}%` : '�';
+  medioEl.textContent = cmvs.length ? `${media.toFixed(1)}%` : '—';
   const cor = media === 0 ? 'var(--text)' : media < 25 ? 'var(--green)' : media < 35 ? '#D97706' : 'var(--red)';
   medioEl.style.color = cor;
   const fill = document.getElementById('cmv-medio-fill');
@@ -3757,7 +3757,7 @@ function renderIngredientes() {
       if (ing.fatia) {
         derivados += `<br><span style="font-size:11px;color:var(--brown);font-weight:700;">${money(custoUnit / ing.fatia)}/g/ml</span>`;
       }
-      derivados += `<br><label style="display:flex;align-items:center;gap:4px;margin-top:4px;font-size:10px;color:var(--text-light);">Conte�do <input class="sheet-input" type="number" min="0" step="0.1" value="${ing.fatia || ''}" onblur="updateIngredienteCell(${ing.id}, 'fatia', this.value)" placeholder="395" style="width:72px;min-width:72px;padding:4px 6px;"></label>`;
+      derivados += `<br><label style="display:flex;align-items:center;gap:4px;margin-top:4px;font-size:10px;color:var(--text-light);">Conteúdo <input class="sheet-input" type="number" min="0" step="0.1" value="${ing.fatia || ''}" onblur="updateIngredienteCell(${ing.id}, 'fatia', this.value)" placeholder="395" style="width:72px;min-width:72px;padding:4px 6px;"></label>`;
     }
     const nCompras = (ing.historico || []).length;
     return `<tr>
@@ -3775,10 +3775,10 @@ function renderIngredientes() {
       <td><input class="sheet-input" type="number" min="0" step="0.01" value="${uc.custoCompra||''}" onblur="updateIngredienteCompra(${ing.id},'custoCompra',this.value)" placeholder="0,00" style="min-width:80px;"></td>
       <td style="min-width:110px;">${derivados}</td>
       <td style="white-space:nowrap;">
-        <button class="btn btn-ghost btn-sm" onclick="openHistoricoModal(${ing.id})" title="Hist�rico de compras" style="margin-right:2px;">
+        <button class="btn btn-ghost btn-sm" onclick="openHistoricoModal(${ing.id})" title="Histórico de compras" style="margin-right:2px;">
           Carrinho ${nCompras > 0 ? `<span style="font-size:10px;background:var(--gold-light);color:var(--brown);border-radius:999px;padding:1px 5px;">${nCompras}</span>` : ''}
         </button>
-        <button class="btn btn-ghost btn-sm" onclick="deleteIngrediente(${ing.id})" style="color:var(--red)">�</button>
+        <button class="btn btn-ghost btn-sm" onclick="deleteIngrediente(${ing.id})" style="color:var(--red)">×</button>
       </td>
     </tr>`;
   }).join('') || `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum ingrediente cadastrado</td></tr>`;
@@ -3811,7 +3811,7 @@ function renderReceitaRow(receita) {
     <td>${unidadeCell}</td>
     <td><span class="sheet-readonly">${money(custoUn)}</span></td>
     <td><span class="sheet-readonly"><span class="badge ${status}">${cmv.toFixed(0)}%</span></span></td>
-    <td><button class="btn btn-ghost btn-sm" onclick="deleteReceita(${receita.id})" style="color:var(--red)">�</button></td>
+    <td><button class="btn btn-ghost btn-sm" onclick="deleteReceita(${receita.id})" style="color:var(--red)">×</button></td>
   </tr>`;
 }
 
@@ -4162,7 +4162,7 @@ function saveIngrediente() {
     ing.nome = nome;
     ing.unidade = document.getElementById('ing-unidade').value;
     ing.fatia = fatia;
-    // Se preencheu nova compra, registra no hist�rico
+    // Se preencheu nova compra, registra no histórico
     if (qtdCompra && custoCompra) {
       if (!ing.historico) ing.historico = [];
       const uc = getUltimaCompra(ing);
@@ -4198,35 +4198,44 @@ function openHistoricoModal(ingId) {
   document.getElementById('hist-data').value = '';
   document.getElementById('hist-qtd').value = '';
   document.getElementById('hist-custo').value = '';
-  document.getElementById('modal-historico-title').textContent = `Hist�rico � ${ing.nome}`;
+  document.getElementById('modal-historico-title').textContent = `Histórico — ${ing.nome}`;
 
   const hist = (ing.historico || []).slice().reverse();
-  document.getElementById('historico-list').innerHTML = hist.length
-    ? `<table style="width:100%;border-collapse:collapse;font-size:12px;">
-        <thead><tr>
-          <th style="text-align:left;padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);">Data</th>
-          <th style="text-align:left;padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);">Fornecedor</th>
-          <th style="text-align:right;padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);">Qtd.</th>
-          <th style="text-align:right;padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);">Custo</th>
-          <th style="text-align:right;padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);">/unit</th>
-          <th style="padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);"></th>
-        </tr></thead>
-        <tbody>${hist.map((h, rIdx) => {
-          const cuUn = (Number(h.custoCompra)||0) / (Number(h.qtdCompra)||1);
-          const isLatest = rIdx === 0;
-          return `<tr style="${isLatest ? 'background:#F0FDF4;' : ''}">
-            <td style="padding:6px 8px;border-bottom:1px solid var(--border);">${h.data ? new Date(h.data+'T00:00').toLocaleDateString('pt-BR') : '�'}</td>
-            <td style="padding:6px 8px;border-bottom:1px solid var(--border);">${h.fornecedor || '�'} ${isLatest ? '<span style="font-size:10px;color:var(--green);font-weight:700;">ATUAL</span>' : ''}</td>
-            <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--font-mono);">${h.qtdCompra} ${ing.unidade}</td>
-            <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--font-mono);">${money(h.custoCompra)}</td>
-            <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:right;font-family:var(--font-mono);">${money(cuUn)}/${ing.unidade}</td>
-            <td style="padding:6px 8px;border-bottom:1px solid var(--border);text-align:center;">
-              ${!isLatest ? `<button class="btn btn-ghost btn-sm" onclick="deleteHistoricoEntry(${ingId},${h.id})" style="color:var(--red);padding:2px 8px;">�</button>` : ''}
-            </td>
-          </tr>`;
-        }).join('')}</tbody>
-      </table>`
-    : `<p style="color:var(--text-light);font-size:13px;padding:8px 0;">Nenhuma compra registrada ainda.</p>`;
+  if (!hist.length) {
+    document.getElementById('historico-list').innerHTML = '<p style="color:var(--text-light);font-size:13px;padding:8px 0;">Nenhuma compra registrada ainda.</p>';
+  } else {
+    const thStyle = 'text-align:left;padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);';
+    const thRightStyle = 'text-align:right;padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);';
+    const tdStyle = 'padding:6px 8px;border-bottom:1px solid var(--border);';
+    const tdRightStyle = tdStyle + 'text-align:right;font-family:var(--font-mono);';
+    const rows = hist.map((h, rIdx) => {
+      const cuUn = (Number(h.custoCompra) || 0) / (Number(h.qtdCompra) || 1);
+      const isLatest = rIdx === 0;
+      const dataLabel = h.data ? new Date(h.data + 'T00:00').toLocaleDateString('pt-BR') : '-';
+      const atualLabel = isLatest ? '<span style="font-size:10px;color:var(--green);font-weight:700;">ATUAL</span>' : '';
+      const deleteBtn = !isLatest
+        ? '<button class="btn btn-ghost btn-sm" onclick="deleteHistoricoEntry(' + ingId + ',' + h.id + ')" style="color:var(--red);padding:2px 8px;">x</button>'
+        : '';
+      return '<tr style="' + (isLatest ? 'background:#F0FDF4;' : '') + '">' +
+        '<td style="' + tdStyle + '">' + dataLabel + '</td>' +
+        '<td style="' + tdStyle + '">' + escHtml(h.fornecedor || '-') + ' ' + atualLabel + '</td>' +
+        '<td style="' + tdRightStyle + '">' + h.qtdCompra + ' ' + ing.unidade + '</td>' +
+        '<td style="' + tdRightStyle + '">' + money(h.custoCompra) + '</td>' +
+        '<td style="' + tdRightStyle + '">' + money(cuUn) + '/' + ing.unidade + '</td>' +
+        '<td style="' + tdStyle + 'text-align:center;">' + deleteBtn + '</td>' +
+      '</tr>';
+    }).join('');
+    document.getElementById('historico-list').innerHTML =
+      '<table style="width:100%;border-collapse:collapse;font-size:12px;">' +
+        '<thead><tr>' +
+          '<th style="' + thStyle + '">Data</th>' +
+          '<th style="' + thStyle + '">Fornecedor</th>' +
+          '<th style="' + thRightStyle + '">Qtd.</th>' +
+          '<th style="' + thRightStyle + '">Custo</th>' +
+          '<th style="' + thRightStyle + '">/unit</th>' +
+          '<th style="padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);"></th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table>';
+  }
 
   openModal('modal-historico');
 }
@@ -4304,7 +4313,7 @@ function addReceitaItem(item = {}) {
     </div>
     <div class="form-group"><label>Quantidade usada</label><input type="number" class="rec-qtd" min="0" step="0.001" placeholder="ex: 250"></div>
     <div class="form-group"><label>Unidade</label><select class="rec-uso-unidade"></select></div>
-    <button class="btn btn-ghost btn-sm" type="button" onclick="this.parentElement.remove()" style="align-self:end;">�</button>
+    <button class="btn btn-ghost btn-sm" type="button" onclick="this.parentElement.remove()" style="align-self:end;">×</button>
   `;
   wrap.appendChild(row);
   row.querySelector('.rec-ing').value = item.ingId || ingredientes[0]?.id || '';
@@ -4405,19 +4414,19 @@ function renderPerdas() {
   mesAtual.forEach(p => { contProd[p.prodId] = (contProd[p.prodId] || 0) + p.qty; });
   const topProdId = Object.keys(contProd).sort((a,b) => contProd[b]-contProd[a])[0];
   const topProd = topProdId ? produtos.find(p => p.id == topProdId) : null;
-  document.getElementById('perdas-produto-top').textContent = topProd ? topProd.nome.split(' ')[0] : '�';
+  document.getElementById('perdas-produto-top').textContent = topProd ? topProd.nome.split(' ')[0] : '—';
 
   const contMotivo = {};
   mesAtual.forEach(p => { contMotivo[p.tipo] = (contMotivo[p.tipo] || 0) + 1; });
   const topMotivo = Object.keys(contMotivo).sort((a,b) => contMotivo[b]-contMotivo[a])[0];
-  const motivoLabel = { vencimento: 'Vencido', producao: 'Produ��o', cliente: 'Cliente', acidente: 'Acidente', outro: 'Outro' };
-  document.getElementById('perdas-motivo-top').textContent = topMotivo ? motivoLabel[topMotivo] : '�';
+  const motivoLabel = { vencimento: 'Vencido', producao: 'Produção', cliente: 'Cliente', acidente: 'Acidente', outro: 'Outro' };
+  document.getElementById('perdas-motivo-top').textContent = topMotivo ? motivoLabel[topMotivo] : '—';
 
   // List
   const list = document.getElementById('perdas-list');
   const produtosFiltrados = produtos;
   const prodOptions = produtosFiltrados.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
-  const tipoOptions = `<option value="vencimento">Vencimento</option><option value="producao">Erro de produ��o</option><option value="cliente">Feedback cliente</option><option value="acidente">Acidente</option><option value="outro">Outro</option>`;
+  const tipoOptions = `<option value="vencimento">Vencimento</option><option value="producao">Erro de produção</option><option value="cliente">Feedback cliente</option><option value="acidente">Acidente</option><option value="outro">Outro</option>`;
 
   list.innerHTML = filtered.slice().reverse().map(p => {
     const realIdx = perdas.indexOf(p);
@@ -4426,10 +4435,10 @@ function renderPerdas() {
       <td><select class="sheet-select" onchange="updatePerdaCell(${realIdx},'prodId',this.value)">${prodOptions.replace(`value="${p.prodId}"`,`value="${p.prodId}" selected`)}</select></td>
       <td><input class="sheet-input" type="number" min="1" value="${p.qty||1}" onblur="updatePerdaCell(${realIdx},'qty',this.value)" style="min-width:60px;text-align:center;"></td>
       <td><select class="sheet-select" onchange="updatePerdaCell(${realIdx},'tipo',this.value)">${tipoOptions.replace(`value="${p.tipo}"`,`value="${p.tipo}" selected`)}</select></td>
-      <td><input class="sheet-input" value="${escHtml(p.obs||'')}" onblur="updatePerdaCell(${realIdx},'obs',this.value)" placeholder="Descri��o..." style="min-width:160px;"></td>
-      <td><button class="btn btn-ghost btn-sm" onclick="removePerda(${realIdx})" style="color:var(--red)">�</button></td>
+      <td><input class="sheet-input" value="${escHtml(p.obs||'')}" onblur="updatePerdaCell(${realIdx},'obs',this.value)" placeholder="Descrição..." style="min-width:160px;"></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="removePerda(${realIdx})" style="color:var(--red)">×</button></td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-light);">Sem registros � clique em "+ Adicionar linha"</td></tr>`;
+  }).join('') || `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-light);">Sem registros — clique em "+ Adicionar linha"</td></tr>`;
 }
 
 function addPerdaRow() {
@@ -4467,7 +4476,7 @@ function removePerda(idx) {
 }
 
 // ============================================================
-// PEDIDO DE PRODU��O
+// PEDIDO DE PRODUÇÃO
 // ============================================================
 function setPedidoDay(day) {
   currentPedidoDay = day;
@@ -4477,7 +4486,7 @@ function setPedidoDay(day) {
 }
 
 function renderPedido() {
-  document.getElementById('pedido-title').textContent = `Produ��o � ${dayNames[currentPedidoDay]}`;
+  document.getElementById('pedido-title').textContent = `Produção — ${dayNames[currentPedidoDay]}`;
   document.getElementById('pedido-unidade').textContent = currentUnit === 'matriz' ? 'Matriz' : 'Vila Nova';
 
   // Coleta dados
@@ -4506,7 +4515,7 @@ function renderPedido() {
     mapa[c.prodId].hora = c.hora;
   });
 
-  // Plano de produ��o semanal (quantidade padr�o do dia da semana)
+  // Plano de produção semanal (quantidade padrão do dia da semana)
   Object.entries(planoSemanal[currentUnit] || {}).forEach(([prodId, days]) => {
     const qty = Number(days?.[currentPedidoDay]) || 0;
     if (!qty) return;
@@ -4514,7 +4523,7 @@ function renderPedido() {
     mapa[prodId].qtyPlano = qty;
   });
 
-  // Calcular reposi��o baseada em perdas (�ltimas 4 semanas)
+  // Calcular reposição baseada em perdas (últimas 4 semanas)
   const perdasProd = {};
   const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 28);
   perdas.filter(p => p.unit === currentUnit && new Date(p.data) > cutoff).forEach(p => {
@@ -4524,7 +4533,7 @@ function renderPedido() {
   const list = document.getElementById('pedido-list');
 
   if (Object.keys(mapa).length === 0) {
-    list.innerHTML = '<div class="empty-state" style="padding:30px;"><div class="empty-icon">??</div><p>Nenhum produto planejado para este dia.<br>Cadastre itens na vitrine, no cronograma ou no plano de produ��o semanal.</p></div>';
+    list.innerHTML = '<div class="empty-state" style="padding:30px;"><div class="empty-icon">??</div><p>Nenhum produto planejado para este dia.<br>Cadastre itens na vitrine, no cronograma ou no plano de produção semanal.</p></div>';
     document.getElementById('pedido-obs').innerHTML = '';
     return;
   }
@@ -4548,28 +4557,28 @@ function renderPedido() {
     const qtdPlanejada = Math.max(d.qtyVitrine, d.qtyCrono, d.qtyPlano || 0);
     const sobra = sobraAnterior[prodId] || 0;
     const qtdBase = Math.max(0, qtdPlanejada - sobra);
-    const reposicao = Math.ceil((perdasProd[prodId] || 0) / 4); // m�dia semanal de perdas
-    const resp = d.resp || prod.resp || '�';
-    const hora = d.hora || '�';
+    const reposicao = Math.ceil((perdasProd[prodId] || 0) / 4); // média semanal de perdas
+    const resp = d.resp || prod.resp || '—';
+    const hora = d.hora || '—';
 
     html += `<div class="pedido-item">
       <div>
         <div class="prod-name">${prod.nome} <span class="badge badge-${prod.curva.toLowerCase()}">${prod.curva}</span></div>
-        <div class="prod-resp">${prod.categoria}${prod.encomenda ? ' � Por encomenda' : ''}</div>
+        <div class="prod-resp">${prod.categoria}${prod.encomenda ? ' · Por encomenda' : ''}</div>
       </div>
       <div><strong>${qtdBase}</strong></div>
-      <div style="color:var(--text-light)">${sobra || '�'}</div>
-      <div style="color:var(--red-light)">${reposicao > 0 ? '+' + reposicao : '�'}</div>
+      <div style="color:var(--text-light)">${sobra || '—'}</div>
+      <div style="color:var(--red-light)">${reposicao > 0 ? '+' + reposicao : '—'}</div>
       <div>${resp}</div>
       <div>${hora}</div>
     </div>`;
 
     if (sobra > 0) {
-      obsHtml += `<div style="font-size:12px;color:var(--brown);margin-bottom:4px;"><strong>${prod.nome}</strong> � descontado ${sobra} un. de sobra registrada no fechamento anterior.</div>`;
+      obsHtml += `<div style="font-size:12px;color:var(--brown);margin-bottom:4px;"><strong>${prod.nome}</strong> — descontado ${sobra} un. de sobra registrada no fechamento anterior.</div>`;
     }
 
     if (prod.validade <= 1) {
-      obsHtml += `<div style="font-size:12px;color:var(--red);margin-bottom:4px;">?? <strong>${prod.nome}</strong> � validade curta (${prod.validade} dia). Produzir somente no dia.</div>`;
+      obsHtml += `<div style="font-size:12px;color:var(--red);margin-bottom:4px;">?? <strong>${prod.nome}</strong> — validade curta (${prod.validade} dia). Produzir somente no dia.</div>`;
     }
     totalItems++;
   });
@@ -4578,7 +4587,7 @@ function renderPedido() {
 
   document.getElementById('pedido-obs').innerHTML = obsHtml ? `
     <div class="card" style="border-left:4px solid var(--red);padding:14px 16px;">
-      <div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--red);margin-bottom:8px;">Ajustes da produ��o</div>
+      <div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--red);margin-bottom:8px;">Ajustes da produção</div>
       ${obsHtml}
     </div>` : '';
 }
@@ -4588,9 +4597,9 @@ function imprimirPedido() {
 }
 
 // ============================================================
-// NAVEGA��O TIPO PLANILHA (Enter = pr�xima coluna / nova linha)
+// NAVEGAÇÃO TIPO PLANILHA (Enter = próxima coluna / nova linha)
 // ============================================================
-// tbodies que ganham uma nova linha ao apertar Enter na �ltima coluna
+// tbodies que ganham uma nova linha ao apertar Enter na última coluna
 const sheetRowAdders = {
   'ingredientes-tbody': () => addIngredienteRow(),
   'receitas-tbody': () => addReceitaRow(),
@@ -4604,7 +4613,7 @@ function handleSheetKey(e) {
   if (!el.classList || !(el.classList.contains('sheet-input') || el.classList.contains('sheet-select'))) return;
   const tbody = el.closest('tbody');
   const row = el.closest('tr');
-  if (!tbody || !row || !tbody.id) return; // s� nas planilhas com tbody identificado
+  if (!tbody || !row || !tbody.id) return; // só nas planilhas com tbody identificado
   e.preventDefault();
 
   const rows = Array.from(tbody.querySelectorAll('tr'));
