@@ -2365,7 +2365,9 @@ async function syncToSupabase() {
     if (ingredientes.length) {
       await db.from('ingredientes').upsert(ingredientes.map(i => ({
         id: i.id, nome: i.nome, unidade: i.unidade,
-        qtd_compra: i.qtdCompra, custo_compra: i.custoCompra
+        qtd_compra: i.qtdCompra, custo_compra: i.custoCompra,
+        variacao_unidade: i.variacaoUnidade || null,
+        variacao_fator: i.variacaoFator || null
       })));
     }
     // Receitas + itens (upsert receita, delete+insert itens)
@@ -2374,7 +2376,8 @@ async function syncToSupabase() {
       await db.from('receita_itens').delete().eq('receita_id', r.id);
       if (r.itens?.length) {
         await db.from('receita_itens').insert(r.itens.map(item => ({
-          receita_id: r.id, ing_id: item.ingId, qtd: item.qtd
+          receita_id: r.id, ing_id: item.ingId, qtd: item.qtd,
+          unidade: item.unidade || 'base'
         })));
       }
     }
@@ -2449,6 +2452,7 @@ async function syncToSupabase() {
     }
   } catch (err) {
     console.error('Supabase sync error:', err);
+    showToast('Erro ao sincronizar com o servidor', 'error');
   }
 }
 
@@ -2485,7 +2489,6 @@ async function loadFromSupabase() {
     ]);
 
     if (prodData?.length) {
-      // tipo/qtdComprada/valorCompra ainda não existem nas colunas do Supabase — preserva do cache local
       const comprasPorProduto = {};
       (comprasData || []).forEach(c => {
         if (!comprasPorProduto[c.prod_id]) comprasPorProduto[c.prod_id] = [];
@@ -2530,8 +2533,8 @@ async function loadFromSupabase() {
           id: i.id, nome: i.nome, unidade: i.unidade,
           qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra),
           fatia: local?.fatia ?? null,
-          variacaoUnidade: local?.variacaoUnidade ?? null,
-          variacaoFator: local?.variacaoFator ?? null,
+          variacaoUnidade: i.variacao_unidade ?? local?.variacaoUnidade ?? null,
+          variacaoFator: i.variacao_fator != null ? Number(i.variacao_fator) : (local?.variacaoFator ?? null),
           historico: local?.historico || [{ id: i.id * 1000, qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra), fornecedor: '', data: '' }]
         };
       });
@@ -2539,7 +2542,7 @@ async function loadFromSupabase() {
     if (recData?.length) {
       receitas = recData.map(r => ({
         id: r.id, prodId: r.prod_id, rendimento: Number(r.rendimento), unidade: r.unidade,
-        itens: (r.receita_itens || []).map(item => ({ ingId: item.ing_id, qtd: Number(item.qtd) }))
+        itens: (r.receita_itens || []).map(item => ({ ingId: item.ing_id, qtd: Number(item.qtd), unidade: item.unidade || 'base' }))
       }));
     }
     if (slotData?.length) {
