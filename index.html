@@ -1962,12 +1962,9 @@ function getPrecoUnidadeLabel(prod) {
   return (prod?.precoUnidade || 'un') === 'kg' ? 'kg' : 'un';
 }
 
-let produtos = [];
-
-let ingredientes = [];
-let receitas = [];
-
-['ddv_produtos', 'ddv_ingredientes', 'ddv_receitas', 'ddv_import_version'].forEach(key => localStorage.removeItem(key));
+let produtos = getStorage('ddv_produtos', []);
+let ingredientes = getStorage('ddv_ingredientes', []);
+let receitas = getStorage('ddv_receitas', []);
 
 // vitrines[unit][day] = [{prodId, qty, slot}]
 let vitrines = getStorage('ddv_vitrines', {});
@@ -2029,6 +2026,9 @@ ingredientes = ingredientes.map(ing => {
 });
 
 function saveAll() {
+  setStorage('ddv_produtos', produtos);
+  setStorage('ddv_ingredientes', ingredientes);
+  setStorage('ddv_receitas', receitas);
   setStorage('ddv_vitrines', vitrines);
   setStorage('ddv_cronograma', cronograma);
   setStorage('ddv_perdas', perdas);
@@ -2049,12 +2049,23 @@ const SUPABASE_URL = 'https://qygiotoldlbyijikdcsx.supabase.co';
 const SUPABASE_KEY = 'sb_publishable__QMpYRBGv9q_D1x0WKpaQg_uA9EzrSG';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let _sbTimer;
+let _lastSyncErrorToast = 0;
+
+async function runSupabase(label, query, errors = []) {
+  const result = await query;
+  if (result?.error) {
+    errors.push({ label, error: result.error });
+    console.error(`Supabase: ${label}`, result.error);
+  }
+  return result?.data;
+}
 
 async function syncToSupabase() {
+  const syncErrors = [];
   try {
     // Produtos (upsert por id inteiro)
     if (produtos.length) {
-      await db.from('produtos').upsert(produtos.map(p => ({
+      await runSupabase('salvar produtos', db.from('produtos').upsert(produtos.map(p => ({
         id: p.id, nome: p.nome, curva: p.curva, validade: p.validade,
         categoria: p.categoria, vitrine: p.vitrine, custo: p.custo || 0,
         preco: p.preco || 0, resp: p.resp || '', unidade: 'ambas', obs: p.obs || '',
@@ -2063,7 +2074,7 @@ async function syncToSupabase() {
         valor_compra: Number(p.valorCompra) || 0,
         preco_unidade: p.precoUnidade || 'un',
         encomenda: Boolean(p.encomenda)
-      })));
+      }))), syncErrors);
     }
     const produtoIds = produtos.map(p => p.id).filter(Boolean);
     if (produtoIds.length) {
@@ -2093,10 +2104,10 @@ async function syncToSupabase() {
     if (vitrinesUnicas.length) await db.from('vitrine_tipos').insert(vitrinesUnicas);
     // Ingredientes (upsert)
     if (ingredientes.length) {
-      await db.from('ingredientes').upsert(ingredientes.map(i => ({
+      await runSupabase('salvar insumos', db.from('ingredientes').upsert(ingredientes.map(i => ({
         id: i.id, nome: i.nome, unidade: i.unidade,
         qtd_compra: i.qtdCompra, custo_compra: i.custoCompra
-      })));
+      }))), syncErrors);
     }
     // Receitas + itens (upsert receita, delete+insert itens)
     for (const r of receitas) {
@@ -2177,8 +2188,21 @@ async function syncToSupabase() {
         leftover_qty: f.leftoverQty || 0
       })));
     }
+    if (syncErrors.length) {
+      const first = syncErrors[0];
+      const now = Date.now();
+      if (now - _lastSyncErrorToast > 5000) {
+        showToast(`Supabase nao salvou: ${first.label}. Veja o console.`, 'error');
+        _lastSyncErrorToast = now;
+      }
+    }
   } catch (err) {
     console.error('Supabase sync error:', err);
+    const now = Date.now();
+    if (now - _lastSyncErrorToast > 5000) {
+      showToast('Erro ao sincronizar com Supabase. Dados ficaram salvos neste navegador.', 'error');
+      _lastSyncErrorToast = now;
+    }
   }
 }
 
