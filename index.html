@@ -138,6 +138,25 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   font-weight: 600;
 }
 .nav-btn:hover:not(.active) { color: var(--text); background: var(--surface-soft); }
+.nav-sep {
+  width: 1px;
+  height: 24px;
+  background: var(--border);
+  margin: 0 10px;
+  align-self: center;
+  flex-shrink: 0;
+}
+.nav-group-label {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-light);
+  align-self: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+  margin-right: 2px;
+}
 
 /* PAGES */
 .page { display: none; padding: 20px 24px 48px; max-width: 1280px; margin: 0 auto; }
@@ -979,14 +998,17 @@ tr:hover td { background: var(--surface-soft); }
 
 <!-- NAV -->
 <div class="nav">
+  <span class="nav-group-label">Produção</span>
   <button class="nav-btn active" onclick="showPage('vitrine')">Vitrines</button>
   <button class="nav-btn" onclick="showPage('cronograma')">Cronograma</button>
+  <button class="nav-btn" onclick="showPage('pedido')">Pedido de Produção</button>
+  <button class="nav-btn" onclick="showPage('perdas')">Perdas</button>
+  <div class="nav-sep"></div>
+  <span class="nav-group-label">Gestão</span>
   <button class="nav-btn" onclick="showPage('produtos')">Produtos</button>
   <button class="nav-btn" onclick="showPage('banco')">Banco de Dados</button>
   <button class="nav-btn" onclick="showPage('insumos')">Insumos & Fichas</button>
   <button class="nav-btn" onclick="showPage('cmv')">CMV</button>
-  <button class="nav-btn" onclick="showPage('perdas')">Perdas</button>
-  <button class="nav-btn" onclick="showPage('pedido')">Pedido de Produção</button>
 </div>
 
 <!-- ===================== PAGE: VITRINE ===================== -->
