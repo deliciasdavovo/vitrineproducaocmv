@@ -1215,6 +1215,18 @@ tr:hover td { background: var(--surface-soft); }
       </div>
     </div>
   </div>
+
+  <div class="vitrine-container" style="margin-top:24px;">
+    <div class="vitrine-panel" style="max-width:520px;">
+      <div class="vitrine-panel-head">
+        <div class="vitrine-section-label" style="margin-bottom:0;">Importar Planilha CMV</div>
+      </div>
+      <div class="sheet-card" style="padding:16px;">
+        <p style="font-size:13px;color:var(--text-mid);margin-bottom:12px;">Importa todos os produtos com preços de venda, corrige rendimentos das fichas de doces e adiciona novos ingredientes da sua planilha. Não apaga dados existentes.</p>
+        <button class="btn btn-primary" onclick="importarDadosPlanilha()">⬇ Importar banco de dados e fichas técnicas</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <!-- ===================== PAGE: INSUMOS & FICHAS ===================== -->
@@ -1966,7 +1978,7 @@ function setStorage(key, val) {
   localStorage.setItem(key, JSON.stringify(val));
 }
 
-const defaultCategorias = ['Bolo','Pão','Torta','Salgado','Doce','Bebida','Outro'];
+const defaultCategorias = ['Lanches','Cafeteria','Omeletes & Tapiocas & Especiais','Doces','Suco','Tortas & Quiches','Salgados','Mini salgados','Pães','Pão de bolinha','Lanches frios','Bebidas','Bolo','Torta','Outro'];
 const defaultVitrineTipos = [
   { id: 'salgada', nome: 'Salgada' },
   { id: 'doce', nome: 'Doce' },
@@ -2286,6 +2298,307 @@ function saveAll() {
   setStorage('ddv_nextid', nextId);
   clearTimeout(_sbTimer);
   _sbTimer = setTimeout(syncToSupabase, 900);
+}
+
+// ============================================================
+// IMPORTACAO DE DADOS DA PLANILHA CMV
+// ============================================================
+function importarDadosPlanilha() {
+  if (!confirm('Importar banco de dados e fichas técnicas da planilha?\n\nEssa operação vai:\n• Atualizar preços de venda dos produtos existentes\n• Adicionar produtos novos\n• Corrigir rendimentos das fichas de doces\n• Adicionar novas categorias e ingredientes\n\nDados de vitrines, cronograma e histórico não serão apagados.')) return;
+
+  let changed = 0;
+
+  // ─── Categorias ──────────────────────────────────────────────────────────
+  ['Lanches','Cafeteria','Omeletes & Tapiocas & Especiais','Doces','Suco',
+   'Tortas & Quiches','Salgados','Mini salgados','Pães','Pão de bolinha','Lanches frios','Bebidas']
+  .forEach(c => { if (!categorias.includes(c)) { categorias.push(c); changed++; } });
+
+  // ─── Produtos: preços + novos ─────────────────────────────────────────────
+  const pp = [
+    // Lanches
+    {n:'Bauru',p:15.00,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Chapa',p:7.90,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Misto frio',p:10.00,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Misto quente',p:13.80,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Queijo quente branco',p:14.50,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Queijo quente light',p:16.50,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Queijo quente mussarela',p:14.50,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Queijo quente prato',p:14.50,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Pão com ovo',p:12.00,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Pão com requeijão chapa',p:9.90,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Requeijão frio',p:9.90,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Manteiga frio',p:6.60,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Integral na chapa',p:9.90,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Integral com requeijão chapa',p:11.90,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Peito de peru light',p:18.00,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Peito de peru quente',p:16.00,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Lanche natural FR',p:19.90,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Lanche natural PP',p:19.90,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Lanche natural PQ',p:19.90,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Lanche de salame',p:18.50,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Ovos mexidos',p:10.50,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un'},
+    {n:'Bauru rosbife',p:15.50,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Cachorro quente no mini pão de leite',p:6.50,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Mortadela com queijo quente',p:14.50,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Mortadela quente',p:12.00,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Mortadela frio',p:9.00,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Pão com nutella',p:14.90,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Pão de ervas na chapa',p:10.90,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Pão de queijo na chapa',p:9.90,r:'Atendimento',cat:'Lanches',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Milho cozido',p:4.00,r:'Atendimento',cat:'Lanches',vit:'todas',pu:'un',val:1,curva:'B'},
+    // Cafeteria
+    {n:'Café casa G - COADO NA HR',p:7.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Café casa PQ - COADO NA HR',p:5.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Café com leite G Expresso',p:11.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Café com leite PQ Expresso',p:9.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Capuccino G',p:11.50,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Capuccino PQ',p:9.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Capuccino gelado',p:13.80,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Capuccino italiano',p:12.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Chocolate quente grande - meio amargo',p:11.50,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Chocolate quente pequeno - meio amargo',p:9.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Expresso Duplo',p:11.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Expresso PQ',p:8.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Gelado de chocolate Meio amargo',p:13.80,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Gelado de chocolate Toddy',p:13.80,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Ovolmaltine gelado',p:14.80,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Leite puro',p:7.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un'},
+    {n:'Café bombom',p:16.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Café casa G - pronto',p:7.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Café casa PQ - pronto',p:5.00,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Café com leite G casa',p:9.50,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Café com leite PQ casa',p:7.50,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Café gourmet',p:12.50,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Chá',p:7.50,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Mocaccino',p:16.50,r:'Atendimento',cat:'Cafeteria',vit:'todas',pu:'un',val:1,curva:'B'},
+    // Omeletes & Tapiocas & Especiais
+    {n:'Crepioca FR c/ catupiry',p:20.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Crepioca FR c/ muçarela',p:20.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Crepioca FR c/ Q. Branco',p:20.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Crepioca FR c/ Q. prato',p:20.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Crepioca PP/ Q. branco',p:20.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Crepioca PQ',p:20.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Crepioca Rucula / tom. seco/ Q. Branco',p:20.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Hamburguer - Cheeseburguer',p:25.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete 1 CAM - FR c/ catupiry',p:19.80,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete 1 CAM - FR c/ muçarela',p:19.80,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete 1 CAM - FR c/ Queijo Branco',p:19.80,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete 1 CAM - FR c/ Queijo Prato',p:19.80,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete 1 CAM - PQ',p:19.80,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete 1 CAM - Rúcula/ tom. seco/ Q branco',p:19.80,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete 2 CAM - FR c/ catupiry',p:23.90,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete 2 CAM - FR c/ muçarela',p:23.90,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete 2 CAM - FR c/ Queijo Branco',p:23.90,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete 2 CAM - FR c/ Queijo Prato',p:23.90,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete 2 CAM - PQ',p:23.90,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete 2 CAM - Rúcula/ tom. seco/ Q branco',p:23.90,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Omelete sem recheio',p:13.00,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Tapioca FR c/ catupiry',p:19.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Tapioca FR c/ muçarela',p:19.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Tapioca FR c/ Q. Branco',p:19.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Tapioca FR c/ Q. prato',p:19.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Tapioca PP/ Q. branco',p:19.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Tapioca PQ',p:19.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Tapioca Rucula / tom. seco/ Q. Branco',p:19.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un'},
+    {n:'Hamburguer - Americano',p:32.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Hamburguer - Americano sem hamburguer',p:23.00,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Hamburguer - X Salada',p:29.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Hamburguer - X Tudo',p:38.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Panini com doce de leite',p:11.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Panini com goiabada',p:11.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Panini com requeijão',p:11.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Panini lanche - PP e Q. branco',p:16.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Panini lanche - PQ',p:16.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Panini lanche - Q. branco',p:16.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Panini lanche - Queijo muçarela',p:16.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Panini sem cobertura',p:10.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Tapioca doce de leite',p:19.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Tapioca Leite condensado com coco',p:19.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Tapioca Nutella',p:19.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Tapioca Romeu e Julieta',p:19.50,r:'Atendimento',cat:'Omeletes & Tapiocas & Especiais',vit:'salgada',pu:'un',val:1,curva:'B'},
+    // Doces
+    {n:'Brigadeiro unitário',p:7.50,r:'Lucas',cat:'Doces',vit:'doce',pu:'un'},
+    {n:'Pão de Mel',p:10.50,r:'Lucas',cat:'Doces',vit:'doce',pu:'un'},
+    {n:'Camafeu',p:9.50,r:'Lucas',cat:'Doces',vit:'doce',pu:'un'},
+    {n:'Palha Italiana',p:6.50,r:'Lucas',cat:'Doces',vit:'doce',pu:'un'},
+    {n:'Mousse de chocolate',p:9.80,r:'Lucas',cat:'Doces',vit:'doce',pu:'un',val:3,curva:'B'},
+    {n:'Brigadeiro no potinho',p:9.50,r:'Lucas',cat:'Doces',vit:'doce',pu:'un',val:3,curva:'B'},
+    {n:'Brigadeiro Normal',p:7.50,r:'Lucas',cat:'Doces',vit:'doce',pu:'un',val:3,curva:'A'},
+    {n:'Queijadinha',p:7.50,r:'',cat:'Doces',vit:'doce',pu:'un',val:5,curva:'B'},
+    {n:'Camafeu Bannoffe Unitária',p:9.50,r:'Lucas',cat:'Doces',vit:'doce',pu:'un',val:7,curva:'B'},
+    // Suco
+    {n:'Shake proteico',p:12.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un'},
+    {n:'Shake proteico com café',p:19.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un'},
+    {n:'Suco Maracujá',p:13.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un'},
+    {n:'Suco Caju',p:13.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un'},
+    {n:'Suco Frutas Vermelhas',p:14.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un'},
+    {n:'Caldo de cana',p:9.90,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Caldo de cana com abacaxi',p:10.90,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Caldo de cana com limão',p:10.90,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Iogurte batido',p:13.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Iogurte com frutas',p:15.50,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Shake proteico com frutas',p:18.50,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Abacaxi',p:13.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Abacaxi c/ Hortelã',p:13.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Acerola',p:13.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Banana com aveia',p:13.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco combinações',p:14.50,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Detox - Amarelo',p:17.50,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Detox - Laranja',p:17.50,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Detox - Roxo',p:17.50,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Detox - Verde',p:17.50,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Detox - Vermelho',p:17.50,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Laranja',p:12.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Limão',p:13.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Limonada Suiça',p:15.50,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Manga',p:13.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Melancia',p:13.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Melão',p:13.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Mix de frutas',p:14.50,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    {n:'Suco Morango',p:13.00,r:'Atendimento',cat:'Suco',vit:'todas',pu:'un',val:1,curva:'B'},
+    // Tortas & Quiches
+    {n:'Quiche',p:0,r:'',cat:'Tortas & Quiches',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Torta de liquidificador',p:0,r:'',cat:'Tortas & Quiches',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Torta massa fina',p:0,r:'',cat:'Tortas & Quiches',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Torta massa podre',p:0,r:'',cat:'Tortas & Quiches',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Torta massa salgada',p:0,r:'',cat:'Tortas & Quiches',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    // Salgados
+    {n:'Croissant',p:62.00,r:'',cat:'Salgados',vit:'salgada',pu:'kg',val:2,curva:'A'},
+    {n:'Crostini',p:76.00,r:'',cat:'Salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Esfirra aberta',p:8.90,r:'',cat:'Salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    {n:'Focaccia',p:89.00,r:'',cat:'Salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Folhado na chapa',p:65.00,r:'',cat:'Salgados',vit:'salgada',pu:'kg',val:1,curva:'B'},
+    {n:'Hamburguete',p:8.90,r:'',cat:'Salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    {n:'Hotdog folhado',p:65.00,r:'',cat:'Salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Napoleão',p:78.00,r:'',cat:'Salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Pão de ervas',p:65.00,r:'',cat:'Salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Trouxão de frango',p:65.00,r:'',cat:'Salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Pão de mandioquinha',p:62.00,r:'',cat:'Salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Pizza enrolada',p:2.20,r:'',cat:'Salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    {n:'Pizza montada pronta',p:52.50,r:'',cat:'Salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Quiche unitário',p:59.90,r:'',cat:'Salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    {n:'Salada unitária 150g',p:9.90,r:'Atendimento',cat:'Salgados',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Salgadinhos fritos',p:12.75,r:'',cat:'Salgados',vit:'salgada',pu:'un',val:1,curva:'B'},
+    {n:'Torta em pedaço',p:9.90,r:'',cat:'Salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    {n:'Empada unitária',p:9.90,r:'',cat:'Salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    {n:'Salgado assado',p:1.20,r:'',cat:'Salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    // Mini salgados
+    {n:'Brusquetas',p:85.00,r:'',cat:'Mini salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Cortadinho folhado',p:58.00,r:'',cat:'Mini salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Enroladinhos',p:62.00,r:'',cat:'Mini salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Gravatiha de parmesão',p:56.00,r:'',cat:'Mini salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Mini croissant',p:69.00,r:'',cat:'Mini salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Mini cuscuz',p:3.50,r:'',cat:'Mini salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    {n:'Mini empada massa fina',p:2.50,r:'',cat:'Mini salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    {n:'Mini empada massa podre',p:2.50,r:'',cat:'Mini salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    {n:'Mini esfirra',p:1.50,r:'',cat:'Mini salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    {n:'Mini pão de queijo',p:69.00,r:'',cat:'Mini salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Mini pizza',p:56.00,r:'',cat:'Mini salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Mini quiche',p:2.50,r:'',cat:'Mini salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    {n:'Mini quiche vegano',p:3.50,r:'',cat:'Mini salgados',vit:'salgada',pu:'un',val:2,curva:'B'},
+    {n:'Mini trouxinha',p:65.00,r:'',cat:'Mini salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Pastelzinho frito',p:19.99,r:'Marquinhos',cat:'Mini salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Pão de queijo especiais',p:62.00,r:'',cat:'Mini salgados',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    // Pães
+    {n:'Ciabatta',p:67.00,r:'Marquinhos',cat:'Pães',vit:'salgada',pu:'kg',val:2,curva:'B'},
+    {n:'Mini pão francês',p:23.00,r:'Marquinhos',cat:'Pães',vit:'salgada',pu:'kg',val:1,curva:'B'},
+    {n:'Pão croc',p:3.00,r:'Marquinhos',cat:'Pães',vit:'salgada',pu:'un',val:1,curva:'B'},
+    // Pão de bolinha
+    {n:'Pão de bolinha salgado',p:68.00,r:'Thiago',cat:'Pão de bolinha',vit:'salgada',pu:'kg',val:2,curva:'A'},
+    // Lanches frios
+    {n:'Lanche de pernil',p:62.00,r:'',cat:'Lanches frios',vit:'salgada',pu:'kg',val:1,curva:'B'},
+    {n:'Lanche marroquinho',p:79.00,r:'',cat:'Lanches frios',vit:'salgada',pu:'kg',val:1,curva:'B'},
+    {n:'Lanche na baguete',p:62.00,r:'',cat:'Lanches frios',vit:'salgada',pu:'kg',val:1,curva:'B'},
+    {n:'Lanchinho no pão de batata',p:68.00,r:'',cat:'Lanches frios',vit:'salgada',pu:'kg',val:1,curva:'B'},
+    // Bebidas revenda
+    {n:'Água Crystal 350ml',p:3.50,r:'',cat:'Bebidas',vit:'todas',pu:'un',val:365,curva:'B',tipo:'revenda',hc:[{q:12,c:18.43,f:'',d:''}]},
+    {n:'Água 510ml S/ Gás Cabreuva',p:3.50,r:'',cat:'Bebidas',vit:'todas',pu:'un',val:365,curva:'B',tipo:'revenda',hc:[{q:12,c:18.43,f:'',d:''}]},
+    {n:'Água 1,5L S/ Gás Ecoleve',p:8.50,r:'',cat:'Bebidas',vit:'todas',pu:'un',val:365,curva:'B',tipo:'revenda',hc:[]},
+    {n:'Água 510ml C/ Gás Petropolitana',p:4.25,r:'',cat:'Bebidas',vit:'todas',pu:'un',val:365,curva:'B',tipo:'revenda',hc:[]},
+    {n:'Hysotonic 500ml Sport LK',p:6.50,r:'',cat:'Bebidas',vit:'todas',pu:'un',val:365,curva:'B',tipo:'revenda',hc:[{q:6,c:24.54,f:'',d:''}]},
+    {n:'Yopro Nutrata Mor/Choc. Branco',p:6.00,r:'',cat:'Bebidas',vit:'todas',pu:'un',val:30,curva:'B',tipo:'revenda',hc:[{q:24,c:114.90,f:'',d:'02/04/2026'}]},
+    {n:'Aveia Jasmine Flocos Finos 170g',p:16.80,r:'',cat:'Bebidas',vit:'todas',pu:'un',val:180,curva:'B',tipo:'revenda',hc:[{q:12,c:155.23,f:'',d:''}]},
+    {n:'Bananinha Fazendinha',p:0.50,r:'',cat:'Bebidas',vit:'todas',pu:'un',val:90,curva:'B',tipo:'revenda',hc:[{q:60,c:26.31,f:'',d:'02/04/2026'}]},
+    {n:'Kitkat 41,5g',p:3.50,r:'',cat:'Bebidas',vit:'todas',pu:'un',val:180,curva:'B',tipo:'revenda',hc:[{q:24,c:41.70,f:'',d:'02/04/2026'}]},
+    {n:'Mentos PureFresh',p:4.25,r:'',cat:'Bebidas',vit:'todas',pu:'un',val:180,curva:'B',tipo:'revenda',hc:[{q:12,c:13.50,f:'',d:'04/04/2026'}]},
+    {n:'Mono Diploko',p:6.50,r:'',cat:'Bebidas',vit:'todas',pu:'un',val:180,curva:'B',tipo:'revenda',hc:[{q:6,c:12.70,f:'',d:''}]},
+    {n:'Olhos Famintos 10g',p:4.80,r:'',cat:'Bebidas',vit:'todas',pu:'un',val:180,curva:'B',tipo:'revenda',hc:[]},
+  ];
+
+  pp.forEach(p => {
+    const ex = produtos.find(ep => ep.nome.toLowerCase().trim() === p.n.toLowerCase().trim());
+    if (ex) {
+      let upd = false;
+      if (p.p && ex.preco === 0) { ex.preco = p.p; upd = true; }
+      if (p.r && !ex.resp) { ex.resp = p.r; upd = true; }
+      if (p.pu && !ex.precoUnidade) { ex.precoUnidade = p.pu; upd = true; }
+      if (upd) changed++;
+    } else {
+      const isRev = p.tipo === 'revenda';
+      const np = {
+        id: ++nextId, nome: p.n, curva: p.curva || 'B', validade: p.val || 1,
+        categoria: p.cat, vitrine: isRev ? '' : (p.vit || 'salgada'),
+        custo: 0, preco: p.p || 0, resp: p.r || '', unidade: 'ambas', obs: '',
+        tipo: isRev ? 'revenda' : 'fabricacao', precoUnidade: p.pu || 'un', encomenda: false
+      };
+      if (isRev && p.hc && p.hc.length) {
+        np.historicoCompras = p.hc.map(h => ({ id: ++nextId, qtdCompra: h.q, custoCompra: h.c, fornecedor: h.f, data: h.d }));
+        const last = np.historicoCompras[np.historicoCompras.length - 1];
+        np.custo = last.qtdCompra > 1 ? +(last.custoCompra / last.qtdCompra).toFixed(4) : last.custoCompra;
+      }
+      produtos.push(np);
+      changed++;
+    }
+  });
+
+  // ─── Fichas técnicas: rendimentos de produtos em lote ─────────────────────
+  Object.entries({66:15, 67:24, 68:20, 69:24})
+  .forEach(([pid, rend]) => {
+    const rec = receitas.find(r => r.prodId === +pid);
+    if (rec && rec.rendimento !== rend) { rec.rendimento = rend; changed++; }
+  });
+
+  // ─── Novos ingredientes ───────────────────────────────────────────────────
+  [
+    {nome:'Achocolatado em pó Toddy',unidade:'g',qtdCompra:1800,custoCompra:40.69,fornecedor:'',data:''},
+    {nome:'Açúcar confeiteiro Mavaleiro',unidade:'g',qtdCompra:1000,custoCompra:42.25,fornecedor:'',data:''},
+    {nome:'Açúcar gelado Diniz',unidade:'g',qtdCompra:250,custoCompra:3.20,fornecedor:'',data:''},
+    {nome:'Amido de milho',unidade:'g',qtdCompra:7000,custoCompra:78.62,fornecedor:'',data:''},
+    {nome:'Aveia flocos finos Jasmine',unidade:'g',qtdCompra:170,custoCompra:4.62,fornecedor:'',data:''},
+    {nome:'Café Jaguari Solúvel sachê',unidade:'un',qtdCompra:1,custoCompra:0.49,fornecedor:'',data:''},
+    {nome:'Chantilly Pride',unidade:'g',qtdCompra:907,custoCompra:32.84,fornecedor:'',data:''},
+    {nome:'Coco flocos Sococo',unidade:'g',qtdCompra:2000,custoCompra:54.70,fornecedor:'',data:''},
+    {nome:'Farinha de trigo',unidade:'g',qtdCompra:5000,custoCompra:29.20,fornecedor:'',data:''},
+    {nome:'Fermento em pó Fleshman',unidade:'g',qtdCompra:14500,custoCompra:149.50,fornecedor:'',data:''},
+    {nome:'Fermento fresco Rekord',unidade:'g',qtdCompra:2000,custoCompra:51.46,fornecedor:'',data:''},
+    {nome:'Fubá Yoki',unidade:'g',qtdCompra:1000,custoCompra:5.00,fornecedor:'',data:''},
+    {nome:'Granulé Meio Amargo Melken',unidade:'g',qtdCompra:5000,custoCompra:361.92,fornecedor:'',data:''},
+    {nome:'Iogurte Natural Nestle',unidade:'g',qtdCompra:750,custoCompra:43.54,fornecedor:'',data:''},
+    {nome:'Leite NINHO',unidade:'g',qtdCompra:400,custoCompra:45.00,fornecedor:'',data:''},
+    {nome:'Margarina Folhada Ricca',unidade:'g',qtdCompra:2000,custoCompra:35.00,fornecedor:'',data:''},
+    {nome:'Morangos',unidade:'g',qtdCompra:6900,custoCompra:175.12,fornecedor:'',data:''},
+    {nome:'Pré Mistura Bolo Limão Vilma',unidade:'g',qtdCompra:1000,custoCompra:24.06,fornecedor:'',data:''},
+    {nome:'Pré Mistura Cake Neutro',unidade:'g',qtdCompra:1000,custoCompra:70.49,fornecedor:'',data:''},
+    {nome:'Pré Mistura Pão Ciabatta',unidade:'g',qtdCompra:1000,custoCompra:38.90,fornecedor:'',data:''},
+    {nome:'Queijo Colonial Scala',unidade:'g',qtdCompra:1000,custoCompra:30.13,fornecedor:'',data:''},
+    {nome:'Queijo Muçarela Apollo',unidade:'un',qtdCompra:1,custoCompra:1.04,fornecedor:'',data:''},
+    {nome:'Queijo Parmesão ralado Vigor',unidade:'g',qtdCompra:420,custoCompra:14.99,fornecedor:'',data:''},
+    {nome:'Apresuntado Sadia',unidade:'g',qtdCompra:7000,custoCompra:138.18,fornecedor:'Sadia',data:'31/03/2026'},
+    {nome:'Apresuntado Seara',unidade:'g',qtdCompra:13930,custoCompra:229.71,fornecedor:'Seara',data:'24/03/2026'},
+  ].forEach(ing => {
+    if (!ingredientes.find(i => i.nome.toLowerCase().trim() === ing.nome.toLowerCase().trim())) {
+      ingredientes.push({
+        id: ++nextId, nome: ing.nome, unidade: ing.unidade,
+        qtdCompra: ing.qtdCompra, custoCompra: ing.custoCompra, fatia: null,
+        historico: [{ id: ++nextId, qtdCompra: ing.qtdCompra, custoCompra: ing.custoCompra, fornecedor: ing.fornecedor, data: ing.data }]
+      });
+      changed++;
+    }
+  });
+
+  saveAll();
+  alert('Importação concluída! ' + changed + ' itens processados.\n\nRecarregando...');
+  location.reload();
 }
 
 // ============================================================
