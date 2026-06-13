@@ -2254,120 +2254,107 @@ async function loadFromSupabase() {
       db.from('vitrine_tipos').select('*').order('nome'),
     ]);
 
-    if (prodData?.length) {
-      const comprasPorProduto = {};
-      (comprasData || []).forEach(c => {
-        if (!comprasPorProduto[c.prod_id]) comprasPorProduto[c.prod_id] = [];
-        comprasPorProduto[c.prod_id].push({
-          id: c.id,
-          qtdCompra: Number(c.qtd_compra) || 0,
-          custoCompra: Number(c.custo_compra) || 0,
-          fornecedor: c.fornecedor || '',
-          data: c.data || ''
-        });
+    // Supabase é a fonte da verdade: o estado local sempre reflete a nuvem,
+    // inclusive quando uma tabela volta vazia (ex.: após limpar a base).
+    // Por isso NÃO usamos guardas "if (data?.length)" — senão dados antigos
+    // que ficaram no localStorage ressuscitariam e seriam re-enviados pelo saveAll().
+    const comprasPorProduto = {};
+    (comprasData || []).forEach(c => {
+      if (!comprasPorProduto[c.prod_id]) comprasPorProduto[c.prod_id] = [];
+      comprasPorProduto[c.prod_id].push({
+        id: c.id,
+        qtdCompra: Number(c.qtd_compra) || 0,
+        custoCompra: Number(c.custo_compra) || 0,
+        fornecedor: c.fornecedor || '',
+        data: c.data || ''
       });
-      produtos = prodData.map(p => {
-        const tipo = p.tipo || 'fabricacao';
-        const historicoCompras = comprasPorProduto[p.id] || [];
-        const ultimaCompra = historicoCompras[historicoCompras.length - 1];
-        const qtdComprada = Number(p.qtd_comprada ?? ultimaCompra?.qtdCompra) || 0;
-        const valorCompra = Number(p.valor_compra ?? ultimaCompra?.custoCompra) || 0;
-        return {
-          id: p.id, nome: p.nome, curva: p.curva, validade: p.validade,
-          categoria: p.categoria, vitrine: tipo === 'revenda' ? '' : p.vitrine, custo: Number(p.custo),
-          preco: Number(p.preco), resp: p.resp, unidade: 'ambas', obs: p.obs || '',
-          tipo,
-          qtdComprada,
-          valorCompra,
-          historicoCompras,
-          precoUnidade: p.preco_unidade || 'un',
-          encomenda: Boolean(p.encomenda)
-        };
-      });
-    }
+    });
+    produtos = (prodData || []).map(p => {
+      const tipo = p.tipo || 'fabricacao';
+      const historicoCompras = comprasPorProduto[p.id] || [];
+      const ultimaCompra = historicoCompras[historicoCompras.length - 1];
+      const qtdComprada = Number(p.qtd_comprada ?? ultimaCompra?.qtdCompra) || 0;
+      const valorCompra = Number(p.valor_compra ?? ultimaCompra?.custoCompra) || 0;
+      return {
+        id: p.id, nome: p.nome, curva: p.curva, validade: p.validade,
+        categoria: p.categoria, vitrine: tipo === 'revenda' ? '' : p.vitrine, custo: Number(p.custo),
+        preco: Number(p.preco), resp: p.resp, unidade: 'ambas', obs: p.obs || '',
+        tipo,
+        qtdComprada,
+        valorCompra,
+        historicoCompras,
+        precoUnidade: p.preco_unidade || 'un',
+        encomenda: Boolean(p.encomenda)
+      };
+    });
+    // categorias/vitrineTipos têm defaults próprios — só sobrescreve se a nuvem tiver algo
     if (categoriasData?.length) {
       categorias = categoriasData.map(c => c.nome).filter(Boolean);
     }
     if (vitrineTiposData?.length) {
       vitrineTipos = vitrineTiposData.map(v => ({ id: v.id, nome: v.nome })).filter(v => v.id && v.nome);
     }
-    if (ingData?.length) {
-      ingredientes = ingData.map(i => {
-        return {
-          id: i.id, nome: i.nome, unidade: i.unidade,
-          qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra),
-          fatia: i.fatia ?? null, variacaoUnidade: i.variacao_unidade || null,
-          historico: [{ id: i.id * 1000, qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra), fornecedor: '', data: '' }]
-        };
+    ingredientes = (ingData || []).map(i => {
+      return {
+        id: i.id, nome: i.nome, unidade: i.unidade,
+        qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra),
+        fatia: i.fatia ?? null, variacaoUnidade: i.variacao_unidade || null,
+        historico: [{ id: i.id * 1000, qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra), fornecedor: '', data: '' }]
+      };
+    });
+    receitas = (recData || []).map(r => ({
+      id: r.id, prodId: r.prod_id, rendimento: Number(r.rendimento), unidade: r.unidade,
+      pesoPorUnidade: r.peso_por_unidade ? Number(r.peso_por_unidade) : null,
+      itens: (r.receita_itens || []).map(item => ({ ingId: item.ing_id, qtd: Number(item.qtd) }))
+    }));
+    vitrines = {};
+    (slotData || []).forEach(s => {
+      if (!vitrines[s.unit]) vitrines[s.unit] = {};
+      if (!vitrines[s.unit][s.dia]) vitrines[s.unit][s.dia] = [];
+      vitrines[s.unit][s.dia].push({
+        prodId: s.prod_id, qty: s.qty, producedQty: s.produced_qty,
+        entryAt: s.entry_at, status: s.status, slot: s.slot
       });
-    }
-    if (recData?.length) {
-      receitas = recData.map(r => ({
-        id: r.id, prodId: r.prod_id, rendimento: Number(r.rendimento), unidade: r.unidade,
-        pesoPorUnidade: r.peso_por_unidade ? Number(r.peso_por_unidade) : null,
-        itens: (r.receita_itens || []).map(item => ({ ingId: item.ing_id, qtd: Number(item.qtd) }))
-      }));
-    }
-    if (slotData?.length) {
-      vitrines = {};
-      slotData.forEach(s => {
-        if (!vitrines[s.unit]) vitrines[s.unit] = {};
-        if (!vitrines[s.unit][s.dia]) vitrines[s.unit][s.dia] = [];
-        vitrines[s.unit][s.dia].push({
-          prodId: s.prod_id, qty: s.qty, producedQty: s.produced_qty,
-          entryAt: s.entry_at, status: s.status, slot: s.slot
+    });
+    cronograma = {};
+    (cronoData || []).forEach(c => {
+      if (!cronograma[c.unit]) cronograma[c.unit] = {};
+      if (!cronograma[c.unit][c.dia]) cronograma[c.unit][c.dia] = [];
+      cronograma[c.unit][c.dia].push({
+        hora: (c.hora || '').slice(0, 5), tarefa: c.tarefa,
+        resp: c.resp, prodId: c.prod_id, qty: c.qty
+      });
+    });
+    perdas = (perdasData || []).map(p => ({
+      id: p.id, prodId: p.prod_id, qty: p.qty, tipo: p.tipo,
+      data: p.data, obs: p.obs || '', unit: p.unit, source: p.source || ''
+    }));
+    fechamentos = {};
+    (fechData || []).forEach(f => {
+      if (!fechamentos[f.unit]) fechamentos[f.unit] = {};
+      if (!fechamentos[f.unit][f.dia]) fechamentos[f.unit][f.dia] = [];
+      if (!fechamentos[f.unit][f.dia].find(x => x.slot === f.slot)) {
+        fechamentos[f.unit][f.dia].push({
+          prodId: f.prod_id, slot: f.slot, plannedQty: f.planned_qty,
+          producedQty: f.produced_qty, entryAt: f.entry_at,
+          status: f.status, leftoverQty: f.leftover_qty
         });
+      }
+    });
+    apoioProducao = {};
+    (apoioData || []).forEach(a => {
+      if (!apoioProducao[a.unit]) apoioProducao[a.unit] = {};
+      if (!apoioProducao[a.unit][a.dia]) apoioProducao[a.unit][a.dia] = [];
+      apoioProducao[a.unit][a.dia].push({
+        id: a.id, prodId: a.prod_id, nome: a.nome, qty: a.qty
       });
-    }
-    if (cronoData?.length) {
-      cronograma = {};
-      cronoData.forEach(c => {
-        if (!cronograma[c.unit]) cronograma[c.unit] = {};
-        if (!cronograma[c.unit][c.dia]) cronograma[c.unit][c.dia] = [];
-        cronograma[c.unit][c.dia].push({
-          hora: (c.hora || '').slice(0, 5), tarefa: c.tarefa,
-          resp: c.resp, prodId: c.prod_id, qty: c.qty
-        });
-      });
-    }
-    if (perdasData?.length) {
-      perdas = perdasData.map(p => ({
-        id: p.id, prodId: p.prod_id, qty: p.qty, tipo: p.tipo,
-        data: p.data, obs: p.obs || '', unit: p.unit, source: p.source || ''
-      }));
-    }
-    if (fechData?.length) {
-      fechamentos = {};
-      fechData.forEach(f => {
-        if (!fechamentos[f.unit]) fechamentos[f.unit] = {};
-        if (!fechamentos[f.unit][f.dia]) fechamentos[f.unit][f.dia] = [];
-        if (!fechamentos[f.unit][f.dia].find(x => x.slot === f.slot)) {
-          fechamentos[f.unit][f.dia].push({
-            prodId: f.prod_id, slot: f.slot, plannedQty: f.planned_qty,
-            producedQty: f.produced_qty, entryAt: f.entry_at,
-            status: f.status, leftoverQty: f.leftover_qty
-          });
-        }
-      });
-    }
-    if (apoioData?.length) {
-      apoioProducao = {};
-      apoioData.forEach(a => {
-        if (!apoioProducao[a.unit]) apoioProducao[a.unit] = {};
-        if (!apoioProducao[a.unit][a.dia]) apoioProducao[a.unit][a.dia] = [];
-        apoioProducao[a.unit][a.dia].push({
-          id: a.id, prodId: a.prod_id, nome: a.nome, qty: a.qty
-        });
-      });
-    }
-    if (planoData?.length) {
-      planoSemanal = {};
-      planoData.forEach(r => {
-        if (!planoSemanal[r.unit]) planoSemanal[r.unit] = {};
-        if (!planoSemanal[r.unit][r.prod_id]) planoSemanal[r.unit][r.prod_id] = {};
-        planoSemanal[r.unit][r.prod_id][r.dia] = r.qty;
-      });
-    }
+    });
+    planoSemanal = {};
+    (planoData || []).forEach(r => {
+      if (!planoSemanal[r.unit]) planoSemanal[r.unit] = {};
+      if (!planoSemanal[r.unit][r.prod_id]) planoSemanal[r.unit][r.prod_id] = {};
+      planoSemanal[r.unit][r.prod_id][r.dia] = r.qty;
+    });
     // Sincroniza nextId
     const allIds = [
       ...produtos.map(p => p.id),
