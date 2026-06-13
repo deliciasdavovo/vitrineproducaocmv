@@ -2121,12 +2121,13 @@ async function syncToSupabase() {
     if (ingredientes.length) {
       await runSupabase('salvar insumos', db.from('ingredientes').upsert(ingredientes.map(i => ({
         id: i.id, nome: i.nome, unidade: i.unidade,
-        qtd_compra: i.qtdCompra, custo_compra: i.custoCompra
+        qtd_compra: i.qtdCompra, custo_compra: i.custoCompra,
+        fatia: i.fatia ?? null, variacao_unidade: i.variacaoUnidade ?? null
       }))), syncErrors);
     }
     // Receitas + itens (upsert receita, delete+insert itens)
     for (const r of receitas) {
-      await db.from('receitas').upsert({ id: r.id, prod_id: r.prodId, rendimento: r.rendimento, unidade: r.unidade });
+      await db.from('receitas').upsert({ id: r.id, prod_id: r.prodId, rendimento: r.rendimento, unidade: r.unidade, peso_por_unidade: r.pesoPorUnidade ?? null });
       await db.from('receita_itens').delete().eq('receita_id', r.id);
       if (r.itens?.length) {
         await db.from('receita_itens').insert(r.itens.map(item => ({
@@ -2295,7 +2296,7 @@ async function loadFromSupabase() {
         return {
           id: i.id, nome: i.nome, unidade: i.unidade,
           qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra),
-          fatia: i.fatia ?? null,
+          fatia: i.fatia ?? null, variacaoUnidade: i.variacao_unidade || null,
           historico: [{ id: i.id * 1000, qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra), fornecedor: '', data: '' }]
         };
       });
@@ -2303,6 +2304,7 @@ async function loadFromSupabase() {
     if (recData?.length) {
       receitas = recData.map(r => ({
         id: r.id, prodId: r.prod_id, rendimento: Number(r.rendimento), unidade: r.unidade,
+        pesoPorUnidade: r.peso_por_unidade ? Number(r.peso_por_unidade) : null,
         itens: (r.receita_itens || []).map(item => ({ ingId: item.ing_id, qtd: Number(item.qtd) }))
       }));
     }
