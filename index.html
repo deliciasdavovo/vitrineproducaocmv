@@ -2127,12 +2127,12 @@ async function syncToSupabase() {
     }
     // Receitas + itens (upsert receita, delete+insert itens)
     for (const r of receitas) {
-      await db.from('receitas').upsert({ id: r.id, prod_id: r.prodId, rendimento: r.rendimento, unidade: r.unidade, peso_por_unidade: r.pesoPorUnidade ?? null });
+      await runSupabase('salvar ficha tecnica', db.from('receitas').upsert({ id: r.id, prod_id: r.prodId, rendimento: r.rendimento, unidade: r.unidade, peso_por_unidade: r.pesoPorUnidade ?? null }), syncErrors);
       await db.from('receita_itens').delete().eq('receita_id', r.id);
       if (r.itens?.length) {
-        await db.from('receita_itens').insert(r.itens.map(item => ({
+        await runSupabase('salvar itens da ficha', db.from('receita_itens').insert(r.itens.map(item => ({
           receita_id: r.id, ing_id: item.ingId, qtd: item.qtd
-        })));
+        }))), syncErrors);
       }
     }
     // Perdas (upsert por id inteiro)
@@ -2208,7 +2208,8 @@ async function syncToSupabase() {
       const first = syncErrors[0];
       const now = Date.now();
       if (now - _lastSyncErrorToast > 5000) {
-        showToast(`Não consegui salvar "${first.label}" na nuvem. Os dados ficaram neste aparelho; vou tentar de novo.`, 'error');
+        const detalhe = first.error?.message || first.error?.hint || first.error?.details || first.error?.code || '';
+        showToast(`Não salvei "${first.label}" na nuvem. Motivo: ${detalhe || 'desconhecido'}`, 'error');
         _lastSyncErrorToast = now;
       }
     } else {
