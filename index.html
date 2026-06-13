@@ -827,6 +827,26 @@ tr:hover td { background: var(--surface-soft); }
   background: #EFF6FF;
   box-shadow: inset 0 0 0 2px var(--brown);
 }
+/* Alça de preenchimento estilo Excel (arrastar para copiar para baixo) */
+.fill-handle {
+  position: absolute;
+  width: 9px;
+  height: 9px;
+  background: var(--brown);
+  border: 1.5px solid #fff;
+  border-radius: 2px;
+  box-shadow: 0 0 0 1px rgba(15,23,42,0.25);
+  cursor: crosshair;
+  z-index: 200;
+  display: none;
+  pointer-events: auto;
+}
+.fill-handle.active { display: block; }
+.fill-preview {
+  box-shadow: inset 0 0 0 2px var(--brown) !important;
+  background: #EFF6FF !important;
+}
+body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-select: none !important; }
 .sheet-readonly {
   display: block;
   padding: 9px 10px;
@@ -4930,6 +4950,11 @@ const sheetRowAdders = {
   'receitas-tbody': () => addReceitaRow(),
   'revenda-tbody': () => addRevendaProduto(),
   'insumos-revenda-tbody': () => addRevendaProduto(),
+  'insumos-fabricacao-tbody': () => addFabricacaoProduto(),
+  'categorias-tbody': () => addCategoriaRow(),
+  'vitrines-tbody': () => addVitrineTipoRow(),
+  'cronograma-list': () => addCronoRow(),
+  'perdas-list': () => addPerdaRow(),
 };
 
 function handleSheetKey(e) {
@@ -4983,6 +5008,129 @@ function focusSheetCell(tbodyId, rowIndex, colIndex) {
 }
 
 document.addEventListener('keydown', handleSheetKey);
+
+// ============================================================
+// ALÇA DE PREENCHIMENTO — arrastar para copiar célula para baixo (estilo Excel)
+// ============================================================
+(function setupFillHandle() {
+  const handle = document.createElement('div');
+  handle.className = 'fill-handle';
+  document.body.appendChild(handle);
+
+  let sourceEl = null;     // célula atualmente em foco (origem da alça)
+  let dragging = false;
+  let dragValue = '';
+  let dragCol = -1;
+  let dragTbody = null;
+  let dragRowIndex = -1;
+  let previewCells = [];
+
+  const isCell = (el) => el && el.classList &&
+    (el.classList.contains('sheet-input') || el.classList.contains('sheet-select'));
+  const cellsInRow = (row) => Array.from(row.querySelectorAll('.sheet-input, .sheet-select'));
+
+  function positionHandle(el) {
+    const r = el.getBoundingClientRect();
+    handle.style.left = (r.right + window.scrollX - 5) + 'px';
+    handle.style.top = (r.bottom + window.scrollY - 5) + 'px';
+  }
+
+  function showHandleFor(el) {
+    const tbody = el.closest('tbody');
+    const row = el.closest('tr');
+    if (!tbody || !row) { forceHide(); return; }
+    // precisa existir pelo menos uma linha abaixo ou acima para fazer sentido arrastar
+    sourceEl = el;
+    positionHandle(el);
+    handle.classList.add('active');
+  }
+
+  function forceHide() {
+    sourceEl = null;
+    handle.classList.remove('active');
+  }
+
+  document.addEventListener('focusin', (e) => {
+    if (isCell(e.target)) showHandleFor(e.target);
+    else if (e.target !== handle && !dragging) forceHide();
+  });
+
+  document.addEventListener('focusout', () => {
+    setTimeout(() => {
+      if (dragging) return;
+      if (!isCell(document.activeElement)) forceHide();
+    }, 0);
+  });
+
+  const reposition = () => { if (sourceEl && handle.classList.contains('active')) positionHandle(sourceEl); };
+  window.addEventListener('scroll', reposition, true);
+  window.addEventListener('resize', reposition);
+
+  function clearPreview() {
+    previewCells.forEach(c => c.classList.remove('fill-preview'));
+    previewCells = [];
+  }
+
+  handle.addEventListener('mousedown', (e) => {
+    if (!sourceEl) return;
+    e.preventDefault();
+    e.stopPropagation();
+    const row = sourceEl.closest('tr');
+    const tbody = sourceEl.closest('tbody');
+    if (!row || !tbody) return;
+    dragging = true;
+    dragValue = sourceEl.value;
+    dragTbody = tbody;
+    dragCol = cellsInRow(row).indexOf(sourceEl);
+    dragRowIndex = Array.from(tbody.querySelectorAll('tr')).indexOf(row);
+    document.body.classList.add('fill-dragging');
+    handle.style.pointerEvents = 'none';
+  });
+
+  document.addEventListener('mousemove', (e) => {
+    if (!dragging) return;
+    clearPreview();
+    const overEl = document.elementFromPoint(e.clientX, e.clientY);
+    const overRow = overEl && overEl.closest && overEl.closest('tr');
+    if (!overRow || !dragTbody.contains(overRow)) return;
+    const rows = Array.from(dragTbody.querySelectorAll('tr'));
+    const overIndex = rows.indexOf(overRow);
+    if (overIndex < 0) return;
+    const start = Math.min(dragRowIndex, overIndex);
+    const end = Math.max(dragRowIndex, overIndex);
+    for (let i = start; i <= end; i++) {
+      if (i === dragRowIndex) continue;
+      const target = cellsInRow(rows[i])[dragCol];
+      if (target) { target.classList.add('fill-preview'); previewCells.push(target); }
+    }
+  });
+
+  document.addEventListener('mouseup', () => {
+    if (!dragging) return;
+    dragging = false;
+    document.body.classList.remove('fill-dragging');
+    handle.style.pointerEvents = 'auto';
+    const targets = previewCells.slice();
+    clearPreview();
+    if (targets.length) applyFill(targets, dragValue);
+    forceHide();
+  });
+
+  function applyFill(targets, value) {
+    // 1) escreve o valor em todas as células de destino (antes de qualquer re-render)
+    targets.forEach(t => {
+      t.value = value;
+      if (typeof t.oninput === 'function') { try { t.oninput.call(t); } catch (_) {} }
+    });
+    // 2) confirma cada célula: dispara onchange/onblur, que grava no modelo e re-renderiza.
+    //    Mesmo após o re-render desanexar os elementos, os handlers leem this.value (já copiado).
+    targets.forEach(t => {
+      try { if (typeof t.onchange === 'function') t.onchange.call(t); } catch (_) {}
+      try { if (typeof t.onblur === 'function') t.onblur.call(t); } catch (_) {}
+    });
+    showToast('Copiado para ' + targets.length + (targets.length > 1 ? ' células' : ' célula'), 'success');
+  }
+})();
 
 // ============================================================
 // MODAL HELPERS
