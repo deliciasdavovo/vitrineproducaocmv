@@ -75,30 +75,39 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .header-logo span { color: var(--text-light); font-weight: 500; font-size: 12px; display: block; line-height: 1.2; margin-top: 2px; font-family: var(--font-sans); letter-spacing: 0; }
 .unit-switcher {
   display: flex;
-  gap: 4px;
-  padding: 4px;
-  background: var(--surface-soft);
-  border: 1px solid var(--border);
+  align-items: center;
+  gap: 6px;
+  padding: 5px;
+  background: var(--gold-light, #FDF6E3);
+  border: 1.5px solid var(--gold, #C8A24A);
   border-radius: 999px;
+}
+.unit-switcher-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--brown);
+  padding-left: 8px;
 }
 .unit-btn {
   background: transparent;
   border: 1px solid transparent;
   color: var(--text-mid);
-  padding: 6px 14px;
+  padding: 8px 18px;
   border-radius: 999px;
-  font-size: 12px;
-  font-weight: 600;
+  font-size: 13px;
+  font-weight: 700;
   cursor: pointer;
   transition: all .2s;
   font-family: var(--font-sans);
 }
 .unit-btn.active {
-  background: var(--surface);
-  border-color: var(--border);
-  color: var(--brown);
+  background: var(--gold, #C8A24A);
+  border-color: var(--gold, #C8A24A);
+  color: #fff;
   box-shadow: var(--shadow-soft);
-  font-weight: 600;
 }
 
 /* NAV */
@@ -971,7 +980,8 @@ tr:hover td { background: var(--surface-soft); }
     Delícias da Vovó
     <span>Gestão de Vitrines</span>
   </div>
-  <div class="unit-switcher">
+  <div class="unit-switcher" title="Unidade usada na Vitrine e no Pedido de Produção">
+    <span class="unit-switcher-label">Unidade</span>
     <button class="unit-btn active" onclick="setUnit('matriz')">Matriz</button>
     <button class="unit-btn" onclick="setUnit('vilanova')">Vila Nova</button>
   </div>
@@ -981,7 +991,6 @@ tr:hover td { background: var(--surface-soft); }
 <div class="nav">
   <button class="nav-btn active" onclick="showPage('vitrine')">Vitrines</button>
   <button class="nav-btn" onclick="showPage('cronograma')">Cronograma</button>
-  <button class="nav-btn" onclick="showPage('produtos')">Produtos</button>
   <button class="nav-btn" onclick="showPage('banco')">Banco de Dados</button>
   <button class="nav-btn" onclick="showPage('insumos')">Insumos & Fichas</button>
   <button class="nav-btn" onclick="showPage('cmv')">CMV</button>
@@ -1141,11 +1150,6 @@ tr:hover td { background: var(--surface-soft); }
       <option value="sobremesa">Sobremesa</option>
       <option value="todas">Todas</option>
     </select>
-    <select id="filter-encomenda" class="form-group" style="width:auto;" onchange="renderProdutos()">
-      <option value="">Todos os tipos de venda</option>
-      <option value="false">Balcão</option>
-      <option value="true">Por encomenda</option>
-    </select>
     <input type="text" id="filter-search" placeholder="Buscar produto..." style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);" oninput="renderProdutos()">
   </div>
 
@@ -1215,6 +1219,16 @@ tr:hover td { background: var(--surface-soft); }
   <!-- PAINEL FABRICAÇÃO PRÓPRIA -->
   <div id="insumos-panel-fabricacao">
     <p class="section-sub" style="margin-bottom:12px;">Produtos de fabricação própria: cadastre aqui os produtos que você produz e veja o custo da ficha técnica e o CMV de cada um. Edite como numa planilha.</p>
+    <div class="sheet-toolbar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <input type="text" placeholder="Buscar produto..." oninput="setFabBusca(this.value)" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);">
+      <select class="sheet-select" onchange="setFabOrdem(this.value)" style="width:auto;">
+        <option value="nome">Ordenar: Nome (A-Z)</option>
+        <option value="categoria">Ordenar: Categoria</option>
+        <option value="curva">Ordenar: Curva ABC</option>
+        <option value="preco">Ordenar: Maior preço</option>
+        <option value="cmv">Ordenar: Maior CMV</option>
+      </select>
+    </div>
     <div class="sheet-card">
       <div class="table-wrap">
         <table class="sheet-table">
@@ -1224,7 +1238,6 @@ tr:hover td { background: var(--surface-soft); }
               <th>Categoria</th>
               <th>Curva</th>
               <th>Vitrine</th>
-              <th>Venda</th>
               <th>Preço R$</th>
               <th>Por</th>
               <th>Custo ficha</th>
@@ -1255,7 +1268,7 @@ tr:hover td { background: var(--surface-soft); }
       <input id="quick-insumo-fornecedor" placeholder="Fornecedor" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-data" type="date" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-qtd" type="number" min="0" step="0.001" placeholder="Qtd. compra" onkeydown="handleQuickInsumoKey(event)">
-      <input id="quick-insumo-custo" type="number" min="0" step="0.01" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)">
+      <input id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)">
       <button class="btn btn-primary" onclick="submitQuickInsumo()">Lancar</button>
     </div>
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
@@ -1295,6 +1308,11 @@ tr:hover td { background: var(--surface-soft); }
         <button class="toggle-btn" id="rec-view-grouped" onclick="setReceitaView('grouped')">Por produto</button>
         <button class="toggle-btn" id="rec-view-category" onclick="setReceitaView('category')">Por categoria</button>
       </div>
+      <input type="text" placeholder="Buscar produto..." oninput="setFichaBusca(this.value)" style="flex:1;min-width:160px;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);">
+      <select class="sheet-select" onchange="setFichaOrdem(this.value)" style="width:auto;">
+        <option value="nome">Ordenar: Nome (A-Z)</option>
+        <option value="cmv">Ordenar: Maior CMV</option>
+      </select>
     </div>
     <div id="receitas-container">
       <div class="sheet-card">
@@ -1325,6 +1343,14 @@ tr:hover td { background: var(--surface-soft); }
   <!-- PAINEL REVENDA -->
   <div id="insumos-panel-revenda" style="display:none;">
     <p class="section-sub" style="margin-bottom:12px;">Produtos comprados prontos: registre a compra, o custo unitario e o preco de venda em formato de planilha.</p>
+    <div class="sheet-toolbar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+      <input type="text" placeholder="Buscar produto..." oninput="setRevBusca(this.value)" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);">
+      <select class="sheet-select" onchange="setRevOrdem(this.value)" style="width:auto;">
+        <option value="nome">Ordenar: Nome (A-Z)</option>
+        <option value="preco">Ordenar: Maior preço</option>
+        <option value="cmv">Ordenar: Maior CMV</option>
+      </select>
+    </div>
     <div class="sheet-card">
       <div class="table-wrap">
         <table class="sheet-table">
@@ -1536,7 +1562,7 @@ tr:hover td { background: var(--surface-soft); }
     </div>
     <div class="form-row three">
       <div class="form-group"><label>Curva ABC</label>
-        <select id="p-curva"><option value="A">A — Alta demanda</option><option value="B">B — Média</option><option value="C">C — Baixa</option></select>
+        <select id="p-curva"><option value="A">A — Alta demanda</option><option value="B">B — Média</option><option value="C">C — Baixa</option><option value="">— Sem curva (sob encomenda)</option></select>
       </div>
       <div class="form-group"><label>Validade (dias)</label><input type="number" id="p-validade" min="1" placeholder="ex: 3"></div>
       <div class="form-group"><label>Categoria</label>
@@ -1544,8 +1570,8 @@ tr:hover td { background: var(--surface-soft); }
       </div>
     </div>
     <div class="form-row three">
-      <div class="form-group"><label>Custo unitário (R$)</label><input type="number" id="p-custo" step="0.01" placeholder="0,00"></div>
-      <div class="form-group"><label>Preço de venda (R$)</label><input type="number" id="p-preco" step="0.01" placeholder="0,00"></div>
+      <div class="form-group"><label>Custo unitário (R$)</label><input type="text" inputmode="decimal" id="p-custo" oninput="maskMoney(this)" placeholder="0,00"></div>
+      <div class="form-group"><label>Preço de venda (R$)</label><input type="text" inputmode="decimal" id="p-preco" oninput="maskMoney(this)" placeholder="0,00"></div>
       <div class="form-group"><label>Preço por</label>
         <select id="p-preco-unidade"><option value="un">Unidade</option><option value="kg">Kg</option></select>
       </div>
@@ -1554,16 +1580,10 @@ tr:hover td { background: var(--surface-soft); }
       <div class="form-group" id="p-vitrine-group"><label>Vitrine</label>
         <select id="p-vitrine"></select>
       </div>
-      <div class="form-group"><label>Venda</label>
-        <select id="p-encomenda">
-          <option value="false">Vitrine / balcão</option>
-          <option value="true">Por encomenda</option>
-        </select>
-      </div>
     </div>
     <div class="form-row" id="p-revenda-row" style="display:none;">
       <div class="form-group"><label>Qtd. comprada (última compra)</label><input type="number" id="p-qtd-comprada" min="0" step="1" placeholder="ex: 12"></div>
-      <div class="form-group"><label>Valor da compra (R$)</label><input type="number" id="p-valor-compra" min="0" step="0.01" placeholder="ex: 18,43"></div>
+      <div class="form-group"><label>Valor da compra (R$)</label><input type="text" inputmode="decimal" id="p-valor-compra" oninput="maskMoney(this)" placeholder="ex: 18,43"></div>
     </div>
     <div class="form-row">
       <div class="form-group" id="p-resp-group"><label>Responsável produção</label>
@@ -1593,7 +1613,7 @@ tr:hover td { background: var(--surface-soft); }
     </div>
     <div class="form-row">
       <div class="form-group"><label>Quantidade comprada</label><input type="number" id="revhist-qtd" min="0.001" step="0.001" placeholder="ex: 12"></div>
-      <div class="form-group"><label>Custo total (R$)</label><input type="number" id="revhist-custo" min="0" step="0.01" placeholder="ex: 18,90"></div>
+      <div class="form-group"><label>Custo total (R$)</label><input type="text" inputmode="decimal" id="revhist-custo" oninput="maskMoney(this)" placeholder="ex: 18,90"></div>
     </div>
     <input type="hidden" id="revhist-prod-id">
     <div class="modal-actions">
@@ -1621,8 +1641,12 @@ tr:hover td { background: var(--surface-soft); }
           <option value="">— Nenhuma —</option>
           <option value="g">g</option>
           <option value="ml">ml</option>
-          <option value="fatia">fatia</option>
           <option value="un">un</option>
+          <option value="fatia">fatia</option>
+          <option value="lata">lata</option>
+          <option value="colher">colher</option>
+          <option value="pote">pote</option>
+          <option value="caixa">caixa</option>
         </select>
       </div>
     </div>
@@ -1639,7 +1663,7 @@ tr:hover td { background: var(--surface-soft); }
     </div>
     <div class="form-row">
       <div class="form-group"><label>Quantidade comprada</label><input type="number" id="ing-qtd" min="0.001" step="0.001" placeholder="ex: 5000"></div>
-      <div class="form-group"><label>Custo da compra (R$)</label><input type="number" id="ing-custo" min="0" step="0.01" placeholder="ex: 18,90"></div>
+      <div class="form-group"><label>Custo da compra (R$)</label><input type="text" inputmode="decimal" id="ing-custo" oninput="maskMoney(this)" placeholder="ex: 18,90"></div>
     </div>
     <input type="hidden" id="ing-id">
     <div class="modal-actions">
@@ -2592,7 +2616,7 @@ function renderApoioProducao() {
   const tbody = document.getElementById('apoio-tbody');
   const datalist = document.getElementById('apoio-produtos-list');
   datalist.innerHTML = produtos
-    .filter(prod => (prod.tipo || 'fabricacao') === 'fabricacao')
+    .filter(isProdutoVitrine)
     .map(prod => `<option value="${prod.nome}"></option>`)
     .join('');
 
@@ -2629,11 +2653,11 @@ function addApoioRow() {
   if (!nome) { produtoInput.focus(); return; }
 
   const prod = produtos.find(p =>
-    (p.tipo || 'fabricacao') === 'fabricacao' &&
+    isProdutoVitrine(p) &&
     p.nome.toLowerCase() === nome.toLowerCase()
   );
   if (!prod) {
-    showToast('Produto nao encontrado no cadastro', 'error');
+    showToast('Produto nao encontrado no cadastro (ou está sem curva ABC)', 'error');
     produtoInput.focus();
     return;
   }
@@ -2743,7 +2767,7 @@ function renderSlotProdutoOptions(keepProdId = null) {
   const selectedSlot = parseInt(document.getElementById('slot-pos').value);
   const meta = getSlotMeta(selectedSlot);
   const filtered = produtos.filter(p =>
-    (p.tipo || 'fabricacao') === 'fabricacao' &&
+    (isProdutoVitrine(p) || p.id === keepProdId) &&
     (!meta || productFitsSection(p, meta.sectionId) || p.id === keepProdId)
   );
   sel.innerHTML = filtered.map(p => `<option value="${p.id}">${p.nome} (${getVitrineLabel(inferProductVitrine(p))})</option>`).join('');
@@ -3197,7 +3221,6 @@ function setProdutosTipo(tipo) {
 function renderProdutos() {
   const search = document.getElementById('filter-search').value.toLowerCase();
   const curvaFilter = document.getElementById('filter-curva').value;
-  const encomendaFilter = document.getElementById('filter-encomenda').value;
   const isRevenda = currentProdutosTipo === 'revenda';
   const filterVitrineEl = document.getElementById('filter-vitrine');
   filterVitrineEl.style.display = isRevenda ? 'none' : '';
@@ -3207,19 +3230,17 @@ function renderProdutos() {
   const filtered = produtos.filter(p =>
     (p.tipo || 'fabricacao') === currentProdutosTipo &&
     (!curvaFilter || p.curva === curvaFilter) &&
-    (!encomendaFilter || String(Boolean(p.encomenda)) === encomendaFilter) &&
     (!vitrineFilter || inferProductVitrine(p) === vitrineFilter) &&
     (!search || p.nome.toLowerCase().includes(search))
   );
 
   const respOptions = ['Alexandre','Tiago','Anderson','Lucas','Outro'].map(r => `<option value="${r}">${r}</option>`).join('');
-  const curvaOptions = `<option value="A">A</option><option value="B">B</option><option value="C">C</option>`;
+  const curvaOptions = `<option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="">—</option>`;
   const precoUnidadeOptions = selected => `<option value="un" ${selected === 'un' ? 'selected' : ''}>Unidade</option><option value="kg" ${selected === 'kg' ? 'selected' : ''}>Kg</option>`;
-  const encomendaOptions = selected => `<option value="false" ${!selected ? 'selected' : ''}>Balcão</option><option value="true" ${selected ? 'selected' : ''}>Por encomenda</option>`;
 
   document.getElementById('produtos-thead').innerHTML = isRevenda
-    ? `<tr><th>Nome</th><th>Categoria</th><th>Curva</th><th>Venda</th><th>Validade</th><th>Qtd.Comprada</th><th>Valor Compra R$</th><th>Preço R$</th><th>Por</th><th>Hist.</th><th></th></tr>`
-    : `<tr><th>Nome</th><th>Categoria</th><th>Curva</th><th>Venda</th><th>Vitrine</th><th>Validade</th><th>Responsável</th><th>Preço R$</th><th>Por</th><th>Obs</th><th></th></tr>`;
+    ? `<tr><th>Nome</th><th>Categoria</th><th>Curva</th><th>Validade</th><th>Qtd.Comprada</th><th>Valor Compra R$</th><th>Preço R$</th><th>Por</th><th>Hist.</th><th></th></tr>`
+    : `<tr><th>Nome</th><th>Categoria</th><th>Curva</th><th>Vitrine</th><th>Validade</th><th>Responsável</th><th>Preço R$</th><th>Por</th><th>Obs</th><th></th></tr>`;
 
   const tbody = document.getElementById('produtos-tbody');
   tbody.innerHTML = filtered.map(p => {
@@ -3229,11 +3250,10 @@ function renderProdutos() {
         <td><input class="sheet-input" value="${escHtml(p.nome||'')}" onblur="updateProdutoCell(${p.id},'nome',this.value)" placeholder="Nome do produto" style="min-width:140px;"></td>
         <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'categoria',this.value)">${getCategoriaOptions(p.categoria)}</select></td>
         <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'curva',this.value)">${curvaOptions.replace(`value="${p.curva}"`,`value="${p.curva}" selected`)}</select></td>
-        <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'encomenda',this.value)">${encomendaOptions(Boolean(p.encomenda))}</select></td>
         <td><input class="sheet-input" type="number" min="1" value="${p.validade||1}" onblur="updateProdutoCell(${p.id},'validade',this.value)" style="min-width:60px;text-align:center;"></td>
         <td><input class="sheet-input" type="number" min="0" step="1" value="${p.qtdComprada||''}" onblur="updateProdutoCell(${p.id},'qtdComprada',this.value)" placeholder="ex: 12" style="min-width:70px;"></td>
-        <td><input class="sheet-input" type="number" min="0" step="0.01" value="${p.valorCompra||''}" onblur="updateProdutoCell(${p.id},'valorCompra',this.value)" placeholder="0,00" style="min-width:80px;"></td>
-        <td><input class="sheet-input" type="number" min="0" step="0.01" value="${p.preco||''}" onblur="updateProdutoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
+        <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(p.valorCompra)}" oninput="maskMoney(this)" onblur="updateProdutoCell(${p.id},'valorCompra',this.value)" placeholder="0,00" style="min-width:80px;"></td>
+        <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(p.preco)}" oninput="maskMoney(this)" onblur="updateProdutoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
         <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'precoUnidade',this.value)">${precoUnidadeOptions(getPrecoUnidadeLabel(p))}</select></td>
         <td><button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Historico de compras">Carrinho ${(p.historicoCompras || []).length || ''}</button></td>
         <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
@@ -3243,11 +3263,10 @@ function renderProdutos() {
       <td><input class="sheet-input" value="${escHtml(p.nome||'')}" onblur="updateProdutoCell(${p.id},'nome',this.value)" placeholder="Nome do produto" style="min-width:140px;"></td>
       <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'categoria',this.value)">${getCategoriaOptions(p.categoria)}</select></td>
       <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'curva',this.value)">${curvaOptions.replace(`value="${p.curva}"`,`value="${p.curva}" selected`)}</select></td>
-      <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'encomenda',this.value)">${encomendaOptions(Boolean(p.encomenda))}</select></td>
       <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'vitrine',this.value)">${getVitrineOptions(pv)}</select></td>
       <td><input class="sheet-input" type="number" min="1" value="${p.validade||1}" onblur="updateProdutoCell(${p.id},'validade',this.value)" style="min-width:60px;text-align:center;"></td>
       <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'resp',this.value)">${respOptions.replace(`value="${p.resp||'Alexandre'}"`,`value="${p.resp||'Alexandre'}" selected`)}</select></td>
-      <td><input class="sheet-input" type="number" min="0" step="0.01" value="${p.preco||''}" onblur="updateProdutoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
+      <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(p.preco)}" oninput="maskMoney(this)" onblur="updateProdutoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
       <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'precoUnidade',this.value)">${precoUnidadeOptions(getPrecoUnidadeLabel(p))}</select></td>
       <td><input class="sheet-input" value="${escHtml(p.obs||'')}" onblur="updateProdutoCell(${p.id},'obs',this.value)" placeholder="Obs..." style="min-width:100px;"></td>
       <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
@@ -3290,8 +3309,10 @@ function addProdutoRow() {
 function updateProdutoCell(id, field, value) {
   const p = produtos.find(pr => pr.id === id);
   if (!p) return;
-  const numFields = ['validade','custo','preco','qtdComprada','valorCompra'];
-  p[field] = field === 'encomenda' ? value === 'true' : (numFields.includes(field) ? parseFloat(value) || 0 : value);
+  const moneyFields = ['custo','preco','valorCompra'];
+  const numFields = ['validade','qtdComprada'];
+  p[field] = moneyFields.includes(field) ? parseMoney(value)
+    : (numFields.includes(field) ? parseFloat(value) || 0 : value);
   if (field === 'tipo' && p.tipo === 'revenda') p.vitrine = '';
   if (p.tipo === 'revenda' && p.qtdComprada > 0 && p.valorCompra > 0) {
     p.custo = p.valorCompra / p.qtdComprada;
@@ -3308,18 +3329,17 @@ function openProdModal(prod) {
   document.getElementById('p-validade').value = prod ? prod.validade : '';
   document.getElementById('p-categoria').innerHTML = getCategoriaOptions(prod ? prod.categoria : (categorias[0] || 'Bolo'));
   document.getElementById('p-categoria').value = prod ? prod.categoria : (categorias[0] || 'Bolo');
-  document.getElementById('p-custo').value = prod ? prod.custo : '';
-  document.getElementById('p-preco').value = prod ? prod.preco : '';
+  document.getElementById('p-custo').value = prod ? moneyInputVal(prod.custo) : '';
+  document.getElementById('p-preco').value = prod ? moneyInputVal(prod.preco) : '';
   document.getElementById('p-preco-unidade').value = prod ? getPrecoUnidadeLabel(prod) : 'un';
   const vitrineDefault = vitrineTipos[0]?.id || 'salgada';
   document.getElementById('p-vitrine').innerHTML = getVitrineOptions(prod ? inferProductVitrine(prod) : vitrineDefault);
   document.getElementById('p-vitrine').value = prod ? inferProductVitrine(prod) : vitrineDefault;
   document.getElementById('p-resp').value = prod && prod.resp ? prod.resp : 'Alexandre';
   document.getElementById('p-obs').value = prod ? prod.obs : '';
-  document.getElementById('p-encomenda').value = prod?.encomenda ? 'true' : 'false';
   document.getElementById('p-tipo').value = prod ? (prod.tipo || 'fabricacao') : 'fabricacao';
   document.getElementById('p-qtd-comprada').value = prod?.qtdComprada || '';
-  document.getElementById('p-valor-compra').value = prod?.valorCompra || '';
+  document.getElementById('p-valor-compra').value = prod ? moneyInputVal(prod.valorCompra) : '';
   document.getElementById('modal-produto-title').textContent = prod ? 'Editar Produto' : 'Novo Produto';
   toggleProdutoTipoFields();
   openModal('modal-produto');
@@ -3367,16 +3387,15 @@ function saveProduto() {
     validade: parseInt(document.getElementById('p-validade').value) || 1,
     categoria: document.getElementById('p-categoria').value,
     vitrine: document.getElementById('p-vitrine').value,
-    custo: parseFloat(document.getElementById('p-custo').value) || 0,
-    preco: parseFloat(document.getElementById('p-preco').value) || 0,
+    custo: parseMoney(document.getElementById('p-custo').value),
+    preco: parseMoney(document.getElementById('p-preco').value),
     precoUnidade: document.getElementById('p-preco-unidade').value,
-    encomenda: document.getElementById('p-encomenda').value === 'true',
     resp: document.getElementById('p-resp').value,
     unidade: 'ambas',
     obs: document.getElementById('p-obs').value,
     tipo: document.getElementById('p-tipo').value,
     qtdComprada: parseFloat(document.getElementById('p-qtd-comprada').value) || 0,
-    valorCompra: parseFloat(document.getElementById('p-valor-compra').value) || 0,
+    valorCompra: parseMoney(document.getElementById('p-valor-compra').value),
   };
 
   // Revenda não tem responsável de produção; custo unitário sai da compra
@@ -3412,6 +3431,29 @@ function saveProduto() {
 // ============================================================
 function money(v) {
   return `R$ ${(Number(v) || 0).toFixed(2)}`;
+}
+
+// ---- Entrada de valores em dinheiro com vírgula automática ----
+// Mostra o número já formatado em pt-BR (ex.: 1843 digitado -> "18,43").
+function moneyInputVal(v) {
+  const n = Number(v) || 0;
+  if (!n) return '';
+  return n.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+// Converte o texto digitado ("18,43" ou "1.234,56") de volta para número.
+function parseMoney(str) {
+  const digits = String(str == null ? '' : str).replace(/\D/g, '');
+  return digits ? parseInt(digits, 10) / 100 : 0;
+}
+// Aplica a máscara enquanto o usuário digita: cada dígito vira centavo.
+function maskMoney(el) {
+  const num = parseMoney(el.value);
+  el.value = num ? num.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : '';
+}
+// Produto que pode aparecer na vitrine: fabricação própria E com curva ABC
+// definida (produtos sob encomenda usam curva "—" e ficam de fora da vitrine).
+function isProdutoVitrine(p) {
+  return (p.tipo || 'fabricacao') === 'fabricacao' && !!p.curva;
 }
 
 function getUltimaCompra(ing) {
@@ -3540,6 +3582,18 @@ let currentCmvTab = 'producao';
 let currentInsumosTab = 'fabricacao';
 let currentReceitaView = 'flat';
 
+// Busca e ordenação das planilhas de Insumos & Fichas
+let fabBusca = '', fabOrdem = 'nome';
+let revBusca = '', revOrdem = 'nome';
+let fichaBusca = '', fichaOrdem = 'nome';
+
+function setFabBusca(v) { fabBusca = (v || '').toLowerCase(); renderFabricacaoSheet(); }
+function setFabOrdem(v) { fabOrdem = v; renderFabricacaoSheet(); }
+function setRevBusca(v) { revBusca = (v || '').toLowerCase(); renderRevendaCMV(); }
+function setRevOrdem(v) { revOrdem = v; renderRevendaCMV(); }
+function setFichaBusca(v) { fichaBusca = (v || '').toLowerCase(); renderReceitaSheet(); }
+function setFichaOrdem(v) { fichaOrdem = v; renderReceitaSheet(); }
+
 function setCmvTab(tab) {
   currentCmvTab = tab;
   const panels = {
@@ -3577,10 +3631,24 @@ function renderInsumos() {
 function renderFabricacaoSheet() {
   const tbody = document.getElementById('insumos-fabricacao-tbody');
   if (!tbody) return;
-  const fabricacao = produtos.filter(p => (p.tipo || 'fabricacao') === 'fabricacao');
-  const curvaOptions = `<option value="A">A</option><option value="B">B</option><option value="C">C</option>`;
+  const fabCmv = p => {
+    const temFicha = getReceitasByProduto(p.id).length > 0;
+    const custo = temFicha ? getProdutoCustoNaUnidadePreco(p) : (Number(p.custo) || 0);
+    const preco = Number(p.preco) || 0;
+    return preco > 0 && custo > 0 ? (custo / preco) * 100 : 0;
+  };
+  const fabricacao = produtos
+    .filter(p => (p.tipo || 'fabricacao') === 'fabricacao')
+    .filter(p => !fabBusca || (p.nome || '').toLowerCase().includes(fabBusca))
+    .sort((a, b) => {
+      if (fabOrdem === 'categoria') return (a.categoria || '').localeCompare(b.categoria || '') || (a.nome || '').localeCompare(b.nome || '');
+      if (fabOrdem === 'curva') return (a.curva || '~').localeCompare(b.curva || '~') || (a.nome || '').localeCompare(b.nome || '');
+      if (fabOrdem === 'preco') return (Number(b.preco) || 0) - (Number(a.preco) || 0);
+      if (fabOrdem === 'cmv') return fabCmv(b) - fabCmv(a);
+      return (a.nome || '').localeCompare(b.nome || '');
+    });
+  const curvaOptions = `<option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="">—</option>`;
   const precoUnidadeOptions = selected => `<option value="un" ${selected === 'un' ? 'selected' : ''}>Unidade</option><option value="kg" ${selected === 'kg' ? 'selected' : ''}>Kg</option>`;
-  const encomendaOptions = selected => `<option value="false" ${!selected ? 'selected' : ''}>Balcão</option><option value="true" ${selected ? 'selected' : ''}>Por encomenda</option>`;
   tbody.innerHTML = fabricacao.map(p => {
     const pv = inferProductVitrine(p);
     const temFicha = getReceitasByProduto(p.id).length > 0;
@@ -3595,15 +3663,14 @@ function renderFabricacaoSheet() {
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'categoria',this.value)">${getCategoriaOptions(p.categoria)}</select></td>
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'curva',this.value)">${curvaOptions.replace(`value="${p.curva}"`,`value="${p.curva}" selected`)}</select></td>
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'vitrine',this.value)">${getVitrineOptions(pv)}</select></td>
-      <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'encomenda',this.value)">${encomendaOptions(Boolean(p.encomenda))}</select></td>
-      <td><input class="sheet-input" type="number" min="0" step="0.01" value="${preco || ''}" onblur="updateFabricacaoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
+      <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateFabricacaoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'precoUnidade',this.value)">${precoUnidadeOptions(getPrecoUnidadeLabel(p))}</select></td>
       <td><span class="sheet-readonly">${custoNaUnidade > 0 ? money(custoNaUnidade) + custoLabel : (temFicha ? '—' : '<span style="color:var(--text-light);">sem ficha</span>')}</span></td>
       <td><span class="sheet-readonly">${calculavel ? `<span class="badge ${statusClass}">${cmv.toFixed(1)}%</span>` : '—'}</span></td>
       <td><button class="btn btn-ghost btn-sm" onclick="setInsumosTab('receitas')" title="Ver fichas técnicas">${temFicha ? 'Ver ficha' : '+ Ficha'}</button></td>
       <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
     </tr>`;
-  }).join('') || `<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado — clique em "+ Novo produto de fabricação"</td></tr>`;
+  }).join('') || `<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado — clique em "+ Novo produto de fabricação"</td></tr>`;
 }
 
 function updateFabricacaoCell(id, field, value) {
@@ -3671,9 +3738,9 @@ function renderProducaoCMV() {
       ? `${money(custoNaUnidade)}/kg`
       : `${money(custoTotal / rendimento)}/un`;
     return `<tr>
-      <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">${p.encomenda ? 'Por encomenda' : 'Balcão'}</span></td>
+      <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span></td>
       <td><span class="sheet-readonly" style="font-size:12px;">${p.categoria || '—'}</span></td>
-      <td><input class="sheet-input" type="number" min="0" step="0.01" value="${preco || ''}" onblur="updateProducaoPreco(${p.id}, this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
+      <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateProducaoPreco(${p.id}, this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
       <td><span class="sheet-readonly">${temFicha ? money(custoTotal) : '<span style="color:var(--text-light);">sem ficha</span>'}</span></td>
       <td><span class="sheet-readonly">${temFicha ? rendimento : '—'}</span></td>
       <td><span class="sheet-readonly">${custoNaUnidade > 0 ? custoUnDisplay : '—'}</span></td>
@@ -3687,7 +3754,7 @@ function renderProducaoCMV() {
 function updateProducaoPreco(prodId, value) {
   const p = produtos.find(pr => pr.id === prodId);
   if (!p) return;
-  p.preco = parseFloat(value) || 0;
+  p.preco = parseMoney(value);
   saveAll();
   renderCMV();
   renderProdutos();
@@ -3699,7 +3766,19 @@ function renderRevendaCMV() {
     .filter(Boolean);
   if (!tbodies.length) return;
   const tbody = { set innerHTML(html) { tbodies.forEach(el => { el.innerHTML = html; }); } };
-  const revenda = produtos.filter(p => (p.tipo || 'fabricacao') === 'revenda');
+  const revCmv = p => {
+    const custo = getRevendaCusto(p);
+    const preco = Number(p.preco) || 0;
+    return preco > 0 && custo > 0 ? (custo / preco) * 100 : 0;
+  };
+  const revenda = produtos
+    .filter(p => (p.tipo || 'fabricacao') === 'revenda')
+    .filter(p => !revBusca || (p.nome || '').toLowerCase().includes(revBusca))
+    .sort((a, b) => {
+      if (revOrdem === 'preco') return (Number(b.preco) || 0) - (Number(a.preco) || 0);
+      if (revOrdem === 'cmv') return revCmv(b) - revCmv(a);
+      return (a.nome || '').localeCompare(b.nome || '');
+    });
   if (!revenda.length) {
     tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
     return;
@@ -3717,13 +3796,12 @@ function renderRevendaCMV() {
     return `<tr>
       <td>
         <span class="sheet-readonly" style="font-weight:600;">${p.nome}</span>
-        <span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">${p.encomenda ? 'Por encomenda' : 'Balcão'}</span>
         <button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Historico de compras" style="margin-top:4px;">Carrinho ${(p.historicoCompras || []).length || ''}</button>
       </td>
       <td><input class="sheet-input" type="number" min="0" step="1" value="${qtd || ''}" onblur="updateRevendaCampo(${p.id}, 'qtdComprada', this.value)" placeholder="ex: 12"></td>
-      <td><input class="sheet-input" type="number" min="0" step="0.01" value="${valor || ''}" onblur="updateRevendaCampo(${p.id}, 'valorCompra', this.value)" placeholder="ex: 18,43"></td>
+      <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(valor)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'valorCompra', this.value)" placeholder="ex: 18,43"></td>
       <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${custo > 0 ? money(custo) + '/' + getPrecoUnidadeLabel(p) : '—'}</span></td>
-      <td><input class="sheet-input" type="number" min="0" step="0.01" value="${preco || ''}" onblur="updateRevendaCampo(${p.id}, 'preco', this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
+      <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'preco', this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
       <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? money(margem) : '—'}</span></td>
       <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? margemPct.toFixed(1) + '%' : '—'}</span></td>
       <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? '<span class="badge ' + statusClass + '">' + cmv.toFixed(1) + '%</span>' : '—'}</span></td>
@@ -3736,7 +3814,7 @@ function renderRevendaCMV() {
 function updateRevendaCampo(prodId, campo, value) {
   const p = produtos.find(pr => pr.id === prodId);
   if (!p) return;
-  p[campo] = parseFloat(value) || 0;
+  p[campo] = campo === 'qtdComprada' ? (parseFloat(value) || 0) : parseMoney(value);
   // Mantém o custo unitário sincronizado com a última compra
   if (p.qtdComprada > 0 && p.valorCompra > 0) {
     p.custo = p.valorCompra / p.qtdComprada;
@@ -3803,7 +3881,7 @@ function saveRevendaHistoricoCompra() {
   const prod = produtos.find(p => p.id === prodId);
   if (!prod) return;
   const qtdCompra = parseFloat(document.getElementById('revhist-qtd').value) || 0;
-  const custoCompra = parseFloat(document.getElementById('revhist-custo').value) || 0;
+  const custoCompra = parseMoney(document.getElementById('revhist-custo').value);
   const fornecedor = document.getElementById('revhist-fornecedor').value.trim();
   const dataCompra = document.getElementById('revhist-data').value;
   if (!qtdCompra || !custoCompra) return showToast('Preencha quantidade e custo', 'error');
@@ -3909,7 +3987,7 @@ function renderIngredientes() {
         derivados += `<br><span style="font-size:11px;color:var(--brown);font-weight:700;">${money(custoUnit / ing.fatia)}/${ing.variacaoUnidade}</span>`;
       }
     }
-    const varOpts = ['g','ml','fatia','un'].filter(u => u !== ing.unidade)
+    const varOpts = ['g','ml','un','fatia','lata','colher','pote','caixa'].filter(u => u !== ing.unidade)
       .map(u => `<option value="${u}" ${ing.variacaoUnidade === u ? 'selected' : ''}>${u}</option>`).join('');
     const varLabel = ing.variacaoUnidade && ing.fatia
       ? `<div style="font-size:10px;color:var(--brown);font-weight:700;margin-top:3px;">${ing.unidade === 'un' ? `1 un = ${ing.fatia} ${ing.variacaoUnidade}` : `1 ${ing.variacaoUnidade} = ${ing.fatia} ${ing.unidade}`}</div>`
@@ -3936,7 +4014,7 @@ function renderIngredientes() {
       <td><input class="sheet-input" value="${escHtml(uc.fornecedor||'')}" onblur="updateIngredienteCompra(${ing.id},'fornecedor',this.value)" placeholder="Fornecedor" style="min-width:110px;"></td>
       <td><input class="sheet-input" type="date" value="${uc.data||''}" onchange="updateIngredienteCompra(${ing.id},'data',this.value)" style="min-width:120px;"></td>
       <td><input class="sheet-input" type="number" min="0" step="0.001" value="${uc.qtdCompra||''}" onblur="updateIngredienteCompra(${ing.id},'qtdCompra',this.value)" placeholder="ex: 5000" style="min-width:80px;"></td>
-      <td><input class="sheet-input" type="number" min="0" step="0.01" value="${uc.custoCompra||''}" onblur="updateIngredienteCompra(${ing.id},'custoCompra',this.value)" placeholder="0,00" style="min-width:80px;"></td>
+      <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(uc.custoCompra)}" oninput="maskMoney(this)" onblur="updateIngredienteCompra(${ing.id},'custoCompra',this.value)" placeholder="0,00" style="min-width:80px;"></td>
       <td style="min-width:110px;">${derivados}</td>
       <td style="min-width:160px;">${variacaoCell}</td>
       <td style="white-space:nowrap;">
@@ -3987,6 +4065,26 @@ function renderReceitaRow(receita) {
   </tr>`;
 }
 
+// Filtro/ordenação das fichas técnicas pela busca/ordem do usuário
+function fichaMatch(r) {
+  if (!fichaBusca) return true;
+  const prod = produtos.find(p => p.id === r.prodId);
+  return (prod?.nome || '').toLowerCase().includes(fichaBusca);
+}
+function fichaProdCmv(prodId) {
+  const prod = produtos.find(p => p.id == prodId);
+  if (!prod || !prod.preco) return 0;
+  return (getProdutoCustoNaUnidadePreco(prod) / prod.preco) * 100;
+}
+function fichaSortProdIds(prodIds) {
+  return prodIds.sort((a, b) => {
+    if (fichaOrdem === 'cmv') return fichaProdCmv(b) - fichaProdCmv(a);
+    const na = produtos.find(p => p.id == a)?.nome || '';
+    const nb = produtos.find(p => p.id == b)?.nome || '';
+    return na.localeCompare(nb);
+  });
+}
+
 function renderReceitaSheet() {
   if (currentReceitaView === 'flat') {
     renderReceitaFlat();
@@ -4008,10 +4106,17 @@ function renderReceitaFlat() {
             <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th>
             <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo</th><th>CMV</th><th></th>
           </tr></thead>
-          <tbody id="receitas-tbody">${receitas.length
-            ? receitas.map(renderReceitaRow).join('')
-            : '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma receita cadastrada</td></tr>'
-          }</tbody>
+          <tbody id="receitas-tbody">${(() => {
+            const linhas = receitas.filter(fichaMatch).slice().sort((a, b) => {
+              if (fichaOrdem === 'cmv') return fichaProdCmv(b.prodId) - fichaProdCmv(a.prodId);
+              const na = produtos.find(p => p.id === a.prodId)?.nome || '';
+              const nb = produtos.find(p => p.id === b.prodId)?.nome || '';
+              return na.localeCompare(nb);
+            });
+            return linhas.length
+              ? linhas.map(renderReceitaRow).join('')
+              : '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma ficha encontrada</td></tr>';
+          })()}</tbody>
         </table>
       </div>
       <div class="sheet-actions">
@@ -4028,12 +4133,17 @@ function renderReceitaGrouped() {
     return;
   }
   const byProd = {};
-  receitas.forEach(r => {
+  receitas.filter(fichaMatch).forEach(r => {
     const key = r.prodId;
     if (!byProd[key]) byProd[key] = [];
     byProd[key].push(r);
   });
-  container.innerHTML = Object.entries(byProd).map(([prodId, linhas]) => {
+  if (!Object.keys(byProd).length) {
+    container.innerHTML = `<div class="card"><p style="color:var(--text-light);text-align:center;padding:20px;">Nenhuma ficha encontrada</p></div>`;
+    return;
+  }
+  container.innerHTML = fichaSortProdIds(Object.keys(byProd)).map(prodId => {
+    const linhas = byProd[prodId];
     const prod = produtos.find(p => p.id == prodId);
     const custoNaUnidade = prod ? getProdutoCustoNaUnidadePreco(prod) : 0;
     const cmv = prod?.preco ? (custoNaUnidade / prod.preco) * 100 : 0;
@@ -4077,13 +4187,17 @@ function renderReceitaByCategory() {
     return;
   }
   const byCategoria = {};
-  receitas.forEach(r => {
+  receitas.filter(fichaMatch).forEach(r => {
     const prod = produtos.find(p => p.id === r.prodId);
     const cat = prod?.categoria || 'Outros';
     if (!byCategoria[cat]) byCategoria[cat] = {};
     if (!byCategoria[cat][r.prodId]) byCategoria[cat][r.prodId] = [];
     byCategoria[cat][r.prodId].push(r);
   });
+  if (!Object.keys(byCategoria).length) {
+    container.innerHTML = `<div class="card"><p style="color:var(--text-light);text-align:center;padding:20px;">Nenhuma ficha encontrada</p></div>`;
+    return;
+  }
   container.innerHTML = Object.entries(byCategoria).sort(([a],[b]) => a.localeCompare(b)).map(([cat, prods]) => {
     const prodBlocks = Object.entries(prods).map(([prodId, linhas]) => {
       const prod = produtos.find(p => p.id == prodId);
@@ -4150,7 +4264,8 @@ function updateIngredienteCompra(id, field, value) {
   if (!ing.historico) ing.historico = [];
   if (!ing.historico.length) ing.historico.push({ id: ++nextId, qtdCompra: 0, custoCompra: 0, fornecedor: '', data: '' });
   const last = ing.historico[ing.historico.length - 1];
-  last[field] = ['qtdCompra','custoCompra'].includes(field) ? parseFloat(value) || 0 : value;
+  last[field] = field === 'custoCompra' ? parseMoney(value)
+    : (field === 'qtdCompra' ? (parseFloat(value) || 0) : value);
   saveAll();
   refreshProductCostsFromRecipes();
   renderCMV();
@@ -4214,7 +4329,7 @@ function submitQuickInsumo() {
     fornecedor: fornecedorEl?.value || '',
     data: dataEl?.value || '',
     qtdCompra: parseFloat(qtdEl?.value) || 0,
-    custoCompra: parseFloat(custoEl?.value) || 0
+    custoCompra: parseMoney(custoEl?.value)
   };
   if (!ing.historico) ing.historico = [];
   if (compra.qtdCompra > 0 || compra.custoCompra > 0 || compra.fornecedor || compra.data) {
@@ -4343,7 +4458,7 @@ function openIngredienteModal(ing = null) {
   updateIngModalVarLabel();
   const uc = ing ? getUltimaCompra(ing) : {};
   document.getElementById('ing-qtd').value = uc.qtdCompra || '';
-  document.getElementById('ing-custo').value = uc.custoCompra || '';
+  document.getElementById('ing-custo').value = moneyInputVal(uc.custoCompra);
   document.getElementById('ing-fornecedor').value = uc.fornecedor || '';
   document.getElementById('ing-data').value = uc.data || '';
   document.getElementById('modal-ingrediente-title').textContent = ing ? 'Editar Ingrediente' : 'Novo Ingrediente';
@@ -4354,7 +4469,7 @@ function saveIngrediente() {
   const id = document.getElementById('ing-id').value;
   const nome = document.getElementById('ing-nome').value.trim();
   const qtdCompra = parseFloat(document.getElementById('ing-qtd').value) || 0;
-  const custoCompra = parseFloat(document.getElementById('ing-custo').value) || 0;
+  const custoCompra = parseMoney(document.getElementById('ing-custo').value);
   const fornecedor = document.getElementById('ing-fornecedor').value.trim();
   const dataCompra = document.getElementById('ing-data').value;
   const fatia = parseFloat(document.getElementById('ing-fatia').value) || null;
@@ -4772,8 +4887,8 @@ function renderPedido() {
 
     html += `<div class="pedido-item">
       <div>
-        <div class="prod-name">${prod.nome} <span class="badge badge-${prod.curva.toLowerCase()}">${prod.curva}</span></div>
-        <div class="prod-resp">${prod.categoria}${prod.encomenda ? ' · Por encomenda' : ''}</div>
+        <div class="prod-name">${prod.nome} ${prod.curva ? `<span class="badge badge-${prod.curva.toLowerCase()}">${prod.curva}</span>` : ''}</div>
+        <div class="prod-resp">${prod.categoria}</div>
       </div>
       <div><strong>${qtdBase}</strong></div>
       <div style="color:var(--text-light)">${sobra || '—'}</div>
