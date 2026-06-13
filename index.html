@@ -1206,13 +1206,44 @@ tr:hover td { background: var(--surface-soft); }
   <p class="section-sub">Cadastre os insumos com histórico de compras e monte as fichas técnicas de cada produto. Preencha como numa planilha: <strong>Enter</strong> pula para a próxima coluna e, na última coluna, cria uma nova linha.</p>
 
   <div class="toggle-row" id="insumos-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
-    <button class="toggle-btn active" id="insumos-tab-ing" onclick="setInsumosTab('ingredientes')">Insumos</button>
+    <button class="toggle-btn active" id="insumos-tab-fab" onclick="setInsumosTab('fabricacao')">Fabricação Própria</button>
+    <button class="toggle-btn" id="insumos-tab-ing" onclick="setInsumosTab('ingredientes')">Insumos</button>
     <button class="toggle-btn" id="insumos-tab-rec" onclick="setInsumosTab('receitas')">Fichas Técnicas</button>
     <button class="toggle-btn" id="insumos-tab-rev" onclick="setInsumosTab('revenda')">Revenda</button>
   </div>
 
+  <!-- PAINEL FABRICAÇÃO PRÓPRIA -->
+  <div id="insumos-panel-fabricacao">
+    <p class="section-sub" style="margin-bottom:12px;">Produtos de fabricação própria: cadastre aqui os produtos que você produz e veja o custo da ficha técnica e o CMV de cada um. Edite como numa planilha.</p>
+    <div class="sheet-card">
+      <div class="table-wrap">
+        <table class="sheet-table">
+          <thead>
+            <tr>
+              <th>Produto</th>
+              <th>Categoria</th>
+              <th>Curva</th>
+              <th>Vitrine</th>
+              <th>Venda</th>
+              <th>Preço R$</th>
+              <th>Por</th>
+              <th>Custo ficha</th>
+              <th>CMV</th>
+              <th>Ficha</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody id="insumos-fabricacao-tbody"></tbody>
+        </table>
+      </div>
+      <div class="sheet-actions">
+        <button class="btn btn-ghost btn-sm" onclick="addFabricacaoProduto()">+ Novo produto de fabricação</button>
+      </div>
+    </div>
+  </div>
+
   <!-- PAINEL INGREDIENTES -->
-  <div id="cmv-panel-ingredientes">
+  <div id="cmv-panel-ingredientes" style="display:none;">
     <datalist id="quick-insumo-list"></datalist>
     <div class="quick-sheet" aria-label="Entrada rapida de insumo">
       <input id="quick-insumo-nome" list="quick-insumo-list" placeholder="Insumo existente ou novo" onkeydown="handleQuickInsumoKey(event)">
@@ -3320,6 +3351,7 @@ function deleteProduto(id) {
   saveAll();
   renderProdutos();
   renderCMV();
+  renderFabricacaoSheet();
   showToast('Produto removido', 'error');
   db.from('produtos').delete().eq('id', id);
 }
@@ -3505,7 +3537,7 @@ function renderMarginIndicator(value, calculavel, suffix = '') {
 }
 
 let currentCmvTab = 'producao';
-let currentInsumosTab = 'ingredientes';
+let currentInsumosTab = 'fabricacao';
 let currentReceitaView = 'flat';
 
 function setCmvTab(tab) {
@@ -3523,20 +3555,72 @@ function setCmvTab(tab) {
 
 function setInsumosTab(tab) {
   currentInsumosTab = tab;
+  document.getElementById('insumos-panel-fabricacao').style.display = tab === 'fabricacao' ? '' : 'none';
   document.getElementById('cmv-panel-ingredientes').style.display = tab === 'ingredientes' ? '' : 'none';
   document.getElementById('cmv-panel-receitas').style.display = tab === 'receitas' ? '' : 'none';
   document.getElementById('insumos-panel-revenda').style.display = tab === 'revenda' ? '' : 'none';
+  document.getElementById('insumos-tab-fab').classList.toggle('active', tab === 'fabricacao');
   document.getElementById('insumos-tab-ing').classList.toggle('active', tab === 'ingredientes');
   document.getElementById('insumos-tab-rec').classList.toggle('active', tab === 'receitas');
   document.getElementById('insumos-tab-rev').classList.toggle('active', tab === 'revenda');
 }
 
 function renderInsumos() {
+  renderFabricacaoSheet();
   renderIngredientes();
   renderReceitaSheet();
   renderRevendaCMV();
   document.getElementById('cmv-stat-ingredientes').textContent = ingredientes.length;
   document.getElementById('cmv-stat-receitas').textContent = receitas.length;
+}
+
+function renderFabricacaoSheet() {
+  const tbody = document.getElementById('insumos-fabricacao-tbody');
+  if (!tbody) return;
+  const fabricacao = produtos.filter(p => (p.tipo || 'fabricacao') === 'fabricacao');
+  const curvaOptions = `<option value="A">A</option><option value="B">B</option><option value="C">C</option>`;
+  const precoUnidadeOptions = selected => `<option value="un" ${selected === 'un' ? 'selected' : ''}>Unidade</option><option value="kg" ${selected === 'kg' ? 'selected' : ''}>Kg</option>`;
+  const encomendaOptions = selected => `<option value="false" ${!selected ? 'selected' : ''}>Balcão</option><option value="true" ${selected ? 'selected' : ''}>Por encomenda</option>`;
+  tbody.innerHTML = fabricacao.map(p => {
+    const pv = inferProductVitrine(p);
+    const temFicha = getReceitasByProduto(p.id).length > 0;
+    const custoNaUnidade = temFicha ? getProdutoCustoNaUnidadePreco(p) : (Number(p.custo) || 0);
+    const preco = Number(p.preco) || 0;
+    const calculavel = preco > 0 && custoNaUnidade > 0;
+    const cmv = calculavel ? (custoNaUnidade / preco) * 100 : 0;
+    const statusClass = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+    const custoLabel = (p.precoUnidade || 'un') === 'kg' ? '/kg' : '/un';
+    return `<tr>
+      <td><input class="sheet-input" value="${escHtml(p.nome||'')}" onblur="updateFabricacaoCell(${p.id},'nome',this.value)" placeholder="Nome do produto" style="min-width:140px;"></td>
+      <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'categoria',this.value)">${getCategoriaOptions(p.categoria)}</select></td>
+      <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'curva',this.value)">${curvaOptions.replace(`value="${p.curva}"`,`value="${p.curva}" selected`)}</select></td>
+      <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'vitrine',this.value)">${getVitrineOptions(pv)}</select></td>
+      <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'encomenda',this.value)">${encomendaOptions(Boolean(p.encomenda))}</select></td>
+      <td><input class="sheet-input" type="number" min="0" step="0.01" value="${preco || ''}" onblur="updateFabricacaoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
+      <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'precoUnidade',this.value)">${precoUnidadeOptions(getPrecoUnidadeLabel(p))}</select></td>
+      <td><span class="sheet-readonly">${custoNaUnidade > 0 ? money(custoNaUnidade) + custoLabel : (temFicha ? '—' : '<span style="color:var(--text-light);">sem ficha</span>')}</span></td>
+      <td><span class="sheet-readonly">${calculavel ? `<span class="badge ${statusClass}">${cmv.toFixed(1)}%</span>` : '—'}</span></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="setInsumosTab('receitas')" title="Ver fichas técnicas">${temFicha ? 'Ver ficha' : '+ Ficha'}</button></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
+    </tr>`;
+  }).join('') || `<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado — clique em "+ Novo produto de fabricação"</td></tr>`;
+}
+
+function updateFabricacaoCell(id, field, value) {
+  updateProdutoCell(id, field, value);
+  renderFabricacaoSheet();
+}
+
+function addFabricacaoProduto() {
+  produtos.push({ id: ++nextId, nome: '', tipo: 'fabricacao', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: vitrineTipos[0]?.id || 'salgada', custo: 0, preco: 0, precoUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', historicoCompras: [] });
+  saveAll();
+  renderFabricacaoSheet();
+  renderProdutos();
+  setTimeout(() => {
+    const tbody = document.getElementById('insumos-fabricacao-tbody');
+    const lastRow = tbody?.querySelector('tr:last-child');
+    if (lastRow) { const first = lastRow.querySelector('.sheet-input'); if (first) first.focus(); }
+  }, 50);
 }
 
 function getRevendaCusto(p) {
