@@ -1000,11 +1000,6 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     Delícias da Vovó
     <span>Gestão de Vitrines</span>
   </div>
-  <div class="unit-switcher" title="Unidade usada na Vitrine e no Pedido de Produção">
-    <span class="unit-switcher-label">Unidade</span>
-    <button class="unit-btn active" onclick="setUnit('matriz')">Matriz</button>
-    <button class="unit-btn" onclick="setUnit('vilanova')">Vila Nova</button>
-  </div>
 </div>
 
 <!-- NAV -->
@@ -1022,6 +1017,12 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <div class="page active" id="page-vitrine">
   <h2 class="section-title">Vitrine da Semana</h2>
   <p class="section-sub" id="vitrine-unidade-label">Unidade: Matriz — clique em uma posição para adicionar produto</p>
+
+  <div class="unit-switcher" title="Unidade usada na Vitrine e no Pedido de Produção" style="margin-bottom:16px;width:fit-content;">
+    <span class="unit-switcher-label">Unidade</span>
+    <button class="unit-btn active" onclick="setUnit('matriz')">Matriz</button>
+    <button class="unit-btn" onclick="setUnit('vilanova')">Vila Nova</button>
+  </div>
 
   <div class="day-tabs" id="day-tabs">
     <button class="day-tab active" onclick="setDay('seg')">Seg</button>
@@ -1249,6 +1250,9 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         <option value="cmv">Ordenar: Maior CMV</option>
       </select>
     </div>
+    <div class="sheet-actions" style="margin-bottom:12px;">
+      <button class="btn btn-ghost btn-sm" onclick="addFabricacaoProduto()">+ Novo produto de fabricação</button>
+    </div>
     <div class="sheet-card">
       <div class="table-wrap">
         <table class="sheet-table">
@@ -1268,9 +1272,6 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
           </thead>
           <tbody id="insumos-fabricacao-tbody"></tbody>
         </table>
-      </div>
-      <div class="sheet-actions">
-        <button class="btn btn-ghost btn-sm" onclick="addFabricacaoProduto()">+ Novo produto de fabricação</button>
       </div>
     </div>
   </div>
@@ -3648,7 +3649,9 @@ function renderInsumos() {
   document.getElementById('cmv-stat-receitas').textContent = receitas.length;
 }
 
-function renderFabricacaoSheet() {
+let fabRenderOrder = [];
+
+function renderFabricacaoSheet(resort = true) {
   const tbody = document.getElementById('insumos-fabricacao-tbody');
   if (!tbody) return;
   const fabCmv = p => {
@@ -3659,14 +3662,23 @@ function renderFabricacaoSheet() {
   };
   const fabricacao = produtos
     .filter(p => (p.tipo || 'fabricacao') === 'fabricacao')
-    .filter(p => !fabBusca || (p.nome || '').toLowerCase().includes(fabBusca))
-    .sort((a, b) => {
+    .filter(p => !fabBusca || (p.nome || '').toLowerCase().includes(fabBusca));
+  if (resort) {
+    // Reordena de fato (abertura da aba, busca ou troca de ordenação)
+    fabricacao.sort((a, b) => {
       if (fabOrdem === 'categoria') return (a.categoria || '').localeCompare(b.categoria || '') || (a.nome || '').localeCompare(b.nome || '');
       if (fabOrdem === 'curva') return (a.curva || '~').localeCompare(b.curva || '~') || (a.nome || '').localeCompare(b.nome || '');
       if (fabOrdem === 'preco') return (Number(b.preco) || 0) - (Number(a.preco) || 0);
       if (fabOrdem === 'cmv') return fabCmv(b) - fabCmv(a);
       return (a.nome || '').localeCompare(b.nome || '');
     });
+  } else {
+    // Preserva a ordem atual enquanto o usuário preenche/edita uma linha,
+    // para a linha não "pular" de posição. Itens novos ficam no topo.
+    const pos = id => { const i = fabRenderOrder.indexOf(id); return i === -1 ? -1 : i; };
+    fabricacao.sort((a, b) => pos(a.id) - pos(b.id));
+  }
+  fabRenderOrder = fabricacao.map(p => p.id);
   const curvaOptions = `<option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="">—</option>`;
   const precoUnidadeOptions = selected => `<option value="un" ${selected === 'un' ? 'selected' : ''}>Unidade</option><option value="kg" ${selected === 'kg' ? 'selected' : ''}>Kg</option>`;
   tbody.innerHTML = fabricacao.map(p => {
@@ -3678,7 +3690,7 @@ function renderFabricacaoSheet() {
     const cmv = calculavel ? (custoNaUnidade / preco) * 100 : 0;
     const statusClass = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
     const custoLabel = (p.precoUnidade || 'un') === 'kg' ? '/kg' : '/un';
-    return `<tr>
+    return `<tr data-id="${p.id}">
       <td><input class="sheet-input" value="${escHtml(p.nome||'')}" onblur="updateFabricacaoCell(${p.id},'nome',this.value)" placeholder="Nome do produto" style="min-width:140px;"></td>
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'categoria',this.value)">${getCategoriaOptions(p.categoria)}</select></td>
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'curva',this.value)">${curvaOptions.replace(`value="${p.curva}"`,`value="${p.curva}" selected`)}</select></td>
@@ -3695,18 +3707,22 @@ function renderFabricacaoSheet() {
 
 function updateFabricacaoCell(id, field, value) {
   updateProdutoCell(id, field, value);
-  renderFabricacaoSheet();
+  // Não reordena enquanto edita, para a linha não pular de posição
+  renderFabricacaoSheet(false);
 }
 
 function addFabricacaoProduto() {
-  produtos.push({ id: ++nextId, nome: '', tipo: 'fabricacao', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: vitrineTipos[0]?.id || 'salgada', custo: 0, preco: 0, precoUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', historicoCompras: [] });
+  const novo = { id: ++nextId, nome: '', tipo: 'fabricacao', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: vitrineTipos[0]?.id || 'salgada', custo: 0, preco: 0, precoUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', historicoCompras: [] };
+  produtos.push(novo);
   saveAll();
-  renderFabricacaoSheet();
+  // Fixa a nova linha no topo e não reordena, para o usuário preencher sem ela sumir
+  fabRenderOrder = [novo.id, ...fabRenderOrder.filter(id => id !== novo.id)];
+  renderFabricacaoSheet(false);
   renderProdutos();
   setTimeout(() => {
     const tbody = document.getElementById('insumos-fabricacao-tbody');
-    const lastRow = tbody?.querySelector('tr:last-child');
-    if (lastRow) { const first = lastRow.querySelector('.sheet-input'); if (first) first.focus(); }
+    const novaRow = tbody?.querySelector(`tr[data-id="${novo.id}"]`);
+    if (novaRow) { const first = novaRow.querySelector('.sheet-input'); if (first) first.focus(); }
   }, 50);
 }
 
