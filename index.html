@@ -1650,6 +1650,7 @@ tr:hover td { background: var(--surface-soft); }
     <div class="form-row">
       <div class="form-group"><label>Rendimento</label><input type="number" id="rec-rendimento" min="1" value="1"></div>
       <div class="form-group"><label>Unidade do rendimento</label><input type="text" id="rec-unidade" value="un." placeholder="ex: un., fatias, potes"></div>
+      <div class="form-group"><label>Peso por unidade (g) <span style="font-size:11px;color:var(--text-light);">se vende por kg</span></label><input type="number" id="rec-peso-por-unidade" min="0" step="0.1" placeholder="ex: 30"></div>
     </div>
     <div class="vitrine-section-label" style="margin-top:10px;">Ingredientes da receita</div>
     <div id="receita-itens"></div>
@@ -3455,11 +3456,29 @@ function getReceitaPrincipalId(prodId) {
   return linhas.length ? Math.min(...linhas.map(r => Number(r.id) || 0)) : null;
 }
 
-function syncProdutoReceitaRendimento(prodId, rendimento, unidade = null) {
+function syncProdutoReceitaRendimento(prodId, rendimento, unidade = null, pesoPorUnidade = undefined) {
   getReceitasByProduto(prodId).forEach(r => {
     r.rendimento = Number(rendimento) || 1;
     if (unidade !== null) r.unidade = unidade || 'un.';
+    if (pesoPorUnidade !== undefined) r.pesoPorUnidade = parseFloat(pesoPorUnidade) || null;
   });
+}
+
+function getProdutoPesoPorUnidade(prodId) {
+  const receita = getReceitasByProduto(prodId).find(r => Number(r.pesoPorUnidade) > 0);
+  return Number(receita?.pesoPorUnidade) || 0;
+}
+
+function getProdutoCustoNaUnidadePreco(prod) {
+  if (!prod) return 0;
+  const custoTotal = getProdutoReceitaCusto(prod.id);
+  const rendimento = getProdutoReceitaRendimento(prod.id);
+  if (rendimento <= 0) return 0;
+  if ((prod.precoUnidade || 'un') === 'kg') {
+    const pesoG = getProdutoPesoPorUnidade(prod.id);
+    if (pesoG > 0) return custoTotal / (rendimento * pesoG / 1000);
+  }
+  return custoTotal / rendimento;
 }
 
 function getCmvStatus(cmv) {
@@ -3557,20 +3576,24 @@ function renderProducaoCMV() {
     const temFicha = getReceitasByProduto(p.id).length > 0;
     const custoTotal = temFicha ? getProdutoReceitaCusto(p.id) : 0;
     const rendimento = temFicha ? getProdutoReceitaRendimento(p.id) : 1;
-    const custoUn = temFicha ? custoTotal / rendimento : (Number(p.custo) || 0);
+    const custoNaUnidade = temFicha ? getProdutoCustoNaUnidadePreco(p) : (Number(p.custo) || 0);
     const preco = Number(p.preco) || 0;
-    const calculavel = preco > 0 && custoUn > 0;
-    const cmv = calculavel ? (custoUn / preco) * 100 : 0;
-    const lucro = preco - custoUn;
+    const calculavel = preco > 0 && custoNaUnidade > 0;
+    const cmv = calculavel ? (custoNaUnidade / preco) * 100 : 0;
+    const lucro = preco - custoNaUnidade;
     const margem = preco > 0 ? (lucro / preco) * 100 : 0;
     const statusClass = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+    const pesoG = temFicha ? getProdutoPesoPorUnidade(p.id) : 0;
+    const custoUnDisplay = pesoG > 0 && (p.precoUnidade || 'un') === 'kg'
+      ? `${money(custoNaUnidade)}/kg`
+      : `${money(custoTotal / rendimento)}/un`;
     return `<tr>
       <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">${p.encomenda ? 'Por encomenda' : 'Balcão'}</span></td>
       <td><span class="sheet-readonly" style="font-size:12px;">${p.categoria || '—'}</span></td>
       <td><input class="sheet-input" type="number" min="0" step="0.01" value="${preco || ''}" onblur="updateProducaoPreco(${p.id}, this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
       <td><span class="sheet-readonly">${temFicha ? money(custoTotal) : '<span style="color:var(--text-light);">sem ficha</span>'}</span></td>
       <td><span class="sheet-readonly">${temFicha ? rendimento : '—'}</span></td>
-      <td><span class="sheet-readonly">${custoUn > 0 ? money(custoUn) + '/' + getPrecoUnidadeLabel(p) : '—'}</span></td>
+      <td><span class="sheet-readonly">${custoNaUnidade > 0 ? custoUnDisplay : '—'}</span></td>
       <td><span class="sheet-readonly">${calculavel ? `<span class="badge ${statusClass}">${cmv.toFixed(1)}%</span>` : '—'}</span></td>
       <td><span class="sheet-readonly" style="font-weight:600;color:${lucro >= 0 ? 'var(--green)' : 'var(--red)'};">${calculavel ? money(lucro) : '—'}</span></td>
       <td><span class="sheet-readonly">${calculavel ? margem.toFixed(1) + '%' : '—'}</span></td>
@@ -3849,15 +3872,21 @@ function renderReceitaRow(receita) {
   const rendimento = prod ? getProdutoReceitaRendimento(prod.id) : (Number(receita.rendimento) || 1);
   const unidadeRendimento = prod ? getProdutoReceitaUnidade(prod.id) : (receita.unidade || 'un.');
   const isPrincipal = prod ? getReceitaPrincipalId(prod.id) === receita.id : true;
-  const custoUn = custoTotal / rendimento;
-  const cmv = prod?.preco ? (custoUn / prod.preco) * 100 : 0;
+  const custoNaUnidade = prod ? getProdutoCustoNaUnidadePreco(prod) : custoTotal / rendimento;
+  const cmv = prod?.preco ? (custoNaUnidade / prod.preco) * 100 : 0;
   const status = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+  const pesoG = prod ? getProdutoPesoPorUnidade(prod.id) : 0;
+  const isKg = (prod?.precoUnidade || 'un') === 'kg';
+  const custoLabel = isKg && pesoG > 0 ? `${money(custoNaUnidade)}/kg` : `${money(custoTotal / rendimento)}/un`;
   const rendimentoCell = isPrincipal
     ? `<input class="sheet-input" type="number" min="1" step="1" value="${rendimento || 1}" onchange="updateReceitaCell(${receita.id}, 'rendimento', this.value)" onblur="updateReceitaCell(${receita.id}, 'rendimento', this.value)">`
     : `<span class="sheet-readonly" style="color:var(--text-light);">${rendimento}</span>`;
   const unidadeCell = isPrincipal
     ? `<input class="sheet-input" value="${unidadeRendimento}" onblur="updateReceitaCell(${receita.id}, 'unidade', this.value)">`
     : `<span class="sheet-readonly" style="color:var(--text-light);">${unidadeRendimento}</span>`;
+  const pesoCell = isPrincipal
+    ? `<input class="sheet-input" type="number" min="0" step="0.1" value="${receita.pesoPorUnidade || ''}" onblur="updateReceitaCell(${receita.id}, 'pesoPorUnidade', this.value)" placeholder="—" style="width:70px;">`
+    : `<span class="sheet-readonly" style="color:var(--text-light);">${pesoG || '—'}</span>`;
   return `<tr>
     <td>
       <select class="sheet-select" onchange="updateReceitaCell(${receita.id}, 'prodId', this.value)">
@@ -3868,7 +3897,8 @@ function renderReceitaRow(receita) {
     <td>${renderReceitaQtdCell(receita)}</td>
     <td>${rendimentoCell}</td>
     <td>${unidadeCell}</td>
-    <td><span class="sheet-readonly">${money(custoUn)}</span></td>
+    <td>${pesoCell}</td>
+    <td><span class="sheet-readonly">${custoLabel}</span></td>
     <td><span class="sheet-readonly"><span class="badge ${status}">${cmv.toFixed(0)}%</span></span></td>
     <td><button class="btn btn-ghost btn-sm" onclick="deleteReceita(${receita.id})" style="color:var(--red)">×</button></td>
   </tr>`;
@@ -3893,11 +3923,11 @@ function renderReceitaFlat() {
         <table class="sheet-table">
           <thead><tr>
             <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th>
-            <th>Rendimento produto</th><th>Unid.</th><th>Custo un.</th><th>CMV</th><th></th>
+            <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo</th><th>CMV</th><th></th>
           </tr></thead>
           <tbody id="receitas-tbody">${receitas.length
             ? receitas.map(renderReceitaRow).join('')
-            : '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma receita cadastrada</td></tr>'
+            : '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma receita cadastrada</td></tr>'
           }</tbody>
         </table>
       </div>
@@ -3922,9 +3952,12 @@ function renderReceitaGrouped() {
   });
   container.innerHTML = Object.entries(byProd).map(([prodId, linhas]) => {
     const prod = produtos.find(p => p.id == prodId);
-    const custoUn = prod ? getProdutoReceitaCusto(prod.id) / getProdutoReceitaRendimento(prod.id) : 0;
-    const cmv = prod?.preco ? (custoUn / prod.preco) * 100 : 0;
+    const custoNaUnidade = prod ? getProdutoCustoNaUnidadePreco(prod) : 0;
+    const cmv = prod?.preco ? (custoNaUnidade / prod.preco) * 100 : 0;
     const status = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+    const pesoG = prod ? getProdutoPesoPorUnidade(prod.id) : 0;
+    const isKg = prod && (prod.precoUnidade || 'un') === 'kg';
+    const custoLabel = isKg && pesoG > 0 ? `${money(custoNaUnidade)}/kg` : `${money(custoNaUnidade)}/un`;
     return `
       <div class="sheet-card" style="margin-bottom:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid var(--border);background:var(--surface-soft);">
@@ -3933,7 +3966,7 @@ function renderReceitaGrouped() {
             <span style="font-size:11px;color:var(--text-light);margin-left:8px;">${prod?.categoria || ''}</span>
           </div>
           <div style="display:flex;align-items:center;gap:8px;">
-            <span style="font-size:12px;color:var(--text-mid);">Custo un: <strong>${money(custoUn)}</strong></span>
+            <span style="font-size:12px;color:var(--text-mid);">Custo: <strong>${custoLabel}</strong></span>
             <span class="badge ${status}">${cmv.toFixed(0)}%</span>
           </div>
         </div>
@@ -3941,7 +3974,7 @@ function renderReceitaGrouped() {
           <table class="sheet-table">
             <thead><tr>
               <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th>
-              <th>Rendimento produto</th><th>Unid.</th><th>Custo un.</th><th>CMV</th><th></th>
+              <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo</th><th>CMV</th><th></th>
             </tr></thead>
             <tbody>${linhas.map(renderReceitaRow).join('')}</tbody>
           </table>
@@ -3971,15 +4004,18 @@ function renderReceitaByCategory() {
   container.innerHTML = Object.entries(byCategoria).sort(([a],[b]) => a.localeCompare(b)).map(([cat, prods]) => {
     const prodBlocks = Object.entries(prods).map(([prodId, linhas]) => {
       const prod = produtos.find(p => p.id == prodId);
-      const custoUn = prod ? getProdutoReceitaCusto(prod.id) / getProdutoReceitaRendimento(prod.id) : 0;
-      const cmv = prod?.preco ? (custoUn / prod.preco) * 100 : 0;
+      const custoNaUnidade = prod ? getProdutoCustoNaUnidadePreco(prod) : 0;
+      const cmv = prod?.preco ? (custoNaUnidade / prod.preco) * 100 : 0;
       const status = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+      const pesoG = prod ? getProdutoPesoPorUnidade(prod.id) : 0;
+      const isKg = prod && (prod.precoUnidade || 'un') === 'kg';
+      const custoLabel = isKg && pesoG > 0 ? `${money(custoNaUnidade)}/kg` : `${money(custoNaUnidade)}/un`;
       return `
         <div style="border-left:3px solid var(--border);margin:0 0 12px 8px;padding-left:0;">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface-soft);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
             <span style="font-weight:600;font-size:13px;">${prod?.nome || 'Produto desconhecido'}</span>
             <div style="display:flex;gap:8px;align-items:center;">
-              <span style="font-size:12px;color:var(--text-mid);">${money(custoUn)}/un</span>
+              <span style="font-size:12px;color:var(--text-mid);">${custoLabel}</span>
               <span class="badge ${status}">${cmv.toFixed(0)}%</span>
             </div>
           </div>
@@ -3987,7 +4023,7 @@ function renderReceitaByCategory() {
             <table class="sheet-table">
               <thead><tr>
                 <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th>
-                <th>Rendimento produto</th><th>Unid.</th><th>Custo un.</th><th>CMV</th><th></th>
+                <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo</th><th>CMV</th><th></th>
               </tr></thead>
               <tbody>${linhas.map(renderReceitaRow).join('')}</tbody>
             </table>
@@ -4157,6 +4193,8 @@ function updateReceitaCell(id, field, value) {
     syncProdutoReceitaRendimento(receita.prodId, parseFloat(value) || 1, null);
   } else if (field === 'unidade') {
     syncProdutoReceitaRendimento(receita.prodId, getProdutoReceitaRendimento(receita.prodId), value);
+  } else if (field === 'pesoPorUnidade') {
+    syncProdutoReceitaRendimento(receita.prodId, getProdutoReceitaRendimento(receita.prodId), null, parseFloat(value) || null);
   } else if (field === 'prodId') {
     receita.prodId = parseFloat(value) || 0;
     syncProdutoReceitaRendimento(receita.prodId, receita.rendimento || 1, receita.unidade || 'un.');
@@ -4193,7 +4231,7 @@ function refreshProductCostsFromRecipes() {
   produtos.forEach(prod => {
     const linhas = getReceitasByProduto(prod.id);
     if (!linhas.length) return;
-    prod.custo = getProdutoReceitaCusto(prod.id) / getProdutoReceitaRendimento(prod.id);
+    prod.custo = getProdutoCustoNaUnidadePreco(prod);
   });
 }
 
@@ -4380,6 +4418,7 @@ function openReceitaModal(receita = null) {
   document.getElementById('rec-produto').value = receita ? receita.prodId : produtos[0]?.id || '';
   document.getElementById('rec-rendimento').value = receita ? receita.rendimento : 1;
   document.getElementById('rec-unidade').value = receita ? (receita.unidade || 'un.') : 'un.';
+  document.getElementById('rec-peso-por-unidade').value = receita?.pesoPorUnidade || '';
   document.getElementById('modal-receita-title').textContent = receita ? 'Editar Receita' : 'Nova Receita';
   document.getElementById('receita-itens').innerHTML = '';
 
@@ -4428,10 +4467,12 @@ function saveReceita() {
 
   if (!itens.length) return showToast('Adicione pelo menos um ingrediente na receita', 'error');
 
+  const pesoPorUnidade = parseFloat(document.getElementById('rec-peso-por-unidade').value) || null;
   const data = {
     prodId,
     rendimento,
     unidade: document.getElementById('rec-unidade').value.trim() || 'un.',
+    pesoPorUnidade,
     itens: itens.map(item => {
       const ing = ingredientes.find(i => i.id === item.ingId);
       return item.usoUnidade && ing && item.usoUnidade !== ing.unidade ? item : { ingId: item.ingId, qtd: item.qtd };
@@ -4446,9 +4487,9 @@ function saveReceita() {
     receitas.push(data);
   }
 
-  syncProdutoReceitaRendimento(prodId, rendimento, data.unidade);
+  syncProdutoReceitaRendimento(prodId, rendimento, data.unidade, pesoPorUnidade);
   const prod = produtos.find(p => p.id === prodId);
-  if (prod) prod.custo = getProdutoReceitaCusto(prodId) / getProdutoReceitaRendimento(prodId);
+  if (prod) prod.custo = getProdutoCustoNaUnidadePreco(prod);
 
   saveAll();
   closeModal('modal-receita');
