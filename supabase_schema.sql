@@ -142,6 +142,29 @@ alter table fechamentos add column if not exists status text;
 alter table fechamentos add column if not exists leftover_qty numeric;
 
 -- ============================================================
+-- DESTRAVA ENUMS — converte colunas de "lista fixa" (enum) para texto livre.
+-- Necessario porque o app deixa criar categorias/vitrines/etc. livremente,
+-- mas algumas colunas foram criadas como enum (lista fixa) e recusavam
+-- valores novos (ex.: categoria "Cafeteria").
+-- ============================================================
+do $$
+declare r record;
+begin
+  for r in
+    select table_name, column_name
+    from information_schema.columns
+    where table_schema = 'public'
+      and data_type = 'USER-DEFINED'
+      and table_name in ('produtos','produto_compras','categorias','vitrine_tipos','ingredientes',
+        'receitas','receita_itens','perdas','vitrine_slots','cronograma',
+        'apoio_producao','plano_semanal','fechamentos')
+  loop
+    execute format('alter table %I alter column %I drop default;', r.table_name, r.column_name);
+    execute format('alter table %I alter column %I type text using %I::text;', r.table_name, r.column_name, r.column_name);
+  end loop;
+end $$;
+
+-- ============================================================
 -- PERMISSOES (RLS) — libera leitura e escrita com a chave publica
 -- ============================================================
 do $$
