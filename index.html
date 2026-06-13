@@ -2208,9 +2208,11 @@ async function syncToSupabase() {
       const first = syncErrors[0];
       const now = Date.now();
       if (now - _lastSyncErrorToast > 5000) {
-        showToast(`Supabase nao salvou: ${first.label}. Veja o console.`, 'error');
+        showToast(`Não consegui salvar "${first.label}" na nuvem. Os dados ficaram neste aparelho; vou tentar de novo.`, 'error');
         _lastSyncErrorToast = now;
       }
+    } else {
+      showToast('Salvo na nuvem ✓', 'success');
     }
   } catch (err) {
     console.error('Supabase sync error:', err);
@@ -4716,6 +4718,7 @@ function imprimirPedido() {
 // ============================================================
 // tbodies que ganham uma nova linha ao apertar Enter na última coluna
 const sheetRowAdders = {
+  'produtos-tbody': () => addProdutoRow(),
   'ingredientes-tbody': () => addIngredienteRow(),
   'receitas-tbody': () => addReceitaRow(),
   'revenda-tbody': () => addRevendaProduto(),
