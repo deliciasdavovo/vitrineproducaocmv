@@ -2232,6 +2232,7 @@ async function loadFromSupabase() {
       { data: prodData },
       { data: ingData },
       { data: recData },
+      { data: recItensData },
       { data: slotData },
       { data: cronoData },
       { data: perdasData },
@@ -2244,7 +2245,8 @@ async function loadFromSupabase() {
     ] = await Promise.all([
       db.from('produtos').select('*').order('nome'),
       db.from('ingredientes').select('*').order('nome'),
-      db.from('receitas').select('*, receita_itens(*)').order('created_at'),
+      db.from('receitas').select('*').order('id'),
+      db.from('receita_itens').select('*'),
       db.from('vitrine_slots').select('*'),
       db.from('cronograma').select('*').order('hora'),
       db.from('perdas').select('*').order('data', { ascending: false }),
@@ -2304,10 +2306,15 @@ async function loadFromSupabase() {
         historico: [{ id: i.id * 1000, qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra), fornecedor: '', data: '' }]
       };
     });
+    const itensPorReceita = {};
+    (recItensData || []).forEach(item => {
+      if (!itensPorReceita[item.receita_id]) itensPorReceita[item.receita_id] = [];
+      itensPorReceita[item.receita_id].push({ ingId: item.ing_id, qtd: Number(item.qtd) });
+    });
     receitas = (recData || []).map(r => ({
       id: r.id, prodId: r.prod_id, rendimento: Number(r.rendimento), unidade: r.unidade,
       pesoPorUnidade: r.peso_por_unidade ? Number(r.peso_por_unidade) : null,
-      itens: (r.receita_itens || []).map(item => ({ ingId: item.ing_id, qtd: Number(item.qtd) }))
+      itens: itensPorReceita[r.id] || []
     }));
     vitrines = {};
     (slotData || []).forEach(s => {

@@ -69,6 +69,18 @@ alter table receita_itens add column if not exists receita_id bigint;
 alter table receita_itens add column if not exists ing_id bigint;
 alter table receita_itens add column if not exists qtd numeric;
 
+-- Vinculo receita_itens -> receitas (permite excluir itens junto com a ficha)
+do $$
+begin
+  if not exists (
+    select 1 from pg_constraint where conname = 'receita_itens_receita_id_fkey'
+  ) then
+    alter table receita_itens
+      add constraint receita_itens_receita_id_fkey
+      foreign key (receita_id) references receitas (id) on delete cascade;
+  end if;
+end $$;
+
 -- ---------- PERDAS ----------
 create table if not exists perdas (id bigint primary key);
 alter table perdas add column if not exists unit text;
