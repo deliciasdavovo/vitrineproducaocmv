@@ -1242,7 +1242,7 @@ tr:hover td { background: var(--surface-soft); }
               <th>Qtd. compra</th>
               <th>Custo compra</th>
               <th>Custo base</th>
-              <th>Derivados</th>
+              <th>Variação</th>
               <th></th>
             </tr>
           </thead>
@@ -1579,13 +1579,27 @@ tr:hover td { background: var(--surface-soft); }
     <div class="form-row full"><div class="form-group"><label>Nome do ingrediente</label><input type="text" id="ing-nome" placeholder="ex: Mussarela fatiada"></div></div>
     <div class="form-row">
       <div class="form-group"><label>Unidade base</label>
-        <select id="ing-unidade">
+        <select id="ing-unidade" onchange="updateIngModalVarLabel()">
           <option value="g">g</option>
           <option value="ml">ml</option>
           <option value="un">un</option>
         </select>
       </div>
-      <div class="form-group"><label>Conteúdo por unidade (g/ml)</label><input type="number" id="ing-fatia" min="0" step="0.1" placeholder="ex: 395"></div>
+      <div class="form-group"><label>Unidade de variação</label>
+        <select id="ing-variacao-unidade" onchange="updateIngModalVarLabel()">
+          <option value="">— Nenhuma —</option>
+          <option value="g">g</option>
+          <option value="ml">ml</option>
+          <option value="fatia">fatia</option>
+          <option value="un">un</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group"><label>Fator de conversão</label><input type="number" id="ing-fatia" min="0" step="0.1" placeholder="ex: 395" oninput="updateIngModalVarLabel()"></div>
+      <div class="form-group" style="justify-content:flex-end;align-items:flex-end;">
+        <div id="ing-var-label" style="font-size:13px;font-weight:700;color:var(--brown);padding-bottom:8px;display:none;"></div>
+      </div>
     </div>
     <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin:12px 0 6px;text-transform:uppercase;letter-spacing:0.4px;">Última compra</div>
     <div class="form-row">
@@ -3386,18 +3400,22 @@ function getItemQtdCompraBase(item, ing) {
   const qtd = Number(item?.qtd) || 0;
   const uso = getItemUsoUnidade(item, ing);
   if (!ing || uso === ing.unidade) return qtd;
-  if (ing.unidade === 'un' && ['g', 'ml'].includes(uso) && Number(ing.fatia) > 0) {
-    return qtd / Number(ing.fatia);
+  const fatia = Number(ing.fatia);
+  if (!fatia) return qtd;
+  if (ing.unidade === 'un') {
+    // 1 un = fatia variation-units → qty_variation / fatia = qty_un
+    return qtd / fatia;
   }
-  return qtd;
+  // base=g/ml: 1 variation-unit = fatia base-units → qty_variation * fatia = qty_base
+  return qtd * fatia;
 }
 
 function getUsoUnidadeOptions(ing, selected = '') {
   const unidade = ing?.unidade || 'un';
   const atual = selected || unidade;
   const options = [{ value: unidade, label: unidade }];
-  if (unidade === 'un' && Number(ing?.fatia) > 0) {
-    options.push({ value: 'g', label: 'g/ml' });
+  if (ing?.variacaoUnidade && Number(ing?.fatia) > 0) {
+    options.push({ value: ing.variacaoUnidade, label: ing.variacaoUnidade });
   }
   return options.map(opt => `<option value="${opt.value}" ${opt.value === atual ? 'selected' : ''}>${opt.label}</option>`).join('');
 }
@@ -3770,19 +3788,35 @@ function renderIngredientes() {
       derivados = `<div style="font-size:11px;line-height:1.6;">`;
       derivados += `<span style="color:var(--text-mid);">${money(custoUnit)}/g</span>`;
       derivados += `<br><span style="color:var(--text-mid);">${money(custoUnit*100)}/100g</span>`;
-      if (ing.fatia) {
-        derivados += `<br><span style="color:var(--brown);font-weight:700;">${money(custoUnit * ing.fatia)}/${ing.fatia}g</span>`;
+      if (ing.variacaoUnidade && ing.fatia) {
+        derivados += `<br><span style="color:var(--brown);font-weight:700;">${money(custoUnit * ing.fatia)}/${ing.variacaoUnidade}</span>`;
       }
       derivados += `</div>`;
     } else if (ing.unidade === 'ml') {
       derivados = `<span style="font-size:11px;color:var(--text-mid);">${money(custoUnit)}/ml<br>${money(custoUnit*1000)}/L</span>`;
+      if (ing.variacaoUnidade && ing.fatia) {
+        derivados += `<br><span style="font-size:11px;color:var(--brown);font-weight:700;">${money(custoUnit * ing.fatia)}/${ing.variacaoUnidade}</span>`;
+      }
     } else {
       derivados = `<span style="font-size:11px;color:var(--text-mid);">${money(custoUnit)}/un</span>`;
-      if (ing.fatia) {
-        derivados += `<br><span style="font-size:11px;color:var(--brown);font-weight:700;">${money(custoUnit / ing.fatia)}/g/ml</span>`;
+      if (ing.variacaoUnidade && ing.fatia) {
+        derivados += `<br><span style="font-size:11px;color:var(--brown);font-weight:700;">${money(custoUnit / ing.fatia)}/${ing.variacaoUnidade}</span>`;
       }
-      derivados += `<br><label style="display:flex;align-items:center;gap:4px;margin-top:4px;font-size:10px;color:var(--text-light);">Conteúdo <input class="sheet-input" type="number" min="0" step="0.1" value="${ing.fatia || ''}" onblur="updateIngredienteCell(${ing.id}, 'fatia', this.value)" placeholder="395" style="width:72px;min-width:72px;padding:4px 6px;"></label>`;
     }
+    const varOpts = ['g','ml','fatia','un'].filter(u => u !== ing.unidade)
+      .map(u => `<option value="${u}" ${ing.variacaoUnidade === u ? 'selected' : ''}>${u}</option>`).join('');
+    const varLabel = ing.variacaoUnidade && ing.fatia
+      ? `<div style="font-size:10px;color:var(--brown);font-weight:700;margin-top:3px;">${ing.unidade === 'un' ? `1 un = ${ing.fatia} ${ing.variacaoUnidade}` : `1 ${ing.variacaoUnidade} = ${ing.fatia} ${ing.unidade}`}</div>`
+      : '';
+    const variacaoCell = `<div style="display:flex;flex-direction:column;gap:3px;">
+      <div style="display:flex;align-items:center;gap:4px;">
+        <select class="sheet-select" style="min-width:62px;" onchange="updateIngredienteCell(${ing.id}, 'variacaoUnidade', this.value)">
+          <option value="">—</option>${varOpts}
+        </select>
+        <input class="sheet-input" type="number" min="0" step="0.1" value="${ing.fatia || ''}" onblur="updateIngredienteCell(${ing.id}, 'fatia', this.value)" placeholder="ex: 395" style="width:70px;min-width:70px;">
+      </div>
+      ${varLabel}
+    </div>`;
     const nCompras = (ing.historico || []).length;
     return `<tr>
       <td><input class="sheet-input" value="${ing.nome || ''}" onblur="updateIngredienteCell(${ing.id}, 'nome', this.value)" placeholder="ex: Farinha" style="min-width:130px;"></td>
@@ -3798,6 +3832,7 @@ function renderIngredientes() {
       <td><input class="sheet-input" type="number" min="0" step="0.001" value="${uc.qtdCompra||''}" onblur="updateIngredienteCompra(${ing.id},'qtdCompra',this.value)" placeholder="ex: 5000" style="min-width:80px;"></td>
       <td><input class="sheet-input" type="number" min="0" step="0.01" value="${uc.custoCompra||''}" onblur="updateIngredienteCompra(${ing.id},'custoCompra',this.value)" placeholder="0,00" style="min-width:80px;"></td>
       <td style="min-width:110px;">${derivados}</td>
+      <td style="min-width:160px;">${variacaoCell}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-ghost btn-sm" onclick="openHistoricoModal(${ing.id})" title="Histórico de compras" style="margin-right:2px;">
           Carrinho ${nCompras > 0 ? `<span style="font-size:10px;background:var(--gold-light);color:var(--brown);border-radius:999px;padding:1px 5px;">${nCompras}</span>` : ''}
@@ -4049,7 +4084,7 @@ function submitQuickInsumo() {
   let ing = ingredientes.find(i => (i.nome || '').toLowerCase() === nome.toLowerCase());
   const existed = !!ing;
   if (!ing) {
-    ing = { id: ++nextId, nome, unidade: unidadeEl?.value || 'g', qtdCompra: 0, custoCompra: 0, fatia: null, historico: [] };
+    ing = { id: ++nextId, nome, unidade: unidadeEl?.value || 'g', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] };
     ingredientes.push(ing);
   } else if (unidadeEl?.value) {
     ing.unidade = unidadeEl.value;
@@ -4079,7 +4114,7 @@ function submitQuickInsumo() {
 }
 
 function addIngredienteRow() {
-  ingredientes.push({ id: ++nextId, nome: '', unidade: 'g', qtdCompra: 0, custoCompra: 0, fatia: null, historico: [] });
+  ingredientes.push({ id: ++nextId, nome: '', unidade: 'g', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] });
   saveAll();
   renderCMV();
 }
@@ -4087,7 +4122,13 @@ function addIngredienteRow() {
 function updateIngredienteCell(id, field, value) {
   const ing = ingredientes.find(i => i.id === id);
   if (!ing) return;
-  ing[field] = ['qtdCompra', 'custoCompra', 'fatia'].includes(field) ? parseFloat(value) || 0 : value;
+  if (['qtdCompra', 'custoCompra'].includes(field)) {
+    ing[field] = parseFloat(value) || 0;
+  } else if (field === 'fatia') {
+    ing[field] = parseFloat(value) || null;
+  } else {
+    ing[field] = value || null;
+  }
   saveAll();
   refreshProductCostsFromRecipes();
   renderCMV();
@@ -4156,11 +4197,29 @@ function refreshProductCostsFromRecipes() {
   });
 }
 
+function updateIngModalVarLabel() {
+  const unidade = document.getElementById('ing-unidade')?.value || 'g';
+  const varUnidade = document.getElementById('ing-variacao-unidade')?.value || '';
+  const fatia = parseFloat(document.getElementById('ing-fatia')?.value);
+  const label = document.getElementById('ing-var-label');
+  if (!label) return;
+  if (varUnidade && fatia > 0) {
+    label.textContent = unidade === 'un'
+      ? `1 ${unidade} = ${fatia} ${varUnidade}`
+      : `1 ${varUnidade} = ${fatia} ${unidade}`;
+    label.style.display = 'block';
+  } else {
+    label.style.display = 'none';
+  }
+}
+
 function openIngredienteModal(ing = null) {
   document.getElementById('ing-id').value = ing ? ing.id : '';
   document.getElementById('ing-nome').value = ing ? ing.nome : '';
   document.getElementById('ing-unidade').value = ing ? ing.unidade : 'g';
+  document.getElementById('ing-variacao-unidade').value = ing?.variacaoUnidade || '';
   document.getElementById('ing-fatia').value = ing?.fatia || '';
+  updateIngModalVarLabel();
   const uc = ing ? getUltimaCompra(ing) : {};
   document.getElementById('ing-qtd').value = uc.qtdCompra || '';
   document.getElementById('ing-custo').value = uc.custoCompra || '';
@@ -4178,6 +4237,7 @@ function saveIngrediente() {
   const fornecedor = document.getElementById('ing-fornecedor').value.trim();
   const dataCompra = document.getElementById('ing-data').value;
   const fatia = parseFloat(document.getElementById('ing-fatia').value) || null;
+  const variacaoUnidade = document.getElementById('ing-variacao-unidade').value || null;
   if (!nome) return showToast('Preencha o nome do ingrediente', 'error');
 
   if (id) {
@@ -4186,6 +4246,7 @@ function saveIngrediente() {
     ing.nome = nome;
     ing.unidade = document.getElementById('ing-unidade').value;
     ing.fatia = fatia;
+    ing.variacaoUnidade = variacaoUnidade;
     // Se preencheu nova compra, registra no histórico
     if (qtdCompra && custoCompra) {
       if (!ing.historico) ing.historico = [];
@@ -4202,7 +4263,7 @@ function saveIngrediente() {
       id: ++nextId,
       nome,
       unidade: document.getElementById('ing-unidade').value,
-      qtdCompra, custoCompra, fatia,
+      qtdCompra, custoCompra, fatia, variacaoUnidade,
       historico: (qtdCompra && custoCompra) ? [{ id: ++nextId, qtdCompra, custoCompra, fornecedor, data: dataCompra }] : []
     };
     ingredientes.push(novo);
