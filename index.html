@@ -52,8 +52,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 
 /* HEADER */
 .header {
-  background: rgba(255,255,255,0.92);
-  backdrop-filter: blur(18px);
+  background: linear-gradient(180deg, #0F172A 0%, #1E293B 100%);
   padding: 0 28px;
   display: flex;
   align-items: center;
@@ -62,17 +61,45 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   position: sticky;
   top: 0;
   z-index: 100;
-  border-bottom: 1px solid var(--border);
-  box-shadow: var(--shadow-soft);
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  box-shadow: 0 4px 18px rgba(15,23,42,0.25);
 }
 .header-logo {
   font-family: var(--font-sans);
-  color: var(--text);
+  color: #fff;
   font-size: 17px;
   font-weight: 700;
   letter-spacing: -0.3px;
 }
-.header-logo span { color: var(--text-light); font-weight: 500; font-size: 12px; display: block; line-height: 1.2; margin-top: 2px; font-family: var(--font-sans); letter-spacing: 0; }
+.header-logo span { color: var(--brown-light); font-weight: 500; font-size: 12px; display: block; line-height: 1.2; margin-top: 2px; font-family: var(--font-sans); letter-spacing: 0; }
+
+/* GROUP SWITCHER (Vitrines / CMV) */
+.group-switcher {
+  display: flex;
+  gap: 4px;
+  padding: 4px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid rgba(255,255,255,0.10);
+  border-radius: 999px;
+}
+.group-btn {
+  background: transparent;
+  border: none;
+  color: var(--brown-light);
+  padding: 8px 22px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+  font-family: var(--font-sans);
+}
+.group-btn.active {
+  background: #fff;
+  color: var(--text);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.30);
+}
+.group-btn:hover:not(.active) { color: #fff; }
 .unit-switcher {
   display: flex;
   align-items: center;
@@ -1000,17 +1027,25 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     Delícias da Vovó
     <span>Gestão de Vitrines</span>
   </div>
+  <div class="group-switcher">
+    <button class="group-btn active" data-group="vitrines" onclick="showGroup('vitrines')">Vitrines</button>
+    <button class="group-btn" data-group="cmv" onclick="showGroup('cmv')">CMV</button>
+  </div>
 </div>
 
-<!-- NAV -->
-<div class="nav">
-  <button class="nav-btn active" onclick="showPage('vitrine')">Vitrines</button>
-  <button class="nav-btn" onclick="showPage('cronograma')">Cronograma</button>
-  <button class="nav-btn" onclick="showPage('banco')">Banco de Dados</button>
-  <button class="nav-btn" onclick="showPage('insumos')">Insumos & Fichas</button>
-  <button class="nav-btn" onclick="showPage('cmv')">CMV</button>
-  <button class="nav-btn" onclick="showPage('perdas')">Perdas</button>
-  <button class="nav-btn" onclick="showPage('pedido')">Pedido de Produção</button>
+<!-- NAV: VITRINES -->
+<div class="nav" id="nav-vitrines">
+  <button class="nav-btn active" data-page="vitrine" onclick="showPage('vitrine')">Vitrines</button>
+  <button class="nav-btn" data-page="cronograma" onclick="showPage('cronograma')">Cronograma</button>
+  <button class="nav-btn" data-page="perdas" onclick="showPage('perdas')">Perdas</button>
+  <button class="nav-btn" data-page="pedido" onclick="showPage('pedido')">Pedido de Produção</button>
+</div>
+
+<!-- NAV: CMV -->
+<div class="nav" id="nav-cmv" style="display:none">
+  <button class="nav-btn" data-page="insumos" onclick="showPage('insumos')">Insumos & Fichas</button>
+  <button class="nav-btn" data-page="cmv" onclick="showPage('cmv')">CMV</button>
+  <button class="nav-btn" data-page="banco" onclick="showPage('banco')">Banco de Dados</button>
 </div>
 
 <!-- ===================== PAGE: VITRINE ===================== -->
@@ -2512,11 +2547,33 @@ async function loadFromSupabase() {
 // ============================================================
 // NAVIGATION
 // ============================================================
+// Mapeia cada pagina ao seu grupo de cabecalho
+const PAGE_GROUPS = {
+  vitrine: 'vitrines', cronograma: 'vitrines', perdas: 'vitrines', pedido: 'vitrines',
+  insumos: 'cmv', cmv: 'cmv', banco: 'cmv'
+};
+
+function showGroup(group) {
+  document.querySelectorAll('.group-btn').forEach(b => b.classList.toggle('active', b.dataset.group === group));
+  document.getElementById('nav-vitrines').style.display = group === 'vitrines' ? 'flex' : 'none';
+  document.getElementById('nav-cmv').style.display = group === 'cmv' ? 'flex' : 'none';
+  // Abre a primeira pagina do grupo selecionado
+  showPage(group === 'cmv' ? 'insumos' : 'vitrine');
+}
+
 function showPage(page) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   document.getElementById('page-' + page).classList.add('active');
-  event.currentTarget.classList.add('active');
+  const btn = document.querySelector('.nav-btn[data-page="' + page + '"]');
+  if (btn) btn.classList.add('active');
+  // Garante que o grupo correto esteja visivel no cabecalho
+  const group = PAGE_GROUPS[page];
+  if (group) {
+    document.querySelectorAll('.group-btn').forEach(b => b.classList.toggle('active', b.dataset.group === group));
+    document.getElementById('nav-vitrines').style.display = group === 'vitrines' ? 'flex' : 'none';
+    document.getElementById('nav-cmv').style.display = group === 'cmv' ? 'flex' : 'none';
+  }
 
   if (page === 'vitrine') renderVitrine();
   if (page === 'cronograma') renderCronograma();
