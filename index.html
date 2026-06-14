@@ -878,6 +878,14 @@ tr:hover td { background: var(--surface-soft); }
   outline: 2px dashed var(--blue) !important;
   background: #DBEAFE !important;
 }
+/* Célula(s) selecionadas para arrastar (range) */
+.sheet-selected {
+  outline: 2px solid var(--blue) !important;
+  outline-offset: -1px;
+  background: #EFF6FF !important;
+  position: relative;
+  z-index: 1;
+}
 /* Dica de atalhos abaixo das planilhas */
 .sheet-hint {
   font-size: 11px;
@@ -5160,10 +5168,7 @@ const sheetRowAdders = {
   'perdas-list': () => addPerdaRow(),
 };
 
-function handleSheetKey(e) {
-  if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey) return;
-  const el = e.target;
-  if (!el.classList || !(el.classList.contains('sheet-input') || el.classList.contains('sheet-select'))) return;
+function sheetNavFromEl(e, el) {
   const tbody = el.closest('tbody');
   const row = el.closest('tr');
   if (!tbody || !row || !tbody.id) return;
@@ -5207,6 +5212,22 @@ function handleSheetKey(e) {
   }
 }
 
+// inputs: keydown (resposta imediata)
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey) return;
+  const el = e.target;
+  if (!el.classList || !el.classList.contains('sheet-input')) return;
+  sheetNavFromEl(e, el);
+});
+
+// selects: keyup — aguarda o browser fechar o dropdown e confirmar a opção antes de navegar
+document.addEventListener('keyup', (e) => {
+  if (e.key !== 'Enter' || e.ctrlKey || e.metaKey || e.altKey) return;
+  const el = e.target;
+  if (!el.classList || !el.classList.contains('sheet-select')) return;
+  sheetNavFromEl(e, el);
+});
+
 function focusSheetCell(tbodyId, rowIndex, colIndex) {
   requestAnimationFrame(() => {
     const tbody = document.getElementById(tbodyId);
@@ -5222,29 +5243,104 @@ function focusSheetCell(tbodyId, rowIndex, colIndex) {
   });
 }
 
-document.addEventListener('keydown', handleSheetKey);
-
 // ============================================================
-// ALÇA DE PREENCHIMENTO — arrastar para copiar célula para baixo (estilo Excel)
+// SELEÇÃO DE RANGE + ALÇA DE PREENCHIMENTO MULTI-COLUNA
+// Shift+Click seleciona range de células na mesma linha.
+// Arrastar a alça copia todas as colunas selecionadas para baixo.
 // ============================================================
 (function setupFillHandle() {
   const handle = document.createElement('div');
   handle.className = 'fill-handle';
-  handle.title = 'Arraste para copiar valor para baixo';
+  handle.title = 'Arraste para copiar para baixo (Shift+Click para selecionar mais células)';
   handle.setAttribute('aria-label', 'Arraste para copiar');
   document.body.appendChild(handle);
-
-  let sourceEl = null;     // célula atualmente em foco (origem da alça)
-  let dragging = false;
-  let dragValue = '';
-  let dragCol = -1;
-  let dragTbody = null;
-  let dragRowIndex = -1;
-  let previewCells = [];
 
   const isCell = (el) => el && el.classList &&
     (el.classList.contains('sheet-input') || el.classList.contains('sheet-select'));
   const cellsInRow = (row) => Array.from(row.querySelectorAll('.sheet-input, .sheet-select'));
+
+  // --- Seleção de range ---
+  let selectedCells = [];   // células selecionadas na linha de origem
+  let anchorEl = null;      // primeira célula do range (onde clicou sem shift)
+
+  function clearSelection() {
+    selectedCells.forEach(c => c.classList.remove('sheet-selected'));
+    selectedCells = [];
+    anchorEl = null;
+  }
+
+  function setSelection(cells) {
+    clearSelection();
+    selectedCells = cells;
+    cells.forEach(c => c.classList.add('sheet-selected'));
+    if (cells.length) {
+      const last = cells[cells.length - 1];
+      showHandleFor(last);
+    }
+  }
+
+  // Shift+Click expande seleção; click normal foca a célula (seleção vira só ela)
+  document.addEventListener('mousedown', (e) => {
+    if (!isCell(e.target)) return;
+    if (e.shiftKey && anchorEl && anchorEl.closest('tr') === e.target.closest('tr')) {
+      // expandir range horizontalmente
+      const row = anchorEl.closest('tr');
+      const cells = cellsInRow(row);
+      const aIdx = cells.indexOf(anchorEl);
+      const bIdx = cells.indexOf(e.target);
+      const from = Math.min(aIdx, bIdx);
+      const to = Math.max(aIdx, bIdx);
+      setSelection(cells.slice(from, to + 1));
+      e.preventDefault(); // impede mudar foco
+    } else {
+      // click sem shift: nova âncora
+      clearSelection();
+      anchorEl = e.target;
+      // a seleção de célula única é definida no focusin
+    }
+  });
+
+  // Quando foco entra numa célula sem shift pressionado → seleção = só essa célula
+  document.addEventListener('focusin', (e) => {
+    if (!isCell(e.target)) {
+      if (e.target !== handle && !dragging) forceHide();
+      return;
+    }
+    // Se há seleção de range ativa e essa célula faz parte dela, mantém
+    if (selectedCells.length > 1 && selectedCells.includes(e.target)) {
+      showHandleFor(selectedCells[selectedCells.length - 1]);
+      return;
+    }
+    // Seleção única
+    clearSelection();
+    anchorEl = e.target;
+    selectedCells = [e.target];
+    e.target.classList.add('sheet-selected');
+    showHandleFor(e.target);
+  });
+
+  document.addEventListener('focusout', () => {
+    setTimeout(() => {
+      if (dragging) return;
+      if (!isCell(document.activeElement) && document.activeElement !== handle) {
+        // só limpa seleção se o foco saiu completamente das planilhas
+        if (!document.activeElement.classList.contains('sheet-input') &&
+            !document.activeElement.classList.contains('sheet-select')) {
+          clearSelection();
+          forceHide();
+        }
+      }
+    }, 0);
+  });
+
+  // --- Handle ---
+  let sourceEl = null;
+  let dragging = false;
+  let dragTbody = null;
+  let dragRowIndex = -1;
+  let dragCols = [];       // índices das colunas selecionadas
+  let dragValues = [];     // valores das células selecionadas (por índice de coluna)
+  let previewCells = [];
 
   function positionHandle(el) {
     const r = el.getBoundingClientRect();
@@ -5256,7 +5352,6 @@ document.addEventListener('keydown', handleSheetKey);
     const tbody = el.closest('tbody');
     const row = el.closest('tr');
     if (!tbody || !row) { forceHide(); return; }
-    // precisa existir pelo menos uma linha abaixo ou acima para fazer sentido arrastar
     sourceEl = el;
     positionHandle(el);
     handle.classList.add('active');
@@ -5267,19 +5362,9 @@ document.addEventListener('keydown', handleSheetKey);
     handle.classList.remove('active');
   }
 
-  document.addEventListener('focusin', (e) => {
-    if (isCell(e.target)) showHandleFor(e.target);
-    else if (e.target !== handle && !dragging) forceHide();
-  });
-
-  document.addEventListener('focusout', () => {
-    setTimeout(() => {
-      if (dragging) return;
-      if (!isCell(document.activeElement)) forceHide();
-    }, 0);
-  });
-
-  const reposition = () => { if (sourceEl && handle.classList.contains('active')) positionHandle(sourceEl); };
+  const reposition = () => {
+    if (sourceEl && handle.classList.contains('active')) positionHandle(sourceEl);
+  };
   window.addEventListener('scroll', reposition, true);
   window.addEventListener('resize', reposition);
 
@@ -5295,10 +5380,15 @@ document.addEventListener('keydown', handleSheetKey);
     const row = sourceEl.closest('tr');
     const tbody = sourceEl.closest('tbody');
     if (!row || !tbody) return;
+
+    // coletar colunas e valores da seleção atual
+    const allCells = cellsInRow(row);
+    const activeSel = selectedCells.length > 0 ? selectedCells : [sourceEl];
+    dragCols = activeSel.map(c => allCells.indexOf(c)).filter(i => i >= 0);
+    dragValues = dragCols.map(i => allCells[i].value);
+
     dragging = true;
-    dragValue = sourceEl.value;
     dragTbody = tbody;
-    dragCol = cellsInRow(row).indexOf(sourceEl);
     dragRowIndex = Array.from(tbody.querySelectorAll('tr')).indexOf(row);
     document.body.classList.add('fill-dragging');
     handle.style.pointerEvents = 'none';
@@ -5317,8 +5407,10 @@ document.addEventListener('keydown', handleSheetKey);
     const end = Math.max(dragRowIndex, overIndex);
     for (let i = start; i <= end; i++) {
       if (i === dragRowIndex) continue;
-      const target = cellsInRow(rows[i])[dragCol];
-      if (target) { target.classList.add('fill-preview'); previewCells.push(target); }
+      dragCols.forEach(col => {
+        const target = cellsInRow(rows[i])[col];
+        if (target) { target.classList.add('fill-preview'); previewCells.push(target); }
+      });
     }
   });
 
@@ -5327,25 +5419,35 @@ document.addEventListener('keydown', handleSheetKey);
     dragging = false;
     document.body.classList.remove('fill-dragging');
     handle.style.pointerEvents = 'auto';
+
+    const rows = Array.from(dragTbody.querySelectorAll('tr'));
+    // agrupar previewCells por coluna para aplicar o valor correto de cada coluna
     const targets = previewCells.slice();
     clearPreview();
-    if (targets.length) applyFill(targets, dragValue);
-    forceHide();
+    if (targets.length) {
+      const allCells0 = cellsInRow(rows[0]);
+      applyFill(targets, dragCols, dragValues, rows);
+    }
+    // não chamar forceHide para manter seleção visível após arrastar
   });
 
-  function applyFill(targets, value) {
-    // 1) escreve o valor em todas as células de destino (antes de qualquer re-render)
+  function applyFill(targets, cols, values, rows) {
     targets.forEach(t => {
-      t.value = value;
+      const tRow = t.closest('tr');
+      const rowCells = cellsInRow(tRow);
+      const colIdx = rowCells.indexOf(t);
+      const valIdx = cols.indexOf(colIdx);
+      const val = valIdx >= 0 ? values[valIdx] : t.value;
+      t.value = val;
       if (typeof t.oninput === 'function') { try { t.oninput.call(t); } catch (_) {} }
     });
-    // 2) confirma cada célula: dispara onchange/onblur, que grava no modelo e re-renderiza.
-    //    Mesmo após o re-render desanexar os elementos, os handlers leem this.value (já copiado).
     targets.forEach(t => {
       try { if (typeof t.onchange === 'function') t.onchange.call(t); } catch (_) {}
       try { if (typeof t.onblur === 'function') t.onblur.call(t); } catch (_) {}
     });
-    showToast('Copiado para ' + targets.length + (targets.length > 1 ? ' células' : ' célula'), 'success');
+    const nCols = cols.length;
+    const nRows = targets.length / nCols;
+    showToast(`Copiado para ${Math.round(nRows)} linha${nRows > 1 ? 's' : ''} × ${nCols} coluna${nCols > 1 ? 's' : ''}`, 'success');
   }
 })();
 
