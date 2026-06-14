@@ -55,6 +55,15 @@ alter table ingredientes add column if not exists custo_compra numeric;
 alter table ingredientes add column if not exists fatia numeric;
 alter table ingredientes add column if not exists variacao_unidade text;
 
+-- ---------- INGREDIENTE_COMPRAS (historico de compras dos insumos) ----------
+create table if not exists ingrediente_compras (id bigint primary key);
+alter table ingrediente_compras add column if not exists ing_id bigint;
+alter table ingrediente_compras add column if not exists fornecedor text;
+alter table ingrediente_compras add column if not exists data date;
+alter table ingrediente_compras add column if not exists qtd_compra numeric;
+alter table ingrediente_compras add column if not exists custo_compra numeric;
+alter table ingrediente_compras add column if not exists created_at timestamptz default now();
+
 -- ---------- RECEITAS (fichas tecnicas) ----------
 create table if not exists receitas (id bigint primary key);
 alter table receitas add column if not exists prod_id bigint;
@@ -156,7 +165,7 @@ begin
     where table_schema = 'public'
       and data_type = 'USER-DEFINED'
       and table_name in ('produtos','produto_compras','categorias','vitrine_tipos','ingredientes',
-        'receitas','receita_itens','perdas','vitrine_slots','cronograma',
+        'ingrediente_compras','receitas','receita_itens','perdas','vitrine_slots','cronograma',
         'apoio_producao','plano_semanal','fechamentos')
   loop
     execute format('alter table %I alter column %I drop default;', r.table_name, r.column_name);
@@ -172,7 +181,7 @@ declare t text;
 begin
   foreach t in array array[
     'produtos','produto_compras','categorias','vitrine_tipos','ingredientes',
-    'receitas','receita_itens','perdas','vitrine_slots','cronograma',
+    'ingrediente_compras','receitas','receita_itens','perdas','vitrine_slots','cronograma',
     'apoio_producao','plano_semanal','fechamentos'
   ] loop
     execute format('alter table %I enable row level security;', t);

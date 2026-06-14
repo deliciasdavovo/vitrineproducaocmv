@@ -2201,6 +2201,32 @@ async function syncToSupabase() {
         fatia: i.fatia ?? null, variacao_unidade: i.variacaoUnidade ?? null
       }))), syncErrors);
     }
+    // Garante que as exclusões fiquem salvas: remove do banco os insumos que
+    // não existem mais localmente (senão o upsert acima nunca os apagaria e eles
+    // "ressuscitariam" ao reabrir a página).
+    const ingredienteIds = ingredientes.map(i => i.id).filter(Boolean);
+    if (ingredienteIds.length) {
+      await runSupabase('remover insumos excluídos', db.from('ingredientes').delete().not('id', 'in', `(${ingredienteIds.join(',')})`), syncErrors);
+    } else {
+      await runSupabase('remover insumos excluídos', db.from('ingredientes').delete().neq('id', -1), syncErrors);
+    }
+    // Histórico de compras dos insumos (carrinho) — apaga e re-insere por insumo
+    if (ingredienteIds.length) {
+      await db.from('ingrediente_compras').delete().in('ing_id', ingredienteIds);
+    } else {
+      await db.from('ingrediente_compras').delete().neq('ing_id', -1);
+    }
+    const ingCompras = ingredientes
+      .flatMap(i => (i.historico || []).map(h => ({
+        id: h.id,
+        ing_id: i.id,
+        fornecedor: h.fornecedor || '',
+        data: h.data || null,
+        qtd_compra: Number(h.qtdCompra) || 0,
+        custo_compra: Number(h.custoCompra) || 0
+      })))
+      .filter(h => h.id && h.ing_id);
+    if (ingCompras.length) await runSupabase('salvar compras dos insumos', db.from('ingrediente_compras').insert(ingCompras), syncErrors);
     // Receitas + itens (upsert receita, delete+insert itens)
     for (const r of receitas) {
       await runSupabase('salvar ficha tecnica', db.from('receitas').upsert({ id: r.id, prod_id: r.prodId, rendimento: r.rendimento, unidade: r.unidade, peso_por_unidade: r.pesoPorUnidade ?? null }), syncErrors);
@@ -2319,6 +2345,7 @@ async function loadFromSupabase() {
       { data: comprasData },
       { data: categoriasData },
       { data: vitrineTiposData },
+      { data: ingComprasData },
     ] = await Promise.all([
       db.from('produtos').select('*').order('nome'),
       db.from('ingredientes').select('*').order('nome'),
@@ -2333,6 +2360,7 @@ async function loadFromSupabase() {
       db.from('produto_compras').select('*').order('created_at'),
       db.from('categorias').select('*').order('nome'),
       db.from('vitrine_tipos').select('*').order('nome'),
+      db.from('ingrediente_compras').select('*').order('created_at'),
     ]);
 
     // Supabase é a fonte da verdade: o estado local sempre reflete a nuvem,
@@ -2375,12 +2403,31 @@ async function loadFromSupabase() {
     if (vitrineTiposData?.length) {
       vitrineTipos = vitrineTiposData.map(v => ({ id: v.id, nome: v.nome })).filter(v => v.id && v.nome);
     }
+    const comprasPorIngrediente = {};
+    (ingComprasData || []).forEach(c => {
+      if (!comprasPorIngrediente[c.ing_id]) comprasPorIngrediente[c.ing_id] = [];
+      comprasPorIngrediente[c.ing_id].push({
+        id: c.id,
+        qtdCompra: Number(c.qtd_compra) || 0,
+        custoCompra: Number(c.custo_compra) || 0,
+        fornecedor: c.fornecedor || '',
+        data: c.data || ''
+      });
+    });
     ingredientes = (ingData || []).map(i => {
+      let historico = comprasPorIngrediente[i.id] || [];
+      // Compatibilidade: insumos antigos (sem histórico salvo na nuvem) reaproveitam
+      // as colunas qtd_compra/custo_compra para não perder o custo já cadastrado.
+      if (!historico.length && (Number(i.qtd_compra) || Number(i.custo_compra))) {
+        historico = [{ id: i.id * 1000, qtdCompra: Number(i.qtd_compra) || 0, custoCompra: Number(i.custo_compra) || 0, fornecedor: '', data: '' }];
+      }
+      const ultima = historico[historico.length - 1];
       return {
         id: i.id, nome: i.nome, unidade: i.unidade,
-        qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra),
+        qtdCompra: Number(ultima?.qtdCompra ?? i.qtd_compra) || 0,
+        custoCompra: Number(ultima?.custoCompra ?? i.custo_compra) || 0,
         fatia: i.fatia ?? null, variacaoUnidade: i.variacao_unidade || null,
-        historico: [{ id: i.id * 1000, qtdCompra: Number(i.qtd_compra), custoCompra: Number(i.custo_compra), fornecedor: '', data: '' }]
+        historico
       };
     });
     const itensPorReceita = {};
@@ -2447,7 +2494,8 @@ async function loadFromSupabase() {
       ...ingredientes.map(i => i.id),
       ...receitas.map(r => r.id),
       ...perdas.map(p => p.id),
-      ...produtos.flatMap(p => (p.historicoCompras || []).map(h => h.id))
+      ...produtos.flatMap(p => (p.historicoCompras || []).map(h => h.id)),
+      ...ingredientes.flatMap(i => (i.historico || []).map(h => h.id))
     ].filter(Number.isFinite);
     if (allIds.length) nextId = Math.max(...allIds, nextId);
     categorias = [...new Set([...categorias, ...produtos.map(p => p.categoria).filter(Boolean)])];
