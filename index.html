@@ -991,33 +991,27 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 .quick-sheet input:focus,
 .quick-sheet select:focus { background: #EFF6FF; box-shadow: inset 0 0 0 2px var(--brown); }
 .quick-sheet button { border-radius: 0; white-space: nowrap; }
-.cmv-cell { min-width: 128px; }
-.cmv-bar {
-  height: 5px;
-  width: 100%;
-  margin-top: 6px;
-  border-radius: 999px;
-  background: var(--border);
-  overflow: hidden;
-}
-.cmv-bar span {
-  display: block;
-  height: 100%;
-  border-radius: inherit;
-  width: var(--cmv-width, 0%);
-  background: var(--cmv-color, var(--green));
-}
-.cmv-signal {
-  display: inline-flex;
+.cmv-full-cell {
+  display: flex;
+  flex-direction: column;
   align-items: center;
-  gap: 6px;
-  font-size: 11px;
+  justify-content: center;
+  gap: 4px;
+  padding: 18px 16px;
 }
-.cmv-dot {
-  width: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: currentColor;
+.cmv-pct {
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.03em;
+}
+.cmv-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.7px;
+  text-transform: uppercase;
+  opacity: 0.72;
 }
 .margin-pill {
   display: inline-flex;
@@ -1029,15 +1023,6 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 }
 .margin-good { background: #DCFCE7; color: #166534; }
 .margin-bad { background: #FEE2E2; color: #991B1B; }
-#producao-tbody tr:has(.badge-green) td:first-child,
-#revenda-tbody tr:has(.badge-green) td:first-child,
-#insumos-revenda-tbody tr:has(.badge-green) td:first-child { box-shadow: inset 4px 0 0 var(--green); }
-#producao-tbody tr:has(.badge-yellow) td:first-child,
-#revenda-tbody tr:has(.badge-yellow) td:first-child,
-#insumos-revenda-tbody tr:has(.badge-yellow) td:first-child { box-shadow: inset 4px 0 0 #D97706; }
-#producao-tbody tr:has(.badge-red) td:first-child,
-#revenda-tbody tr:has(.badge-red) td:first-child,
-#insumos-revenda-tbody tr:has(.badge-red) td:first-child { box-shadow: inset 4px 0 0 var(--red); }
 #cmv-stats-row .stat-card {
   position: relative;
   overflow: hidden;
@@ -3787,20 +3772,15 @@ function getProdutoCustoNaUnidadePreco(prod) {
 }
 
 function getCmvStatus(cmv) {
-  if (cmv > 35) return { label: 'Alto', badge: 'badge-red', color: 'var(--red)' };
-  if (cmv > 28) return { label: 'Atencao', badge: 'badge-yellow', color: '#D97706' };
-  return { label: 'Bom', badge: 'badge-green', color: 'var(--green)' };
+  if (cmv > 35) return { label: 'Alto', badge: 'badge-red', color: '#991B1B', bg: '#FEE2E2' };
+  if (cmv > 28) return { label: 'Atenção', badge: 'badge-yellow', color: '#92400E', bg: '#FEF9C3' };
+  return { label: 'Bom', badge: 'badge-green', color: '#166534', bg: '#DCFCE7' };
 }
 
-function renderCmvIndicator(cmv, calculavel) {
-  if (!calculavel) return '—';
-  const status = getCmvStatus(cmv);
-  const width = Math.min(Math.max(cmv, 0), 100);
-  return `<div class="cmv-cell">
-    <span class="badge ${status.badge}">${cmv.toFixed(1)}%</span>
-    <div class="cmv-bar"><span style="--cmv-width:${width}%;--cmv-color:${status.color};"></span></div>
-    <div class="cmv-signal" style="color:${status.color};margin-top:5px;"><span class="cmv-dot"></span>${status.label}</div>
-  </div>`;
+function renderCmvTd(cmv, calculavel) {
+  if (!calculavel) return `<td>—</td>`;
+  const s = getCmvStatus(cmv);
+  return `<td style="background:${s.bg};padding:0;"><div class="cmv-full-cell" style="color:${s.color};"><span class="cmv-pct">${cmv.toFixed(1)}%</span><span class="cmv-lbl">${s.label}</span></div></td>`;
 }
 
 function renderMarginIndicator(value, calculavel, suffix = '') {
@@ -3899,7 +3879,6 @@ function renderFabricacaoSheet(resort = true) {
     const preco = Number(p.preco) || 0;
     const calculavel = preco > 0 && custoNaUnidade > 0;
     const cmv = calculavel ? (custoNaUnidade / preco) * 100 : 0;
-    const statusClass = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
     const custoLabel = (p.precoUnidade || 'un') === 'kg' ? '/kg' : '/un';
     return `<tr data-id="${p.id}">
       <td><input class="sheet-input" value="${escHtml(p.nome||'')}" onblur="updateFabricacaoCell(${p.id},'nome',this.value)" placeholder="Nome do produto" style="min-width:140px;"></td>
@@ -3909,7 +3888,7 @@ function renderFabricacaoSheet(resort = true) {
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateFabricacaoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'precoUnidade',this.value)">${precoUnidadeOptions(getPrecoUnidadeLabel(p))}</select></td>
       <td><span class="sheet-readonly">${custoNaUnidade > 0 ? money(custoNaUnidade) + custoLabel : (temFicha ? '—' : '<span style="color:var(--text-light);">sem ficha</span>')}</span></td>
-      <td><span class="sheet-readonly">${calculavel ? `<span class="badge ${statusClass}">${cmv.toFixed(1)}%</span>` : '—'}</span></td>
+      ${renderCmvTd(cmv, calculavel)}
       <td><button class="btn btn-ghost btn-sm" onclick="setInsumosTab('receitas')" title="Ver fichas técnicas">${temFicha ? 'Ver ficha' : '+ Ficha'}</button></td>
       <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
     </tr>`;
@@ -3979,7 +3958,6 @@ function renderProducaoCMV() {
     const cmv = calculavel ? (custoNaUnidade / preco) * 100 : 0;
     const lucro = preco - custoNaUnidade;
     const margem = preco > 0 ? (lucro / preco) * 100 : 0;
-    const statusClass = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
     const pesoG = temFicha ? getProdutoPesoPorUnidade(p.id) : 0;
     const custoUnDisplay = pesoG > 0 && (p.precoUnidade || 'un') === 'kg'
       ? `${money(custoNaUnidade)}/kg`
@@ -3991,7 +3969,7 @@ function renderProducaoCMV() {
       <td><span class="sheet-readonly">${temFicha ? money(custoTotal) : '<span style="color:var(--text-light);">sem ficha</span>'}</span></td>
       <td><span class="sheet-readonly">${temFicha ? rendimento : '—'}</span></td>
       <td><span class="sheet-readonly">${custoNaUnidade > 0 ? custoUnDisplay : '—'}</span></td>
-      <td><span class="sheet-readonly">${calculavel ? `<span class="badge ${statusClass}">${cmv.toFixed(1)}%</span>` : '—'}</span></td>
+      ${renderCmvTd(cmv, calculavel)}
       <td><span class="sheet-readonly" style="font-weight:600;color:${lucro >= 0 ? 'var(--green)' : 'var(--red)'};">${calculavel ? money(lucro) : '—'}</span></td>
       <td><span class="sheet-readonly">${calculavel ? margem.toFixed(1) + '%' : '—'}</span></td>
     </tr>`;
@@ -4039,7 +4017,7 @@ function renderRevendaCMV() {
     const margem = preco - custo;
     const margemPct = preco > 0 ? (margem / preco) * 100 : 0;
     const cmv = preco > 0 && custo > 0 ? (custo / preco) * 100 : 0;
-    const statusClass = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+    const calculavel = preco > 0 && custo > 0;
     return `<tr>
       <td>
         <span class="sheet-readonly" style="font-weight:600;">${p.nome}</span>
@@ -4049,9 +4027,9 @@ function renderRevendaCMV() {
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(valor)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'valorCompra', this.value)" placeholder="ex: 18,43"></td>
       <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${custo > 0 ? money(custo) + '/' + getPrecoUnidadeLabel(p) : '—'}</span></td>
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'preco', this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
-      <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? money(margem) : '—'}</span></td>
-      <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? margemPct.toFixed(1) + '%' : '—'}</span></td>
-      <td><span class="sheet-readonly">${preco > 0 && custo > 0 ? '<span class="badge ' + statusClass + '">' + cmv.toFixed(1) + '%</span>' : '—'}</span></td>
+      <td><span class="sheet-readonly">${calculavel ? money(margem) : '—'}</span></td>
+      <td><span class="sheet-readonly">${calculavel ? margemPct.toFixed(1) + '%' : '—'}</span></td>
+      ${renderCmvTd(cmv, calculavel)}
       <td><button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))">??</button></td>
     </tr>`;
   }).join('');
@@ -4282,7 +4260,7 @@ function renderReceitaRow(receita) {
   const isPrincipal = prod ? getReceitaPrincipalId(prod.id) === receita.id : true;
   const custoNaUnidade = prod ? getProdutoCustoNaUnidadePreco(prod) : custoTotal / rendimento;
   const cmv = prod?.preco ? (custoNaUnidade / prod.preco) * 100 : 0;
-  const status = cmv > 35 ? 'badge-red' : cmv > 28 ? 'badge-yellow' : 'badge-green';
+  const cmvCalculavel = !!(prod?.preco > 0 && custoNaUnidade > 0);
   const pesoG = prod ? getProdutoPesoPorUnidade(prod.id) : 0;
   const isKg = (prod?.precoUnidade || 'un') === 'kg';
   const custoLabel = isKg && pesoG > 0 ? `${money(custoNaUnidade)}/kg` : `${money(custoTotal / rendimento)}/un`;
@@ -4307,7 +4285,7 @@ function renderReceitaRow(receita) {
     <td>${unidadeCell}</td>
     <td>${pesoCell}</td>
     <td><span class="sheet-readonly">${custoLabel}</span></td>
-    <td><span class="sheet-readonly"><span class="badge ${status}">${cmv.toFixed(0)}%</span></span></td>
+    ${renderCmvTd(cmv, cmvCalculavel)}
     <td><button class="btn btn-ghost btn-sm" onclick="deleteReceita(${receita.id})" style="color:var(--red)">×</button></td>
   </tr>`;
 }
