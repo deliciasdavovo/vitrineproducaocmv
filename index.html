@@ -888,6 +888,45 @@ tr:hover td { background: var(--surface-soft); }
   background: var(--surface);
 }
 .sheet-table tr:hover td { background: var(--surface); }
+/* Divisória de categoria nas planilhas (cabeçalho de grupo) */
+.sheet-group-row td {
+  background: linear-gradient(180deg, #EEF2F7 0%, #E3E9F1 100%);
+  border-top: 3px solid var(--brown);
+  border-bottom: 1px solid var(--border);
+  padding: 7px 12px;
+}
+.sheet-group-row:hover td { background: linear-gradient(180deg, #EEF2F7 0%, #E3E9F1 100%); }
+.sheet-group-label {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-mono);
+  font-size: 11.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--brown);
+}
+.sheet-group-count {
+  font-weight: 600;
+  font-size: 10.5px;
+  color: var(--text-mid);
+  background: rgba(30,41,59,0.1);
+  border-radius: 999px;
+  padding: 1px 8px;
+  letter-spacing: 0.02em;
+}
+/* Linha recém-criada: realce para o usuário achar onde preencher */
+.sheet-row-new td {
+  background: var(--gold-light) !important;
+  box-shadow: inset 3px 0 0 var(--gold);
+}
+.sheet-row-new:hover td { background: #FDEBB8 !important; }
+@keyframes sheetRowFlash {
+  0% { background: #FCE38A; }
+  100% { background: var(--gold-light); }
+}
+.sheet-row-new td { animation: sheetRowFlash 1s ease-out 1; }
 .sheet-input, .sheet-select {
   width: 100%;
   min-width: 92px;
@@ -3918,8 +3957,8 @@ let fabBusca = '', fabOrdem = 'nome';
 let revBusca = '', revOrdem = 'nome';
 let fichaBusca = '', fichaOrdem = 'nome';
 
-function setFabBusca(v) { fabBusca = (v || '').toLowerCase(); renderFabricacaoSheet(); }
-function setFabOrdem(v) { fabOrdem = v; renderFabricacaoSheet(); }
+function setFabBusca(v) { fabBusca = (v || '').toLowerCase(); fabNewIds.clear(); renderFabricacaoSheet(); }
+function setFabOrdem(v) { fabOrdem = v; fabNewIds.clear(); renderFabricacaoSheet(); }
 function setRevBusca(v) { revBusca = (v || '').toLowerCase(); renderRevendaCMV(); }
 function setRevOrdem(v) { revOrdem = v; renderRevendaCMV(); }
 function setFichaBusca(v) { fichaBusca = (v || '').toLowerCase(); renderReceitaSheet(); }
@@ -3960,6 +3999,8 @@ function renderInsumos() {
 }
 
 let fabRenderOrder = [];
+// IDs de produtos recém-criados nesta sessão (ficam fixos no topo + realçados)
+let fabNewIds = new Set();
 
 function renderFabricacaoSheet(resort = true) {
   const tbody = document.getElementById('insumos-fabricacao-tbody');
@@ -3988,10 +4029,38 @@ function renderFabricacaoSheet(resort = true) {
     const pos = id => { const i = fabRenderOrder.indexOf(id); return i === -1 ? -1 : i; };
     fabricacao.sort((a, b) => pos(a.id) - pos(b.id));
   }
+  // Linhas recém-criadas ficam sempre fixas no topo (ordem estável),
+  // para não "sumir" no meio da planilha enquanto o usuário preenche.
+  if (fabNewIds.size) {
+    fabricacao.sort((a, b) => (fabNewIds.has(b.id) ? 1 : 0) - (fabNewIds.has(a.id) ? 1 : 0));
+  }
   fabRenderOrder = fabricacao.map(p => p.id);
   const curvaOptions = `<option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="">—</option>`;
   const precoUnidadeOptions = selected => `<option value="un" ${selected === 'un' ? 'selected' : ''}>Unidade</option><option value="kg" ${selected === 'kg' ? 'selected' : ''}>Kg</option>`;
-  tbody.innerHTML = fabricacao.map(p => {
+  // Mostra divisórias de categoria quando a planilha está ordenada por categoria.
+  const agrupaPorCategoria = fabOrdem === 'categoria';
+  // Contagem por categoria (só dos itens não-novos) para o badge da divisória.
+  const catCount = {};
+  if (agrupaPorCategoria) {
+    fabricacao.forEach(p => {
+      if (fabNewIds.has(p.id)) return;
+      const c = (p.categoria || '').trim() || 'Sem categoria';
+      catCount[c] = (catCount[c] || 0) + 1;
+    });
+  }
+  let ultimaCategoria = null;
+  const linhas = [];
+  fabricacao.forEach(p => {
+    const ehNovo = fabNewIds.has(p.id);
+    // Insere o cabeçalho de grupo quando muda de categoria (ignora linhas novas,
+    // que ficam fixas no topo até o usuário reordenar).
+    if (agrupaPorCategoria && !ehNovo) {
+      const cat = (p.categoria || '').trim() || 'Sem categoria';
+      if (cat !== ultimaCategoria) {
+        ultimaCategoria = cat;
+        linhas.push(`<tr class="sheet-group-row"><td colspan="10"><div class="sheet-group-label">${escHtml(cat)}<span class="sheet-group-count">${catCount[cat]} ${catCount[cat] === 1 ? 'produto' : 'produtos'}</span></div></td></tr>`);
+      }
+    }
     const pv = inferProductVitrine(p);
     const temFicha = getReceitasByProduto(p.id).length > 0;
     const custoNaUnidade = temFicha ? getProdutoCustoNaUnidadePreco(p) : (Number(p.custo) || 0);
@@ -3999,7 +4068,7 @@ function renderFabricacaoSheet(resort = true) {
     const calculavel = preco > 0 && custoNaUnidade > 0;
     const cmv = calculavel ? (custoNaUnidade / preco) * 100 : 0;
     const custoLabel = (p.precoUnidade || 'un') === 'kg' ? '/kg' : '/un';
-    return `<tr data-id="${p.id}">
+    linhas.push(`<tr data-id="${p.id}"${ehNovo ? ' class="sheet-row-new"' : ''}>
       <td><input class="sheet-input" value="${escHtml(p.nome||'')}" onblur="updateFabricacaoCell(${p.id},'nome',this.value)" placeholder="Nome do produto" style="min-width:140px;"></td>
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'categoria',this.value)">${getCategoriaOptions(p.categoria)}</select></td>
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'curva',this.value)">${curvaOptions.replace(`value="${p.curva}"`,`value="${p.curva}" selected`)}</select></td>
@@ -4010,8 +4079,9 @@ function renderFabricacaoSheet(resort = true) {
       ${renderCmvTd(cmv, calculavel)}
       <td><button class="btn btn-ghost btn-sm" onclick="setInsumosTab('receitas')" title="Ver fichas técnicas">${temFicha ? 'Ver ficha' : '+ Ficha'}</button></td>
       <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
-    </tr>`;
-  }).join('') || `<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado — clique em "+ Novo produto de fabricação"</td></tr>`;
+    </tr>`);
+  });
+  tbody.innerHTML = linhas.join('') || `<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado — clique em "+ Novo produto de fabricação"</td></tr>`;
 }
 
 function updateFabricacaoCell(id, field, value) {
@@ -4024,14 +4094,20 @@ function addFabricacaoProduto() {
   const novo = { id: ++nextId, nome: '', tipo: 'fabricacao', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: vitrineTipos[0]?.id || 'salgada', custo: 0, preco: 0, precoUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', historicoCompras: [] };
   produtos.push(novo);
   saveAll();
-  // Fixa a nova linha no topo e não reordena, para o usuário preencher sem ela sumir
+  // Fixa a nova linha no topo, realçada, e não reordena — para o usuário
+  // preencher sem ela pular de lugar ou sumir no meio da lista.
+  fabNewIds.add(novo.id);
   fabRenderOrder = [novo.id, ...fabRenderOrder.filter(id => id !== novo.id)];
   renderFabricacaoSheet(false);
   renderProdutos();
   setTimeout(() => {
     const tbody = document.getElementById('insumos-fabricacao-tbody');
     const novaRow = tbody?.querySelector(`tr[data-id="${novo.id}"]`);
-    if (novaRow) { const first = novaRow.querySelector('.sheet-input'); if (first) first.focus(); }
+    if (novaRow) {
+      novaRow.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const first = novaRow.querySelector('.sheet-input');
+      if (first) first.focus();
+    }
   }, 50);
 }
 
@@ -5281,13 +5357,20 @@ const sheetRowAdders = {
   'perdas-list': () => addPerdaRow(),
 };
 
+// Linhas "de dados" (com células editáveis). Ignora divisórias de categoria
+// e linhas de aviso, para a navegação por Enter não travar nelas.
+function sheetDataRows(tbody) {
+  return Array.from(tbody.querySelectorAll('tr'))
+    .filter(tr => tr.querySelector('.sheet-input, .sheet-select'));
+}
+
 function sheetNavFromEl(e, el) {
   const tbody = el.closest('tbody');
   const row = el.closest('tr');
   if (!tbody || !row || !tbody.id) return;
   e.preventDefault();
 
-  const rows = Array.from(tbody.querySelectorAll('tr'));
+  const rows = sheetDataRows(tbody);
   const rowIndex = rows.indexOf(row);
   const rowCells = Array.from(row.querySelectorAll('.sheet-input, .sheet-select'));
   const colIndex = rowCells.indexOf(el);
@@ -5345,7 +5428,7 @@ function focusSheetCell(tbodyId, rowIndex, colIndex) {
   requestAnimationFrame(() => {
     const tbody = document.getElementById(tbodyId);
     if (!tbody) return;
-    const rows = tbody.querySelectorAll('tr');
+    const rows = sheetDataRows(tbody);
     const row = rows[rowIndex];
     if (!row) return;
     const cells = row.querySelectorAll('.sheet-input, .sheet-select');
