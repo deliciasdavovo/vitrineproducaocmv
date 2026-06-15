@@ -1177,6 +1177,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <div class="nav" id="nav-cmv" style="display:none">
   <button class="nav-btn" data-page="insumos" onclick="showPage('insumos')">Insumos & Fichas</button>
   <button class="nav-btn" data-page="cmv" onclick="showPage('cmv')">CMV</button>
+  <button class="nav-btn" data-page="fornecedores" onclick="showPage('fornecedores')">Fornecedores</button>
   <button class="nav-btn" data-page="banco" onclick="showPage('banco')">Banco de Dados</button>
 </div>
 
@@ -1678,6 +1679,30 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       </div>
     </div>
   </div>
+</div>
+
+<!-- ===================== PAGE: FORNECEDORES ===================== -->
+<div class="page" id="page-fornecedores">
+  <h2 class="section-title">Fornecedores</h2>
+  <p class="section-sub">Histórico completo de compras por fornecedor. Compare valores e descubra o melhor fornecedor de cada produto ou insumo. As compras registradas no histórico dos produtos de revenda e dos insumos aparecem aqui automaticamente.</p>
+
+  <div class="stats-row" id="forn-stats-row">
+    <div class="stat-card"><div class="stat-value" id="forn-stat-qtd">0</div><div class="stat-label">Fornecedores</div></div>
+    <div class="stat-card"><div class="stat-value" id="forn-stat-compras">0</div><div class="stat-label">Compras registradas</div></div>
+    <div class="stat-card"><div class="stat-value" id="forn-stat-total" style="font-size:20px;">R$ 0,00</div><div class="stat-label">Total comprado</div></div>
+    <div class="stat-card"><div class="stat-value" id="forn-stat-itens">0</div><div class="stat-label">Itens diferentes</div></div>
+  </div>
+
+  <div class="toggle-row" id="forn-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
+    <button class="toggle-btn active" id="forn-tab-forn" onclick="setFornecedorView('fornecedor')">Por fornecedor</button>
+    <button class="toggle-btn" id="forn-tab-item" onclick="setFornecedorView('item')">Por produto / insumo</button>
+  </div>
+
+  <div class="form-group" style="margin-bottom:16px;max-width:340px;">
+    <input type="text" id="forn-search" placeholder="Buscar fornecedor, produto ou insumo…" oninput="renderFornecedores()">
+  </div>
+
+  <div id="forn-content"></div>
 </div>
 
 <!-- ===================== PAGE: PERDAS ===================== -->
@@ -2773,7 +2798,7 @@ async function loadFromSupabase() {
 // Mapeia cada pagina ao seu grupo de cabecalho
 const PAGE_GROUPS = {
   vitrine: 'vitrines', cronograma: 'vitrines', perdas: 'vitrines', pedido: 'vitrines',
-  insumos: 'cmv', cmv: 'cmv', banco: 'cmv'
+  insumos: 'cmv', cmv: 'cmv', fornecedores: 'cmv', banco: 'cmv'
 };
 
 function showGroup(group) {
@@ -2804,6 +2829,7 @@ function showPage(page) {
   if (page === 'banco') renderBancoDados();
   if (page === 'insumos') renderInsumos();
   if (page === 'cmv') renderCMV();
+  if (page === 'fornecedores') renderFornecedores();
   if (page === 'perdas') renderPerdas();
   if (page === 'pedido') renderPedido();
 }
@@ -4330,6 +4356,174 @@ function deleteRevendaHistoricoEntry(prodId, entryId) {
   renderCMV();
   renderProdutos();
   openRevendaHistoricoModal(prodId);
+}
+
+// ============================================================
+// FORNECEDORES — histórico de compras agregado por fornecedor / item
+// ============================================================
+let currentFornecedorView = 'fornecedor';
+
+function setFornecedorView(view) {
+  currentFornecedorView = view;
+  document.getElementById('forn-tab-forn').classList.toggle('active', view === 'fornecedor');
+  document.getElementById('forn-tab-item').classList.toggle('active', view === 'item');
+  renderFornecedores();
+}
+
+function fmtDataCompra(d) {
+  return d ? new Date(d + 'T00:00').toLocaleDateString('pt-BR') : '-';
+}
+
+function tipoBadge(tipo) {
+  const cor = tipo === 'Insumo' ? '#7C3AED' : (tipo === 'Revenda' ? '#0EA5E9' : '#16A34A');
+  return '<span style="font-size:10px;font-weight:700;color:' + cor + ';background:' + cor + '22;padding:2px 6px;border-radius:6px;white-space:nowrap;">' + tipo + '</span>';
+}
+
+// Reúne todas as compras (produtos de revenda + insumos) numa lista única.
+function coletarCompras() {
+  const compras = [];
+  const push = (itemId, item, tipo, unidade, h) => {
+    compras.push({
+      itemId, item: (item || '').trim() || '(sem nome)', tipo, unidade: unidade || 'un',
+      fornecedor: (h.fornecedor || '').trim() || 'Sem fornecedor',
+      data: h.data || '',
+      qtdCompra: Number(h.qtdCompra) || 0,
+      custoCompra: Number(h.custoCompra) || 0,
+    });
+  };
+  produtos.forEach(p => (p.historicoCompras || []).forEach(h =>
+    push('p' + p.id, p.nome, p.tipo === 'revenda' ? 'Revenda' : 'Produto', p.precoUnidade, h)));
+  ingredientes.forEach(i => (i.historico || []).forEach(h =>
+    push('i' + i.id, i.nome, 'Insumo', i.unidade, h)));
+  compras.forEach(c => { c.custoUnit = c.qtdCompra > 0 ? c.custoCompra / c.qtdCompra : 0; });
+  return compras;
+}
+
+function renderFornecedores() {
+  const todas = coletarCompras();
+  const termo = (document.getElementById('forn-search')?.value || '').trim().toLowerCase();
+  const compras = termo
+    ? todas.filter(c => c.fornecedor.toLowerCase().includes(termo) || c.item.toLowerCase().includes(termo))
+    : todas;
+
+  // Estatísticas sempre sobre o total (não sobre o filtro).
+  const fornSet = new Set(todas.filter(c => c.fornecedor !== 'Sem fornecedor').map(c => c.fornecedor));
+  const itemSet = new Set(todas.map(c => c.itemId));
+  const totalGasto = todas.reduce((s, c) => s + c.custoCompra, 0);
+  document.getElementById('forn-stat-qtd').textContent = fornSet.size;
+  document.getElementById('forn-stat-compras').textContent = todas.length;
+  document.getElementById('forn-stat-total').textContent = money(totalGasto);
+  document.getElementById('forn-stat-itens').textContent = itemSet.size;
+
+  const content = document.getElementById('forn-content');
+  if (!todas.length) {
+    content.innerHTML = '<p class="section-sub">Nenhuma compra registrada ainda. Registre compras no histórico (botão "Carrinho") dos produtos de revenda e dos insumos — elas aparecem aqui automaticamente.</p>';
+    return;
+  }
+  if (!compras.length) {
+    content.innerHTML = '<p class="section-sub">Nenhum resultado para "' + escHtml(termo) + '".</p>';
+    return;
+  }
+  const expand = !!termo; // com busca ativa, já abre os cards para mostrar o resultado
+  content.innerHTML = currentFornecedorView === 'fornecedor'
+    ? renderFornecedorPorFornecedor(compras, expand)
+    : renderFornecedorPorItem(compras, expand);
+}
+
+function toggleFornCard(header) {
+  const body = header.nextElementSibling;
+  body.style.display = body.style.display === 'none' ? 'block' : 'none';
+}
+
+// Visão "Por fornecedor": um card por fornecedor com todas as suas compras.
+function renderFornecedorPorFornecedor(compras, expand) {
+  const grupos = {};
+  compras.forEach(c => { (grupos[c.fornecedor] = grupos[c.fornecedor] || []).push(c); });
+  const ordenados = Object.keys(grupos).sort((a, b) =>
+    grupos[b].reduce((s, c) => s + c.custoCompra, 0) - grupos[a].reduce((s, c) => s + c.custoCompra, 0));
+
+  return ordenados.map(forn => {
+    const lista = grupos[forn].slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+    const total = lista.reduce((s, c) => s + c.custoCompra, 0);
+    const nItens = new Set(lista.map(c => c.itemId)).size;
+    const rows = lista.map(c =>
+      '<tr>' +
+        '<td>' + fmtDataCompra(c.data) + '</td>' +
+        '<td>' + escHtml(c.item) + ' ' + tipoBadge(c.tipo) + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);">' + (c.qtdCompra || '-') + ' ' + escHtml(c.unidade) + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);">' + money(c.custoCompra) + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);">' + money(c.custoUnit) + '</td>' +
+      '</tr>').join('');
+    return '<div class="sheet-card" style="margin-bottom:12px;">' +
+      '<div onclick="toggleFornCard(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;">' +
+        '<div><div style="font-weight:700;font-size:15px;">' + escHtml(forn) + '</div>' +
+          '<div style="font-size:12px;color:var(--text-light);">' + lista.length + ' compras · ' + nItens + ' itens diferentes</div></div>' +
+        '<div style="text-align:right;"><div style="font-family:var(--font-mono);font-weight:700;">' + money(total) + '</div>' +
+          '<div style="font-size:11px;color:var(--text-light);">total comprado</div></div>' +
+      '</div>' +
+      '<div class="table-wrap" style="display:' + (expand ? 'block' : 'none') + ';border-top:1px solid var(--border);">' +
+        '<table class="sheet-table"><thead><tr>' +
+          '<th>Data</th><th>Item</th><th style="text-align:right;">Qtd.</th><th style="text-align:right;">Valor</th><th style="text-align:right;">/un</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// Visão "Por produto/insumo": um card por item comparando fornecedores.
+function renderFornecedorPorItem(compras, expand) {
+  const grupos = {};
+  compras.forEach(c => { (grupos[c.itemId] = grupos[c.itemId] || []).push(c); });
+  const ids = Object.keys(grupos).sort((a, b) =>
+    grupos[a][0].item.localeCompare(grupos[b][0].item, 'pt-BR'));
+
+  return ids.map(id => {
+    const lista = grupos[id];
+    const item = lista[0];
+    const porForn = {};
+    lista.forEach(c => { (porForn[c.fornecedor] = porForn[c.fornecedor] || []).push(c); });
+    const linhas = Object.keys(porForn).map(forn => {
+      const cs = porForn[forn].slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+      const unitVals = cs.map(c => c.custoUnit).filter(v => v > 0);
+      const medio = unitVals.length ? unitVals.reduce((s, v) => s + v, 0) / unitVals.length : 0;
+      const menor = unitVals.length ? Math.min(...unitVals) : 0;
+      return { forn, nCompras: cs.length, ultima: cs[0].data, ultimoUnit: cs[0].custoUnit, medio, menor };
+    });
+    // Melhor fornecedor = menor preço unitário médio (entre os que têm preço).
+    const comPreco = linhas.filter(l => l.medio > 0);
+    const melhorMedio = comPreco.length ? Math.min(...comPreco.map(l => l.medio)) : null;
+    linhas.sort((a, b) => (a.medio || Infinity) - (b.medio || Infinity));
+    const melhorLinha = melhorMedio != null ? linhas.find(l => l.medio === melhorMedio) : null;
+
+    const resumoMelhor = melhorLinha
+      ? '<span style="font-size:12px;color:var(--green);font-weight:700;">★ Melhor: ' + escHtml(melhorLinha.forn) + ' · ' + money(melhorLinha.medio) + '/' + escHtml(item.unidade) + '</span>'
+      : '<span style="font-size:12px;color:var(--text-light);">Sem preço unitário registrado</span>';
+
+    const rows = linhas.map(l => {
+      const isMelhor = melhorMedio != null && l.medio === melhorMedio;
+      return '<tr style="' + (isMelhor ? 'background:#F0FDF4;' : '') + '">' +
+        '<td>' + escHtml(l.forn) + (isMelhor ? ' <span style="font-size:10px;color:var(--green);font-weight:700;">★ MELHOR</span>' : '') + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);">' + l.nCompras + '</td>' +
+        '<td>' + fmtDataCompra(l.ultima) + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);">' + (l.ultimoUnit ? money(l.ultimoUnit) : '-') + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);font-weight:700;">' + (l.medio ? money(l.medio) : '-') + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);">' + (l.menor ? money(l.menor) : '-') + '</td>' +
+      '</tr>';
+    }).join('');
+
+    return '<div class="sheet-card" style="margin-bottom:12px;">' +
+      '<div onclick="toggleFornCard(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;">' +
+        '<div><div style="font-weight:700;font-size:15px;">' + escHtml(item.item) + ' ' + tipoBadge(item.tipo) + '</div>' +
+          '<div style="font-size:12px;color:var(--text-light);margin-top:2px;">' + linhas.length + ' fornecedor(es) · ' + lista.length + ' compras · preço por ' + escHtml(item.unidade) + '</div></div>' +
+        '<div style="text-align:right;">' + resumoMelhor + '</div>' +
+      '</div>' +
+      '<div class="table-wrap" style="display:' + (expand ? 'block' : 'none') + ';border-top:1px solid var(--border);">' +
+        '<table class="sheet-table"><thead><tr>' +
+          '<th>Fornecedor</th><th style="text-align:right;">Compras</th><th>Última</th><th style="text-align:right;">Último /un</th><th style="text-align:right;">Médio /un</th><th style="text-align:right;">Menor /un</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
 function setReceitaView(view) {
