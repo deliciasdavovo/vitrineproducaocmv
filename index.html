@@ -1473,6 +1473,9 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <input id="quick-insumo-data" type="date" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-qtd" type="number" min="0" step="0.001" placeholder="Qtd. compra" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Marque para cadastrar este item como produto de revenda em vez de ingrediente">
+        <input type="checkbox" id="quick-insumo-revenda" onkeydown="handleQuickInsumoKey(event)"> Material de revenda
+      </label>
       <button class="btn btn-primary" onclick="submitQuickInsumo()">Lancar</button>
     </div>
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
@@ -4709,6 +4712,32 @@ function clearQuickInsumoForm() {
   });
   const unidade = document.getElementById('quick-insumo-unidade');
   if (unidade) unidade.value = 'g';
+  const revenda = document.getElementById('quick-insumo-revenda');
+  if (revenda) revenda.checked = false;
+}
+
+// Cadastra (ou lança nova compra em) um produto de revenda a partir do formulário
+// rápido de insumos, quando "Material de revenda" está marcado.
+function submitQuickRevenda({ nome, fornecedor, data, qtdCompra, custoCompra }) {
+  let prod = produtos.find(p => (p.tipo || 'fabricacao') === 'revenda' && (p.nome || '').toLowerCase() === nome.toLowerCase());
+  const existed = !!prod;
+  if (!prod) {
+    prod = { id: ++nextId, nome, tipo: 'revenda', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: '', custo: 0, preco: 0, precoUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', qtdComprada: 0, valorCompra: 0, historicoCompras: [] };
+    produtos.push(prod);
+  }
+  if (!prod.historicoCompras) prod.historicoCompras = [];
+  if (qtdCompra > 0 || custoCompra > 0 || fornecedor || data) {
+    prod.historicoCompras.push({ id: ++nextId, qtdCompra, custoCompra, fornecedor, data });
+    prod.qtdComprada = qtdCompra;
+    prod.valorCompra = custoCompra;
+    if (qtdCompra > 0 && custoCompra > 0) prod.custo = custoCompra / qtdCompra;
+  }
+  saveAll();
+  renderCMV();
+  renderProdutos();
+  clearQuickInsumoForm();
+  document.getElementById('quick-insumo-nome')?.focus();
+  showToast(existed ? 'Compra lancada no material de revenda existente' : 'Material de revenda criado na lista de revenda', 'success');
 }
 
 function handleQuickInsumoKey(e) {
@@ -4732,8 +4761,22 @@ function submitQuickInsumo() {
   const dataEl = document.getElementById('quick-insumo-data');
   const qtdEl = document.getElementById('quick-insumo-qtd');
   const custoEl = document.getElementById('quick-insumo-custo');
+  const revendaEl = document.getElementById('quick-insumo-revenda');
   const nome = (nomeEl?.value || '').trim();
   if (!nome) return showToast('Informe o nome do insumo', 'error');
+
+  // Material de revenda: cadastra como produto de revenda (entra na lista de revenda)
+  // em vez de virar ingrediente de ficha técnica.
+  if (revendaEl?.checked) {
+    submitQuickRevenda({
+      nome,
+      fornecedor: fornecedorEl?.value || '',
+      data: dataEl?.value || '',
+      qtdCompra: parseFloat(qtdEl?.value) || 0,
+      custoCompra: parseMoney(custoEl?.value)
+    });
+    return;
+  }
 
   let ing = ingredientes.find(i => (i.nome || '').toLowerCase() === nome.toLowerCase());
   const existed = !!ing;
