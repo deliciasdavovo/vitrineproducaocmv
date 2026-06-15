@@ -1474,7 +1474,10 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <input id="quick-insumo-qtd" type="number" min="0" step="0.001" placeholder="Qtd. compra" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)">
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Marque para cadastrar este item como produto de revenda em vez de ingrediente">
-        <input type="checkbox" id="quick-insumo-revenda" onkeydown="handleQuickInsumoKey(event)"> Material de revenda
+        <input type="checkbox" id="quick-insumo-revenda" onchange="if(this.checked)document.getElementById('quick-insumo-ambos').checked=false" onkeydown="handleQuickInsumoKey(event)"> Material de revenda
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Marque para cadastrar nas duas listas: como ingrediente e como produto de revenda (ex: presunto)">
+        <input type="checkbox" id="quick-insumo-ambos" onchange="if(this.checked)document.getElementById('quick-insumo-revenda').checked=false" onkeydown="handleQuickInsumoKey(event)"> Insumo + revenda
       </label>
       <button class="btn btn-primary" onclick="submitQuickInsumo()">Lancar</button>
     </div>
@@ -4714,11 +4717,12 @@ function clearQuickInsumoForm() {
   if (unidade) unidade.value = 'g';
   const revenda = document.getElementById('quick-insumo-revenda');
   if (revenda) revenda.checked = false;
+  const ambos = document.getElementById('quick-insumo-ambos');
+  if (ambos) ambos.checked = false;
 }
 
-// Cadastra (ou lança nova compra em) um produto de revenda a partir do formulário
-// rápido de insumos, quando "Material de revenda" está marcado.
-function submitQuickRevenda({ nome, fornecedor, data, qtdCompra, custoCompra }) {
+// Cria (ou lança nova compra em) um produto de revenda. Retorna true se já existia.
+function upsertQuickRevenda(nome, { fornecedor, data, qtdCompra, custoCompra }) {
   let prod = produtos.find(p => (p.tipo || 'fabricacao') === 'revenda' && (p.nome || '').toLowerCase() === nome.toLowerCase());
   const existed = !!prod;
   if (!prod) {
@@ -4732,12 +4736,7 @@ function submitQuickRevenda({ nome, fornecedor, data, qtdCompra, custoCompra }) 
     prod.valorCompra = custoCompra;
     if (qtdCompra > 0 && custoCompra > 0) prod.custo = custoCompra / qtdCompra;
   }
-  saveAll();
-  renderCMV();
-  renderProdutos();
-  clearQuickInsumoForm();
-  document.getElementById('quick-insumo-nome')?.focus();
-  showToast(existed ? 'Compra lancada no material de revenda existente' : 'Material de revenda criado na lista de revenda', 'success');
+  return existed;
 }
 
 function handleQuickInsumoKey(e) {
@@ -4762,43 +4761,34 @@ function submitQuickInsumo() {
   const qtdEl = document.getElementById('quick-insumo-qtd');
   const custoEl = document.getElementById('quick-insumo-custo');
   const revendaEl = document.getElementById('quick-insumo-revenda');
+  const ambosEl = document.getElementById('quick-insumo-ambos');
   const nome = (nomeEl?.value || '').trim();
   if (!nome) return showToast('Informe o nome do insumo', 'error');
 
-  // Material de revenda: cadastra como produto de revenda (entra na lista de revenda)
-  // em vez de virar ingrediente de ficha técnica.
-  if (revendaEl?.checked) {
-    submitQuickRevenda({
-      nome,
-      fornecedor: fornecedorEl?.value || '',
-      data: dataEl?.value || '',
-      qtdCompra: parseFloat(qtdEl?.value) || 0,
-      custoCompra: parseMoney(custoEl?.value)
-    });
-    return;
-  }
-
-  let ing = ingredientes.find(i => (i.nome || '').toLowerCase() === nome.toLowerCase());
-  const existed = !!ing;
-  if (!ing) {
-    ing = { id: ++nextId, nome, unidade: unidadeEl?.value || 'g', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] };
-    ingredientes.push(ing);
-  } else if (unidadeEl?.value) {
-    ing.unidade = unidadeEl.value;
-  }
-
   const compra = {
-    id: ++nextId,
     fornecedor: fornecedorEl?.value || '',
     data: dataEl?.value || '',
     qtdCompra: parseFloat(qtdEl?.value) || 0,
     custoCompra: parseMoney(custoEl?.value)
   };
-  if (!ing.historico) ing.historico = [];
-  if (compra.qtdCompra > 0 || compra.custoCompra > 0 || compra.fornecedor || compra.data) {
-    ing.historico.push(compra);
-    ing.qtdCompra = compra.qtdCompra;
-    ing.custoCompra = compra.custoCompra;
+  const unidade = unidadeEl?.value || 'g';
+
+  const comoInsumo = ambosEl?.checked || !revendaEl?.checked;
+  const comoRevenda = ambosEl?.checked || revendaEl?.checked;
+
+  let msg;
+  if (comoInsumo && comoRevenda) {
+    upsertQuickInsumo(nome, unidade, compra);
+    upsertQuickRevenda(nome, compra);
+    msg = 'Cadastrado como insumo e material de revenda';
+  } else if (comoRevenda) {
+    msg = upsertQuickRevenda(nome, compra)
+      ? 'Compra lancada no material de revenda existente'
+      : 'Material de revenda criado na lista de revenda';
+  } else {
+    msg = upsertQuickInsumo(nome, unidade, compra)
+      ? 'Compra lancada no insumo existente'
+      : 'Insumo criado na planilha';
   }
 
   saveAll();
@@ -4807,7 +4797,26 @@ function submitQuickInsumo() {
   renderProdutos();
   clearQuickInsumoForm();
   nomeEl?.focus();
-  showToast(existed ? 'Compra lancada no insumo existente' : 'Insumo criado na planilha', 'success');
+  showToast(msg, 'success');
+}
+
+// Cria (ou lança nova compra em) um ingrediente. Retorna true se já existia.
+function upsertQuickInsumo(nome, unidade, compra) {
+  let ing = ingredientes.find(i => (i.nome || '').toLowerCase() === nome.toLowerCase());
+  const existed = !!ing;
+  if (!ing) {
+    ing = { id: ++nextId, nome, unidade: unidade || 'g', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] };
+    ingredientes.push(ing);
+  } else if (unidade) {
+    ing.unidade = unidade;
+  }
+  if (!ing.historico) ing.historico = [];
+  if (compra.qtdCompra > 0 || compra.custoCompra > 0 || compra.fornecedor || compra.data) {
+    ing.historico.push({ id: ++nextId, fornecedor: compra.fornecedor, data: compra.data, qtdCompra: compra.qtdCompra, custoCompra: compra.custoCompra });
+    ing.qtdCompra = compra.qtdCompra;
+    ing.custoCompra = compra.custoCompra;
+  }
+  return existed;
 }
 
 function addIngredienteRow() {
