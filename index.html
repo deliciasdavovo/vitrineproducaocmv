@@ -6,7 +6,7 @@
 <title>Vitrines · Delícias da Vovó</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@200..800&family=Roboto+Mono:wght@300..700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -33,7 +33,7 @@
   --shadow-soft: 0 1px 3px rgba(15,23,42,0.06);
   --radius: 8px;
   --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', system-ui, sans-serif;
-  --font-mono: ui-monospace, 'SF Mono', 'SFMono-Regular', 'Menlo', 'Fira Code', monospace;
+  --font-mono: 'Roboto Mono', ui-monospace, 'Menlo', 'Fira Code', monospace;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -1071,23 +1071,24 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 .quick-sheet button { border-radius: 0; white-space: nowrap; }
 .cmv-full-cell {
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
   align-items: center;
   justify-content: center;
-  gap: 4px;
-  padding: 18px 16px;
+  gap: 6px;
+  min-width: 74px;
+  padding: 8px 10px;
 }
 .cmv-pct {
-  font-size: 20px;
-  font-weight: 900;
+  font-size: 13px;
+  font-weight: 800;
   line-height: 1;
   font-variant-numeric: tabular-nums;
-  letter-spacing: -0.03em;
+  letter-spacing: 0;
 }
 .cmv-lbl {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.7px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
   opacity: 0.72;
 }
@@ -1279,7 +1280,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         </thead>
         <tbody id="cronograma-list"></tbody>
       </table>
-      <button class="btn-add-row" onclick="addCronoRow()">＋ Adicionar linha</button>
+      <button class="btn-add-row" onclick="addCronoRow()">+ Adicionar linha</button>
     </div>
     <div class="sheet-hint">
       <kbd>Enter</kbd> próxima coluna
@@ -1288,7 +1289,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <span class="hint-sep">·</span>
       última coluna → nova linha
       <span class="hint-sep">·</span>
-      <kbd>⬛ arraste</kbd> para copiar valor
+      <kbd>alça</kbd> arraste para copiar valor
     </div>
   </div>
 
@@ -1358,7 +1359,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         <thead id="produtos-thead"></thead>
         <tbody id="produtos-tbody"></tbody>
       </table>
-      <button class="btn-add-row" onclick="addProdutoRow()">＋ Adicionar linha</button>
+      <button class="btn-add-row" onclick="addProdutoRow()">+ Adicionar linha</button>
     </div>
     <div class="sheet-hint">
       <kbd>Enter</kbd> próxima coluna
@@ -1367,7 +1368,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <span class="hint-sep">·</span>
       última coluna → nova linha
       <span class="hint-sep">·</span>
-      <kbd>⬛ arraste</kbd> para copiar valor
+      <kbd>alça</kbd> arraste para copiar valor
     </div>
   </div>
 </div>
@@ -1389,7 +1390,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
             <thead><tr><th>Categoria</th><th></th></tr></thead>
             <tbody id="categorias-tbody"></tbody>
           </table>
-          <button class="btn-add-row" onclick="addCategoriaRow()">＋ Adicionar linha</button>
+          <button class="btn-add-row" onclick="addCategoriaRow()">+ Adicionar linha</button>
         </div>
       </div>
     </div>
@@ -1405,7 +1406,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
             <thead><tr><th>Codigo</th><th>Nome</th><th></th></tr></thead>
             <tbody id="vitrines-tbody"></tbody>
           </table>
-          <button class="btn-add-row" onclick="addVitrineTipoRow()">＋ Adicionar linha</button>
+          <button class="btn-add-row" onclick="addVitrineTipoRow()">+ Adicionar linha</button>
         </div>
       </div>
     </div>
@@ -1478,10 +1479,10 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <input id="quick-insumo-qtd" type="number" min="0" step="0.001" placeholder="Qtd. compra" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)">
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Material de revenda — cadastra este item como produto de revenda (garrafa PET) em vez de ingrediente">
-        <input type="checkbox" id="quick-insumo-revenda" onchange="if(this.checked)document.getElementById('quick-insumo-ambos').checked=false" onkeydown="handleQuickInsumoKey(event)"> <svg width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-3px;"><path d="M10 2h4v2.2l1.2 2.4a4 4 0 0 1 .8 2.4V20a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V9a4 4 0 0 1 .8-2.4L10 4.2z"></path><line x1="10" y1="2" x2="14" y2="2"></line><line x1="8" y1="13" x2="16" y2="13"></line></svg>
+        <input type="checkbox" id="quick-insumo-revenda" onchange="if(this.checked)document.getElementById('quick-insumo-ambos').checked=false" onkeydown="handleQuickInsumoKey(event)"> Revenda
       </label>
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Insumo + revenda — cadastra nas duas listas: como insumo e como produto de revenda em garrafa PET (ex: presunto)">
-        <input type="checkbox" id="quick-insumo-ambos" onchange="if(this.checked)document.getElementById('quick-insumo-revenda').checked=false" onkeydown="handleQuickInsumoKey(event)"> <svg width="15" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-3px;"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"></path><polyline points="2.32 6.16 12 11 21.68 6.16"></polyline><line x1="12" y1="22.76" x2="12" y2="11"></line></svg> <span style="color:var(--text-light);font-weight:600;">+</span> <svg width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-3px;"><path d="M10 2h4v2.2l1.2 2.4a4 4 0 0 1 .8 2.4V20a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V9a4 4 0 0 1 .8-2.4L10 4.2z"></path><line x1="10" y1="2" x2="14" y2="2"></line><line x1="8" y1="13" x2="16" y2="13"></line></svg>
+        <input type="checkbox" id="quick-insumo-ambos" onchange="if(this.checked)document.getElementById('quick-insumo-revenda').checked=false" onkeydown="handleQuickInsumoKey(event)"> Insumo + revenda
       </label>
       <button class="btn btn-primary" onclick="submitQuickInsumo()">Lancar</button>
     </div>
@@ -1501,12 +1502,13 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <th>Custo compra</th>
               <th>Custo base</th>
               <th>Variação</th>
+              <th>Hist.</th>
               <th></th>
             </tr>
           </thead>
           <tbody id="ingredientes-tbody"></tbody>
         </table>
-        <button class="btn-add-row" onclick="addIngredienteRow()">＋ Adicionar linha</button>
+        <button class="btn-add-row" onclick="addIngredienteRow()">+ Adicionar linha</button>
       </div>
       <div class="sheet-hint">
         <kbd>Enter</kbd> próxima coluna
@@ -1515,7 +1517,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         <span class="hint-sep">·</span>
         última coluna → nova linha
         <span class="hint-sep">·</span>
-        <kbd>⬛ arraste</kbd> para copiar valor
+        <kbd>alça</kbd> arraste para copiar valor
       </div>
     </div>
   </div>
@@ -1553,7 +1555,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
             </thead>
             <tbody id="receitas-tbody"></tbody>
           </table>
-          <button class="btn-add-row" onclick="addReceitaRow()">＋ Adicionar linha</button>
+          <button class="btn-add-row" onclick="addReceitaRow()">+ Adicionar linha</button>
         </div>
         <div class="sheet-hint">
           <kbd>Enter</kbd> próxima coluna
@@ -1562,7 +1564,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
           <span class="hint-sep">·</span>
           última coluna → nova linha
           <span class="hint-sep">·</span>
-          <kbd>⬛ arraste</kbd> para copiar valor
+          <kbd>alça</kbd> arraste para copiar valor
         </div>
       </div>
     </div>
@@ -1709,7 +1711,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
   <!-- Barra de filtros e ordenação -->
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;">
-    <input type="text" id="forn-search" placeholder="🔎 Buscar fornecedor, produto ou insumo…" oninput="renderFornecedores()" style="flex:1;min-width:200px;max-width:320px;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);">
+    <input type="text" id="forn-search" placeholder="Buscar fornecedor, produto ou insumo..." oninput="renderFornecedores()" style="flex:1;min-width:200px;max-width:320px;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);">
     <select id="forn-sort" onchange="renderFornecedores()" style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);"></select>
     <div style="display:flex;gap:6px;margin-left:auto;">
       <button class="btn btn-ghost btn-sm" onclick="expandirFornCards(true)">Expandir tudo</button>
@@ -1766,7 +1768,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         </thead>
         <tbody id="perdas-list"></tbody>
       </table>
-      <button class="btn-add-row" onclick="addPerdaRow()">＋ Adicionar linha</button>
+      <button class="btn-add-row" onclick="addPerdaRow()">+ Adicionar linha</button>
     </div>
     <div class="sheet-hint">
       <kbd>Enter</kbd> próxima coluna
@@ -1775,7 +1777,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <span class="hint-sep">·</span>
       última coluna → nova linha
       <span class="hint-sep">·</span>
-      <kbd>⬛ arraste</kbd> para copiar valor
+      <kbd>alça</kbd> arraste para copiar valor
     </div>
   </div>
 </div>
@@ -1958,7 +1960,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     </div>
     <div class="form-row">
       <div class="form-group"><label>Quantidade comprada</label><input type="number" id="hist-qtd" min="0.001" step="0.001" placeholder="ex: 1000"></div>
-      <div class="form-group"><label>Custo total (R$)</label><input type="number" id="hist-custo" min="0" step="0.01" placeholder="ex: 18,90"></div>
+      <div class="form-group"><label>Custo total (R$)</label><input type="text" inputmode="decimal" id="hist-custo" oninput="maskMoney(this)" placeholder="ex: 18,90"></div>
     </div>
     <input type="hidden" id="hist-ing-id">
     <div class="modal-actions">
@@ -2112,7 +2114,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <!-- Modal: Perda -->
 <div class="modal-overlay" id="modal-perda">
   <div class="modal">
-    <div class="modal-title">?? Registrar Perda / Feedback</div>
+    <div class="modal-title">Registrar Perda / Feedback</div>
     <div class="form-row">
       <div class="form-group"><label>Produto</label>
         <select id="perda-produto"></select>
@@ -2431,7 +2433,7 @@ ingredientes = ingredientes.map(ing => {
   }
   if (ing.fatia === undefined) ing.fatia = null;
   // Garante qtdCompra/custoCompra sincronizados com historico mais recente
-  const ultimo = ing.historico[ing.historico.length - 1];
+  const ultimo = historicoOrdenado(ing.historico)[0];
   if (ultimo) { ing.qtdCompra = ultimo.qtdCompra; ing.custoCompra = ultimo.custoCompra; }
   return ing;
 });
@@ -2440,6 +2442,9 @@ function saveAll() {
   setStorage('ddv_produtos', produtos);
   setStorage('ddv_ingredientes', ingredientes);
   setStorage('ddv_receitas', receitas);
+  if ((receitas || []).some(r => r.itens?.length)) {
+    setStorage('ddv_receitas_backup', receitas);
+  }
   setStorage('ddv_vitrines', vitrines);
   setStorage('ddv_cronograma', cronograma);
   setStorage('ddv_perdas', perdas);
@@ -2492,6 +2497,39 @@ async function runSupabase(label, query, errors = []) {
     console.error(`Supabase: ${label}`, result.error);
   }
   return result?.data;
+}
+
+async function salvarReceitaItens(receita, syncErrors) {
+  await db.from('receita_itens').delete().eq('receita_id', receita.id);
+  if (!receita.itens?.length) return;
+
+  const itensComUnidadeUso = receita.itens.map(item => ({
+    receita_id: receita.id,
+    ing_id: item.ingId,
+    qtd: item.qtd,
+    uso_unidade: item.usoUnidade || null
+  }));
+  const insert = await db.from('receita_itens').insert(itensComUnidadeUso);
+  if (!insert?.error) return;
+
+  const missingUsoUnidade =
+    String(insert.error.message || '').includes('uso_unidade') ||
+    String(insert.error.details || '').includes('uso_unidade') ||
+    String(insert.error.hint || '').includes('uso_unidade');
+
+  if (!missingUsoUnidade) {
+    syncErrors.push({ label: 'salvar itens da ficha', error: insert.error });
+    console.error('Supabase: salvar itens da ficha', insert.error);
+    return;
+  }
+
+  console.warn('Supabase: coluna uso_unidade ausente; salvando ficha no formato antigo.', insert.error);
+  const itensSemUnidadeUso = receita.itens.map(item => ({
+    receita_id: receita.id,
+    ing_id: item.ingId,
+    qtd: item.qtd
+  }));
+  await runSupabase('salvar itens da ficha', db.from('receita_itens').insert(itensSemUnidadeUso), syncErrors);
 }
 
 async function syncToSupabase() {
@@ -2573,12 +2611,7 @@ async function syncToSupabase() {
     // Receitas + itens (upsert receita, delete+insert itens)
     for (const r of receitas) {
       await runSupabase('salvar ficha tecnica', db.from('receitas').upsert({ id: r.id, prod_id: r.prodId, rendimento: r.rendimento, unidade: r.unidade, peso_por_unidade: r.pesoPorUnidade ?? null }), syncErrors);
-      await db.from('receita_itens').delete().eq('receita_id', r.id);
-      if (r.itens?.length) {
-        await runSupabase('salvar itens da ficha', db.from('receita_itens').insert(r.itens.map(item => ({
-          receita_id: r.id, ing_id: item.ingId, qtd: item.qtd
-        }))), syncErrors);
-      }
+      await salvarReceitaItens(r, syncErrors);
     }
     // Perdas (upsert por id inteiro)
     const perdasValidas = perdas.filter(p => p.id);
@@ -2676,6 +2709,11 @@ async function loadFromSupabase() {
   document.body.style.opacity = '0.55';
   document.body.style.pointerEvents = 'none';
   try {
+    const receitasBackup = getStorage('ddv_receitas_backup', []);
+    const receitasLocalAntesLoad = (receitas || []).concat(receitasBackup || []).map(r => ({
+      ...r,
+      itens: (r.itens || []).map(item => ({ ...item }))
+    }));
     const [
       { data: prodData },
       { data: ingData },
@@ -2726,9 +2764,9 @@ async function loadFromSupabase() {
     produtos = (prodData || []).map(p => {
       const tipo = p.tipo || 'fabricacao';
       const historicoCompras = comprasPorProduto[p.id] || [];
-      const ultimaCompra = historicoCompras[historicoCompras.length - 1];
-      const qtdComprada = Number(p.qtd_comprada ?? ultimaCompra?.qtdCompra) || 0;
-      const valorCompra = Number(p.valor_compra ?? ultimaCompra?.custoCompra) || 0;
+      const ultimaCompra = historicoOrdenado(historicoCompras)[0];
+      const qtdComprada = Number(ultimaCompra?.qtdCompra ?? p.qtd_comprada) || 0;
+      const valorCompra = Number(ultimaCompra?.custoCompra ?? p.valor_compra) || 0;
       return {
         id: p.id, nome: p.nome, curva: p.curva, validade: p.validade,
         categoria: p.categoria, vitrine: tipo === 'revenda' ? '' : p.vitrine, custo: Number(p.custo),
@@ -2766,7 +2804,7 @@ async function loadFromSupabase() {
       if (!historico.length && (Number(i.qtd_compra) || Number(i.custo_compra))) {
         historico = [{ id: i.id * 1000, qtdCompra: Number(i.qtd_compra) || 0, custoCompra: Number(i.custo_compra) || 0, fornecedor: '', data: '' }];
       }
-      const ultima = historico[historico.length - 1];
+      const ultima = historicoOrdenado(historico)[0];
       return {
         id: i.id, nome: i.nome, unidade: i.unidade,
         qtdCompra: Number(ultima?.qtdCompra ?? i.qtd_compra) || 0,
@@ -2778,12 +2816,21 @@ async function loadFromSupabase() {
     const itensPorReceita = {};
     (recItensData || []).forEach(item => {
       if (!itensPorReceita[item.receita_id]) itensPorReceita[item.receita_id] = [];
-      itensPorReceita[item.receita_id].push({ ingId: item.ing_id, qtd: Number(item.qtd) });
+      itensPorReceita[item.receita_id].push({ ingId: item.ing_id, qtd: Number(item.qtd), usoUnidade: item.uso_unidade || '' });
     });
+    const itensLocaisPorReceita = {};
+    if (!(recItensData || []).length) {
+      receitasLocalAntesLoad.forEach(r => {
+        if (r.itens?.length) itensLocaisPorReceita[r.id] = r.itens;
+      });
+      if (Object.keys(itensLocaisPorReceita).length) {
+        console.warn('Supabase retornou fichas sem itens; preservando itens locais.');
+      }
+    }
     receitas = (recData || []).map(r => ({
       id: r.id, prodId: r.prod_id, rendimento: Number(r.rendimento), unidade: r.unidade,
       pesoPorUnidade: r.peso_por_unidade ? Number(r.peso_por_unidade) : null,
-      itens: itensPorReceita[r.id] || []
+      itens: itensPorReceita[r.id] || itensLocaisPorReceita[r.id] || []
     }));
     vitrines = {};
     (slotData || []).forEach(s => {
@@ -3086,7 +3133,7 @@ function renderApoioProducao() {
     <tr>
       <td><span class="sheet-row-code">${String(index + 1).padStart(2, '0')}</span> ${item.nome}</td>
       <td>${item.qty}</td>
-      <td style="width:40px;text-align:right;"><button class="btn btn-ghost btn-sm" onclick="removeApoioRow(${index})">?</button></td>
+      <td style="width:40px;text-align:right;"><button class="btn btn-ghost btn-sm" onclick="removeApoioRow(${index})" aria-label="Remover">x</button></td>
     </tr>
   `).join('');
 }
@@ -3335,7 +3382,7 @@ function markContextSlotSold() {
   saveAll();
   closeSlotContextMenu();
   renderVitrine();
-  showToast('Vendeu tudo ?', 'success');
+  showToast('Vendeu tudo', 'success');
 }
 
 function burstHeartsAtSlot(slotNumber) {
@@ -3346,7 +3393,7 @@ function burstHeartsAtSlot(slotNumber) {
   for (let i = 0; i < 10; i++) {
     const heart = document.createElement('div');
     heart.className = 'heart-burst';
-    heart.textContent = '?';
+    heart.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 6 9 17l-5-5"></path></svg>';
     heart.style.left = `${x}px`;
     heart.style.top = `${y}px`;
     heart.style.color = i % 2 ? '#16A34A' : '#2563EB';
@@ -3457,7 +3504,7 @@ function saveFechamento() {
   saveAll();
   closeModal('modal-fechamento');
   renderPedido();
-  showToast('Fechamento salvo e produção atualizada ?', 'success');
+  showToast('Fechamento salvo e produção atualizada', 'success');
 }
 
 function syncValidadePerdasFromFechamento() {
@@ -3888,7 +3935,7 @@ function saveProduto() {
   closeModal('modal-produto');
   renderProdutos();
   renderCMV();
-  showToast('Produto salvo ?', 'success');
+  showToast('Produto salvo', 'success');
 }
 
 // ============================================================
@@ -4375,16 +4422,15 @@ function openRevendaHistoricoModal(prodId) {
     const rows = hist.map((h, rIdx) => {
       const cuUn = (Number(h.custoCompra) || 0) / (Number(h.qtdCompra) || 1);
       const isLatest = rIdx === 0;
-      const dataLabel = h.data ? new Date(h.data + 'T00:00').toLocaleDateString('pt-BR') : '-';
       const atualLabel = isLatest ? '<span style="font-size:10px;color:var(--green);font-weight:700;">ATUAL</span>' : '';
       const deleteBtn = !isLatest
         ? '<button class="btn btn-ghost btn-sm" onclick="deleteRevendaHistoricoEntry(' + prodId + ',' + h.id + ')" style="color:var(--red);padding:2px 8px;">x</button>'
         : '';
       return '<tr style="' + (isLatest ? 'background:#F0FDF4;' : '') + '">' +
-        '<td style="' + tdStyle + '">' + dataLabel + '</td>' +
-        '<td style="' + tdStyle + '">' + escHtml(h.fornecedor || '-') + ' ' + atualLabel + '</td>' +
-        '<td style="' + tdRightStyle + '">' + h.qtdCompra + '</td>' +
-        '<td style="' + tdRightStyle + '">' + money(h.custoCompra) + '</td>' +
+        '<td style="' + tdStyle + '"><input class="sheet-input" type="date" value="' + (h.data || '') + '" onchange="updateRevendaHistoricoEntry(' + prodId + ',' + h.id + ',\'data\',this.value)" style="min-width:120px;"></td>' +
+        '<td style="' + tdStyle + '"><input class="sheet-input" list="fornecedores-list" value="' + escHtml(h.fornecedor || '') + '" onblur="updateRevendaHistoricoEntry(' + prodId + ',' + h.id + ',\'fornecedor\',this.value)" placeholder="Fornecedor" style="min-width:120px;"> ' + atualLabel + '</td>' +
+        '<td style="' + tdRightStyle + '"><input class="sheet-input" type="number" min="0.001" step="0.001" value="' + (h.qtdCompra || '') + '" onblur="updateRevendaHistoricoEntry(' + prodId + ',' + h.id + ',\'qtdCompra\',this.value)" style="min-width:78px;text-align:right;"></td>' +
+        '<td style="' + tdRightStyle + '"><input class="sheet-input" type="text" inputmode="decimal" value="' + moneyInputVal(h.custoCompra) + '" oninput="maskMoney(this)" onblur="updateRevendaHistoricoEntry(' + prodId + ',' + h.id + ',\'custoCompra\',this.value)" style="min-width:84px;text-align:right;"></td>' +
         '<td style="' + tdRightStyle + '">' + money(cuUn) + '</td>' +
         '<td style="' + tdStyle + 'text-align:center;">' + deleteBtn + '</td>' +
       '</tr>';
@@ -4416,9 +4462,7 @@ function saveRevendaHistoricoCompra() {
 
   if (!prod.historicoCompras) prod.historicoCompras = [];
   prod.historicoCompras.push({ id: ++nextId, qtdCompra, custoCompra, fornecedor, data: dataCompra });
-  prod.qtdComprada = qtdCompra;
-  prod.valorCompra = custoCompra;
-  prod.custo = custoCompra / qtdCompra;
+  syncRevendaFromHistorico(prod);
   saveAll();
   renderCMV();
   renderProdutos();
@@ -4430,14 +4474,32 @@ function deleteRevendaHistoricoEntry(prodId, entryId) {
   const prod = produtos.find(p => p.id === prodId);
   if (!prod || !prod.historicoCompras) return;
   prod.historicoCompras = prod.historicoCompras.filter(h => h.id !== entryId);
-  const uc = getUltimaCompraRevenda(prod);
-  prod.qtdComprada = uc.qtdCompra || 0;
-  prod.valorCompra = uc.custoCompra || 0;
-  prod.custo = prod.qtdComprada > 0 ? prod.valorCompra / prod.qtdComprada : 0;
+  syncRevendaFromHistorico(prod);
   saveAll();
   renderCMV();
   renderProdutos();
   openRevendaHistoricoModal(prodId);
+}
+
+function updateRevendaHistoricoEntry(prodId, entryId, field, value) {
+  const prod = produtos.find(p => p.id === prodId);
+  const entry = prod?.historicoCompras?.find(h => h.id === entryId);
+  if (!prod || !entry) return;
+  if (field === 'qtdCompra') entry.qtdCompra = parseFloat(value) || 0;
+  else if (field === 'custoCompra') entry.custoCompra = parseMoney(value);
+  else entry[field] = value;
+  syncRevendaFromHistorico(prod);
+  saveAll();
+  renderCMV();
+  renderProdutos();
+  openRevendaHistoricoModal(prodId);
+}
+
+function syncRevendaFromHistorico(prod) {
+  const uc = getUltimaCompraRevenda(prod);
+  prod.qtdComprada = Number(uc.qtdCompra) || 0;
+  prod.valorCompra = Number(uc.custoCompra) || 0;
+  prod.custo = prod.qtdComprada > 0 ? prod.valorCompra / prod.qtdComprada : 0;
 }
 
 // ============================================================
@@ -4544,7 +4606,7 @@ function renderFornecedores() {
 
   const content = document.getElementById('forn-content');
   if (!todas.length) {
-    content.innerHTML = '<p class="section-sub">Nenhuma compra registrada ainda. Registre compras no histórico (botão do carrinho 🛒) dos produtos de revenda e dos insumos — elas aparecem aqui automaticamente.</p>';
+    content.innerHTML = '<p class="section-sub">Nenhuma compra registrada ainda. Registre compras pelo botão Hist. dos produtos de revenda e dos insumos. Elas aparecem aqui automaticamente.</p>';
     return;
   }
   if (!compras.length) {
@@ -4796,13 +4858,13 @@ function renderIngredientes() {
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(uc.custoCompra)}" oninput="maskMoney(this)" onblur="updateIngredienteCompra(${ing.id},'custoCompra',this.value)" placeholder="0,00" style="min-width:80px;"></td>
       <td style="min-width:110px;">${derivados}</td>
       <td style="min-width:160px;">${variacaoCell}</td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openHistoricoModal(${ing.id})" title="Carrinho de compras" aria-label="Carrinho de compras">${cartBtnLabel(nCompras)}</button></td>
       <td style="white-space:nowrap;">
         ${classSelectHtml(ing.nome, `reclassifyIngrediente(${ing.id}, this.value)`)}
-        <button class="btn btn-ghost btn-sm" onclick="openHistoricoModal(${ing.id})" title="Carrinho de compras" aria-label="Carrinho de compras" style="margin-right:2px;">${cartBtnLabel(nCompras)}</button>
         <button class="btn btn-ghost btn-sm" onclick="deleteIngrediente(${ing.id})" style="color:var(--red)">×</button>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum ingrediente cadastrado</td></tr>`;
+  }).join('') || `<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum ingrediente cadastrado</td></tr>`;
 }
 
 function renderReceitaRow(receita) {
@@ -5027,7 +5089,8 @@ function renderReceitaQtdCell(receita) {
   const item = receita.itens?.[0] || {};
   const ing = ingredientes.find(i => i.id === item.ingId);
   const uso = getItemUsoUnidade(item, ing);
-  const unitControl = ing?.unidade === 'un' && Number(ing.fatia) > 0
+  const canUseVariation = Boolean(ing?.variacaoUnidade && Number(ing.fatia) > 0);
+  const unitControl = canUseVariation
     ? `<select class="sheet-select" style="min-width:78px;border-left:1px solid var(--border);" onchange="updateReceitaItemCell(${receita.id}, 'usoUnidade', this.value)">${getUsoUnidadeOptions(ing, uso)}</select>`
     : `<span class="sheet-readonly" style="padding-left:0;">${uso}</span>`;
   return `<div style="display:flex;align-items:center;">
@@ -5041,9 +5104,10 @@ function updateIngredienteCompra(id, field, value) {
   if (!ing) return;
   if (!ing.historico) ing.historico = [];
   if (!ing.historico.length) ing.historico.push({ id: ++nextId, qtdCompra: 0, custoCompra: 0, fornecedor: '', data: '' });
-  const last = ing.historico[ing.historico.length - 1];
+  const last = getUltimaCompra(ing);
   last[field] = field === 'custoCompra' ? parseMoney(value)
     : (field === 'qtdCompra' ? (parseFloat(value) || 0) : value);
+  syncIngredienteFromHistorico(ing);
   saveAll();
   refreshProductCostsFromRecipes();
   renderCMV();
@@ -5171,10 +5235,10 @@ function reclassifyRevenda(prodId, target) {
 }
 function classSelectHtml(nome, onchangeCall) {
   const cls = getItemClass(nome);
-  return `<select class="sheet-select" style="min-width:90px;" onchange="${onchangeCall}" title="Onde este item aparece: insumo (📦) e/ou material de revenda em garrafa PET (🧴)">
-    <option value="insumo" ${cls === 'insumo' ? 'selected' : ''}>📦</option>
-    <option value="revenda" ${cls === 'revenda' ? 'selected' : ''}>🧴</option>
-    <option value="ambos" ${cls === 'ambos' ? 'selected' : ''}>📦 + 🧴</option>
+  return `<select class="sheet-select" style="min-width:118px;" onchange="${onchangeCall}" title="Onde este item aparece: insumo, revenda ou ambos">
+    <option value="insumo" ${cls === 'insumo' ? 'selected' : ''}>Insumo</option>
+    <option value="revenda" ${cls === 'revenda' ? 'selected' : ''}>Revenda</option>
+    <option value="ambos" ${cls === 'ambos' ? 'selected' : ''}>Ambos</option>
   </select>`;
 }
 
@@ -5324,7 +5388,7 @@ function updateReceitaItemCell(id, field, value) {
   if (field === 'ingId') {
     receita.itens[0].ingId = parseInt(value);
     const ing = ingredientes.find(i => i.id === receita.itens[0].ingId);
-    if (!ing || ing.unidade !== 'un' || !Number(ing.fatia)) delete receita.itens[0].usoUnidade;
+    if (!ing || !ing.variacaoUnidade || !Number(ing.fatia)) delete receita.itens[0].usoUnidade;
   } else if (field === 'qtd') {
     receita.itens[0].qtd = parseFloat(value) || 0;
   } else if (field === 'usoUnidade') {
@@ -5334,6 +5398,7 @@ function updateReceitaItemCell(id, field, value) {
   refreshProductCostsFromRecipes();
   renderCMV();
   renderProdutos();
+  if (field === 'ingId') renderReceitaSheet();
 }
 
 function refreshProductCostsFromRecipes() {
@@ -5419,7 +5484,7 @@ function saveIngrediente() {
   saveAll();
   closeModal('modal-ingrediente');
   renderCMV();
-  showToast('Ingrediente salvo ?', 'success');
+  showToast('Ingrediente salvo', 'success');
 }
 
 function openHistoricoModal(ingId) {
@@ -5443,16 +5508,15 @@ function openHistoricoModal(ingId) {
     const rows = hist.map((h, rIdx) => {
       const cuUn = (Number(h.custoCompra) || 0) / (Number(h.qtdCompra) || 1);
       const isLatest = rIdx === 0;
-      const dataLabel = h.data ? new Date(h.data + 'T00:00').toLocaleDateString('pt-BR') : '-';
       const atualLabel = isLatest ? '<span style="font-size:10px;color:var(--green);font-weight:700;">ATUAL</span>' : '';
       const deleteBtn = !isLatest
         ? '<button class="btn btn-ghost btn-sm" onclick="deleteHistoricoEntry(' + ingId + ',' + h.id + ')" style="color:var(--red);padding:2px 8px;">x</button>'
         : '';
       return '<tr style="' + (isLatest ? 'background:#F0FDF4;' : '') + '">' +
-        '<td style="' + tdStyle + '">' + dataLabel + '</td>' +
-        '<td style="' + tdStyle + '">' + escHtml(h.fornecedor || '-') + ' ' + atualLabel + '</td>' +
-        '<td style="' + tdRightStyle + '">' + h.qtdCompra + ' ' + ing.unidade + '</td>' +
-        '<td style="' + tdRightStyle + '">' + money(h.custoCompra) + '</td>' +
+        '<td style="' + tdStyle + '"><input class="sheet-input" type="date" value="' + (h.data || '') + '" onchange="updateHistoricoEntry(' + ingId + ',' + h.id + ',\'data\',this.value)" style="min-width:120px;"></td>' +
+        '<td style="' + tdStyle + '"><input class="sheet-input" list="fornecedores-list" value="' + escHtml(h.fornecedor || '') + '" onblur="updateHistoricoEntry(' + ingId + ',' + h.id + ',\'fornecedor\',this.value)" placeholder="Fornecedor" style="min-width:120px;"> ' + atualLabel + '</td>' +
+        '<td style="' + tdRightStyle + '"><input class="sheet-input" type="number" min="0.001" step="0.001" value="' + (h.qtdCompra || '') + '" onblur="updateHistoricoEntry(' + ingId + ',' + h.id + ',\'qtdCompra\',this.value)" style="min-width:78px;text-align:right;"><span style="font-size:10px;color:var(--text-light);">' + ing.unidade + '</span></td>' +
+        '<td style="' + tdRightStyle + '"><input class="sheet-input" type="text" inputmode="decimal" value="' + moneyInputVal(h.custoCompra) + '" oninput="maskMoney(this)" onblur="updateHistoricoEntry(' + ingId + ',' + h.id + ',\'custoCompra\',this.value)" style="min-width:84px;text-align:right;"></td>' +
         '<td style="' + tdRightStyle + '">' + money(cuUn) + '/' + ing.unidade + '</td>' +
         '<td style="' + tdStyle + 'text-align:center;">' + deleteBtn + '</td>' +
       '</tr>';
@@ -5477,19 +5541,18 @@ function saveHistoricoCompra() {
   const ing = ingredientes.find(i => i.id === ingId);
   if (!ing) return;
   const qtdCompra = parseFloat(document.getElementById('hist-qtd').value) || 0;
-  const custoCompra = parseFloat(document.getElementById('hist-custo').value) || 0;
+  const custoCompra = parseMoney(document.getElementById('hist-custo').value);
   const fornecedor = document.getElementById('hist-fornecedor').value.trim();
   const dataCompra = document.getElementById('hist-data').value;
   if (!qtdCompra || !custoCompra) return showToast('Preencha quantidade e custo', 'error');
 
   if (!ing.historico) ing.historico = [];
   ing.historico.push({ id: ++nextId, qtdCompra, custoCompra, fornecedor, data: dataCompra });
-  ing.qtdCompra = qtdCompra;
-  ing.custoCompra = custoCompra;
+  syncIngredienteFromHistorico(ing);
   saveAll();
   refreshProductCostsFromRecipes();
   renderCMV();
-  showToast('Compra registrada ?', 'success');
+  showToast('Compra registrada', 'success');
   openHistoricoModal(ingId);
 }
 
@@ -5497,13 +5560,31 @@ function deleteHistoricoEntry(ingId, entryId) {
   const ing = ingredientes.find(i => i.id === ingId);
   if (!ing || !ing.historico) return;
   ing.historico = ing.historico.filter(h => h.id !== entryId);
-  const uc = getUltimaCompra(ing);
-  ing.qtdCompra = uc.qtdCompra;
-  ing.custoCompra = uc.custoCompra;
+  syncIngredienteFromHistorico(ing);
   saveAll();
   refreshProductCostsFromRecipes();
   renderCMV();
   openHistoricoModal(ingId);
+}
+
+function updateHistoricoEntry(ingId, entryId, field, value) {
+  const ing = ingredientes.find(i => i.id === ingId);
+  const entry = ing?.historico?.find(h => h.id === entryId);
+  if (!ing || !entry) return;
+  if (field === 'qtdCompra') entry.qtdCompra = parseFloat(value) || 0;
+  else if (field === 'custoCompra') entry.custoCompra = parseMoney(value);
+  else entry[field] = value;
+  syncIngredienteFromHistorico(ing);
+  saveAll();
+  refreshProductCostsFromRecipes();
+  renderCMV();
+  openHistoricoModal(ingId);
+}
+
+function syncIngredienteFromHistorico(ing) {
+  const uc = getUltimaCompra(ing);
+  ing.qtdCompra = Number(uc.qtdCompra) || 0;
+  ing.custoCompra = Number(uc.custoCompra) || 0;
 }
 
 function editIngrediente(id) {
@@ -5604,7 +5685,7 @@ function saveReceita() {
   closeModal('modal-receita');
   renderCMV();
   renderProdutos();
-  showToast('Receita salva ?', 'success');
+  showToast('Receita salva', 'success');
 }
 
 function editReceita(id) {
@@ -5768,7 +5849,7 @@ function renderPedido() {
   const list = document.getElementById('pedido-list');
 
   if (Object.keys(mapa).length === 0) {
-    list.innerHTML = '<div class="empty-state" style="padding:30px;"><div class="empty-icon">??</div><p>Nenhum produto planejado para este dia.<br>Cadastre itens na vitrine, no cronograma ou no plano de produção semanal.</p></div>';
+    list.innerHTML = '<div class="empty-state" style="padding:30px;"><p>Nenhum produto planejado para este dia.<br>Cadastre itens na vitrine, no cronograma ou no plano de produção semanal.</p></div>';
     document.getElementById('pedido-obs').innerHTML = '';
     return;
   }
@@ -5813,7 +5894,7 @@ function renderPedido() {
     }
 
     if (prod.validade <= 1) {
-      obsHtml += `<div style="font-size:12px;color:var(--red);margin-bottom:4px;">?? <strong>${prod.nome}</strong> — validade curta (${prod.validade} dia). Produzir somente no dia.</div>`;
+      obsHtml += `<div style="font-size:12px;color:var(--red);margin-bottom:4px;"><span class="badge badge-red" style="margin-right:6px;">Atenção</span><strong>${prod.nome}</strong> — validade curta (${prod.validade} dia). Produzir somente no dia.</div>`;
     }
     totalItems++;
   });
@@ -6181,6 +6262,5 @@ loadFromSupabase().then(() => {
 </script>
 </body>
 </html>
-
 
 
