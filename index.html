@@ -1477,11 +1477,11 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <input id="quick-insumo-data" type="date" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-qtd" type="number" min="0" step="0.001" placeholder="Qtd. compra" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)">
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Marque para cadastrar este item como produto de revenda em vez de ingrediente">
-        <input type="checkbox" id="quick-insumo-revenda" onchange="if(this.checked)document.getElementById('quick-insumo-ambos').checked=false" onkeydown="handleQuickInsumoKey(event)"> Material de revenda
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Material de revenda — cadastra este item como produto de revenda (garrafa PET) em vez de ingrediente">
+        <input type="checkbox" id="quick-insumo-revenda" onchange="if(this.checked)document.getElementById('quick-insumo-ambos').checked=false" onkeydown="handleQuickInsumoKey(event)"> <svg width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-3px;"><path d="M10 2h4v2.2l1.2 2.4a4 4 0 0 1 .8 2.4V20a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V9a4 4 0 0 1 .8-2.4L10 4.2z"></path><line x1="10" y1="2" x2="14" y2="2"></line><line x1="8" y1="13" x2="16" y2="13"></line></svg>
       </label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Marque para cadastrar nas duas listas: como ingrediente e como produto de revenda (ex: presunto)">
-        <input type="checkbox" id="quick-insumo-ambos" onchange="if(this.checked)document.getElementById('quick-insumo-revenda').checked=false" onkeydown="handleQuickInsumoKey(event)"> Insumo + revenda
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Insumo + revenda — cadastra nas duas listas: como insumo e como produto de revenda em garrafa PET (ex: presunto)">
+        <input type="checkbox" id="quick-insumo-ambos" onchange="if(this.checked)document.getElementById('quick-insumo-revenda').checked=false" onkeydown="handleQuickInsumoKey(event)"> <svg width="15" height="16" viewBox="0 0 24 24" fill="none" stroke="#7C3AED" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-3px;"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"></path><polyline points="2.32 6.16 12 11 21.68 6.16"></polyline><line x1="12" y1="22.76" x2="12" y2="11"></line></svg> <span style="color:var(--text-light);font-weight:600;">+</span> <svg width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="#0EA5E9" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-3px;"><path d="M10 2h4v2.2l1.2 2.4a4 4 0 0 1 .8 2.4V20a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V9a4 4 0 0 1 .8-2.4L10 4.2z"></path><line x1="10" y1="2" x2="14" y2="2"></line><line x1="8" y1="13" x2="16" y2="13"></line></svg>
       </label>
       <button class="btn btn-primary" onclick="submitQuickInsumo()">Lancar</button>
     </div>
@@ -2158,6 +2158,24 @@ let currentVitrineMode = 'slots';
 
 const dayNames = { seg:'Segunda-feira', ter:'Terça-feira', qua:'Quarta-feira', qui:'Quinta-feira', sex:'Sexta-feira', sab:'Sábado', dom:'Domingo' };
 const dayOrder = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+
+// ============================================================
+// ÍCONES (carrinho de supermercado, insumo e garrafa PET)
+// Usados nos botões de histórico de compras (tabelas) e no
+// formulário de lançamento rápido. Herdam a cor via currentColor.
+// ============================================================
+const ICON_CART_SVG = '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-3px;"><circle cx="9" cy="21" r="1"></circle><circle cx="20" cy="21" r="1"></circle><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"></path></svg>';
+const ICON_INSUMO_SVG = '<svg width="15" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-3px;"><path d="M12.89 1.45l8 4A2 2 0 0 1 22 7.24v9.53a2 2 0 0 1-1.11 1.79l-8 4a2 2 0 0 1-1.79 0l-8-4a2 2 0 0 1-1.1-1.8V7.24a2 2 0 0 1 1.11-1.79l8-4a2 2 0 0 1 1.78 0z"></path><polyline points="2.32 6.16 12 11 21.68 6.16"></polyline><line x1="12" y1="22.76" x2="12" y2="11"></line></svg>';
+const ICON_PET_SVG = '<svg width="14" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false" style="vertical-align:-3px;"><path d="M10 2h4v2.2l1.2 2.4a4 4 0 0 1 .8 2.4V20a2 2 0 0 1-2 2h-4a2 2 0 0 1-2-2V9a4 4 0 0 1 .8-2.4L10 4.2z"></path><line x1="10" y1="2" x2="14" y2="2"></line><line x1="8" y1="13" x2="16" y2="13"></line></svg>';
+
+// Conteúdo do botão "carrinho" de histórico de compras: ícone + contador.
+function cartBtnLabel(n) {
+  const count = Number(n) || 0;
+  const badge = count > 0
+    ? `<span style="font-size:10px;background:var(--gold-light);color:var(--brown);border-radius:999px;padding:1px 6px;margin-left:5px;font-weight:700;vertical-align:1px;">${count}</span>`
+    : '';
+  return ICON_CART_SVG + badge;
+}
 
 function previousDay(day) {
   const idx = dayOrder.indexOf(day);
@@ -3702,7 +3720,7 @@ function renderProdutos() {
         <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(p.valorCompra)}" oninput="maskMoney(this)" onblur="updateProdutoCell(${p.id},'valorCompra',this.value)" placeholder="0,00" style="min-width:80px;"></td>
         <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(p.preco)}" oninput="maskMoney(this)" onblur="updateProdutoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
         <td><select class="sheet-select" onchange="updateProdutoCell(${p.id},'precoUnidade',this.value)">${precoUnidadeOptions(getPrecoUnidadeLabel(p))}</select></td>
-        <td><button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Historico de compras">Carrinho ${(p.historicoCompras || []).length || ''}</button></td>
+        <td><button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Carrinho de compras" aria-label="Carrinho de compras">${cartBtnLabel((p.historicoCompras || []).length)}</button></td>
         <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
       </tr>`;
     }
@@ -4303,7 +4321,7 @@ function renderRevendaCMV() {
     return `<tr>
       <td>
         <span class="sheet-readonly" style="font-weight:600;">${p.nome}</span>
-        <button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Historico de compras" style="margin-top:4px;">Carrinho ${(p.historicoCompras || []).length || ''}</button>
+        <button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Carrinho de compras" aria-label="Carrinho de compras" style="margin-top:4px;">${cartBtnLabel((p.historicoCompras || []).length)}</button>
       </td>
       <td><input class="sheet-input" type="number" min="0" step="1" value="${qtd || ''}" onblur="updateRevendaCampo(${p.id}, 'qtdComprada', this.value)" placeholder="ex: 12"></td>
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(valor)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'valorCompra', this.value)" placeholder="ex: 18,43"></td>
@@ -4526,7 +4544,7 @@ function renderFornecedores() {
 
   const content = document.getElementById('forn-content');
   if (!todas.length) {
-    content.innerHTML = '<p class="section-sub">Nenhuma compra registrada ainda. Registre compras no histórico (botão "Carrinho") dos produtos de revenda e dos insumos — elas aparecem aqui automaticamente.</p>';
+    content.innerHTML = '<p class="section-sub">Nenhuma compra registrada ainda. Registre compras no histórico (botão do carrinho 🛒) dos produtos de revenda e dos insumos — elas aparecem aqui automaticamente.</p>';
     return;
   }
   if (!compras.length) {
@@ -4780,9 +4798,7 @@ function renderIngredientes() {
       <td style="min-width:160px;">${variacaoCell}</td>
       <td style="white-space:nowrap;">
         ${classSelectHtml(ing.nome, `reclassifyIngrediente(${ing.id}, this.value)`)}
-        <button class="btn btn-ghost btn-sm" onclick="openHistoricoModal(${ing.id})" title="Histórico de compras" style="margin-right:2px;">
-          Carrinho ${nCompras > 0 ? `<span style="font-size:10px;background:var(--gold-light);color:var(--brown);border-radius:999px;padding:1px 5px;">${nCompras}</span>` : ''}
-        </button>
+        <button class="btn btn-ghost btn-sm" onclick="openHistoricoModal(${ing.id})" title="Carrinho de compras" aria-label="Carrinho de compras" style="margin-right:2px;">${cartBtnLabel(nCompras)}</button>
         <button class="btn btn-ghost btn-sm" onclick="deleteIngrediente(${ing.id})" style="color:var(--red)">×</button>
       </td>
     </tr>`;
@@ -5155,10 +5171,10 @@ function reclassifyRevenda(prodId, target) {
 }
 function classSelectHtml(nome, onchangeCall) {
   const cls = getItemClass(nome);
-  return `<select class="sheet-select" style="min-width:130px;" onchange="${onchangeCall}" title="Onde este item aparece">
-    <option value="insumo" ${cls === 'insumo' ? 'selected' : ''}>Só insumo</option>
-    <option value="revenda" ${cls === 'revenda' ? 'selected' : ''}>Só revenda</option>
-    <option value="ambos" ${cls === 'ambos' ? 'selected' : ''}>Insumo + revenda</option>
+  return `<select class="sheet-select" style="min-width:90px;" onchange="${onchangeCall}" title="Onde este item aparece: insumo (📦) e/ou material de revenda em garrafa PET (🧴)">
+    <option value="insumo" ${cls === 'insumo' ? 'selected' : ''}>📦</option>
+    <option value="revenda" ${cls === 'revenda' ? 'selected' : ''}>🧴</option>
+    <option value="ambos" ${cls === 'ambos' ? 'selected' : ''}>📦 + 🧴</option>
   </select>`;
 }
 
