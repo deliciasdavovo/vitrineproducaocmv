@@ -1177,6 +1177,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <div class="nav" id="nav-cmv" style="display:none">
   <button class="nav-btn" data-page="insumos" onclick="showPage('insumos')">Insumos & Fichas</button>
   <button class="nav-btn" data-page="cmv" onclick="showPage('cmv')">CMV</button>
+  <button class="nav-btn" data-page="fornecedores" onclick="showPage('fornecedores')">Fornecedores</button>
   <button class="nav-btn" data-page="banco" onclick="showPage('banco')">Banco de Dados</button>
 </div>
 
@@ -1473,6 +1474,12 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <input id="quick-insumo-data" type="date" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-qtd" type="number" min="0" step="0.001" placeholder="Qtd. compra" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)">
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Marque para cadastrar este item como produto de revenda em vez de ingrediente">
+        <input type="checkbox" id="quick-insumo-revenda" onchange="if(this.checked)document.getElementById('quick-insumo-ambos').checked=false" onkeydown="handleQuickInsumoKey(event)"> Material de revenda
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Marque para cadastrar nas duas listas: como ingrediente e como produto de revenda (ex: presunto)">
+        <input type="checkbox" id="quick-insumo-ambos" onchange="if(this.checked)document.getElementById('quick-insumo-revenda').checked=false" onkeydown="handleQuickInsumoKey(event)"> Insumo + revenda
+      </label>
       <button class="btn btn-primary" onclick="submitQuickInsumo()">Lancar</button>
     </div>
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
@@ -1678,6 +1685,44 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       </div>
     </div>
   </div>
+</div>
+
+<!-- ===================== PAGE: FORNECEDORES ===================== -->
+<div class="page" id="page-fornecedores">
+  <h2 class="section-title">Fornecedores</h2>
+  <p class="section-sub">Histórico completo de compras por fornecedor. Compare valores e descubra o melhor fornecedor de cada produto ou insumo. As compras registradas no histórico dos produtos de revenda e dos insumos aparecem aqui automaticamente.</p>
+
+  <div class="stats-row" id="forn-stats-row">
+    <div class="stat-card"><div class="stat-value" id="forn-stat-qtd">0</div><div class="stat-label">Fornecedores</div></div>
+    <div class="stat-card"><div class="stat-value" id="forn-stat-compras">0</div><div class="stat-label">Compras registradas</div></div>
+    <div class="stat-card"><div class="stat-value" id="forn-stat-total" style="font-size:20px;">R$ 0,00</div><div class="stat-label">Total comprado</div></div>
+    <div class="stat-card"><div class="stat-value" id="forn-stat-itens">0</div><div class="stat-label">Itens diferentes</div></div>
+  </div>
+
+  <div class="toggle-row" id="forn-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
+    <button class="toggle-btn active" id="forn-tab-forn" onclick="setFornecedorView('fornecedor')">Por fornecedor</button>
+    <button class="toggle-btn" id="forn-tab-item" onclick="setFornecedorView('item')">Por produto / insumo</button>
+  </div>
+
+  <!-- Barra de filtros e ordenação -->
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;">
+    <input type="text" id="forn-search" placeholder="🔎 Buscar fornecedor, produto ou insumo…" oninput="renderFornecedores()" style="flex:1;min-width:200px;max-width:320px;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);">
+    <select id="forn-sort" onchange="renderFornecedores()" style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);"></select>
+    <div style="display:flex;gap:6px;margin-left:auto;">
+      <button class="btn btn-ghost btn-sm" onclick="expandirFornCards(true)">Expandir tudo</button>
+      <button class="btn btn-ghost btn-sm" onclick="expandirFornCards(false)">Recolher tudo</button>
+    </div>
+  </div>
+
+  <!-- Filtro por tipo -->
+  <div class="toggle-row" id="forn-tipo-chips" style="margin-bottom:16px;flex-wrap:wrap;">
+    <button class="toggle-btn active" data-tipo="todos" onclick="setFornTipo('todos')">Todos</button>
+    <button class="toggle-btn" data-tipo="Produto" onclick="setFornTipo('Produto')">Produção</button>
+    <button class="toggle-btn" data-tipo="Revenda" onclick="setFornTipo('Revenda')">Revenda</button>
+    <button class="toggle-btn" data-tipo="Insumo" onclick="setFornTipo('Insumo')">Insumo</button>
+  </div>
+
+  <div id="forn-content"></div>
 </div>
 
 <!-- ===================== PAGE: PERDAS ===================== -->
@@ -2773,7 +2818,7 @@ async function loadFromSupabase() {
 // Mapeia cada pagina ao seu grupo de cabecalho
 const PAGE_GROUPS = {
   vitrine: 'vitrines', cronograma: 'vitrines', perdas: 'vitrines', pedido: 'vitrines',
-  insumos: 'cmv', cmv: 'cmv', banco: 'cmv'
+  insumos: 'cmv', cmv: 'cmv', fornecedores: 'cmv', banco: 'cmv'
 };
 
 function showGroup(group) {
@@ -2804,6 +2849,7 @@ function showPage(page) {
   if (page === 'banco') renderBancoDados();
   if (page === 'insumos') renderInsumos();
   if (page === 'cmv') renderCMV();
+  if (page === 'fornecedores') renderFornecedores();
   if (page === 'perdas') renderPerdas();
   if (page === 'pedido') renderPedido();
 }
@@ -4225,7 +4271,10 @@ function renderRevendaCMV() {
       <td><span class="sheet-readonly">${calculavel ? money(margem) : '—'}</span></td>
       <td><span class="sheet-readonly">${calculavel ? margemPct.toFixed(1) + '%' : '—'}</span></td>
       ${renderCmvTd(cmv, calculavel)}
-      <td><button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))">??</button></td>
+      <td style="white-space:nowrap;">
+        ${classSelectHtml(p.nome, `reclassifyRevenda(${p.id}, this.value)`)}
+        <button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))" title="Editar produto">Editar</button>
+      </td>
     </tr>`;
   }).join('');
   tbodies.forEach(tbody => { tbody.innerHTML = html; });
@@ -4330,6 +4379,257 @@ function deleteRevendaHistoricoEntry(prodId, entryId) {
   renderCMV();
   renderProdutos();
   openRevendaHistoricoModal(prodId);
+}
+
+// ============================================================
+// FORNECEDORES — histórico de compras agregado por fornecedor / item
+// ============================================================
+let currentFornecedorView = 'fornecedor';
+let fornTipoFiltro = 'todos';
+// Ordenação memorizada por visão (cada visão tem suas próprias opções).
+const fornSortState = { fornecedor: 'total_desc', item: 'nome_asc' };
+
+const FORN_SORT_OPCOES = {
+  fornecedor: [
+    { v: 'total_desc', t: 'Maior valor comprado' },
+    { v: 'total_asc', t: 'Menor valor comprado' },
+    { v: 'compras_desc', t: 'Mais compras' },
+    { v: 'recente', t: 'Compra mais recente' },
+    { v: 'nome_asc', t: 'Nome (A–Z)' },
+  ],
+  item: [
+    { v: 'nome_asc', t: 'Nome (A–Z)' },
+    { v: 'preco_asc', t: 'Menor preço médio' },
+    { v: 'preco_desc', t: 'Maior preço médio' },
+    { v: 'fornecedores_desc', t: 'Mais fornecedores' },
+    { v: 'compras_desc', t: 'Mais compras' },
+  ],
+};
+
+function setFornecedorView(view) {
+  currentFornecedorView = view;
+  document.getElementById('forn-tab-forn').classList.toggle('active', view === 'fornecedor');
+  document.getElementById('forn-tab-item').classList.toggle('active', view === 'item');
+  renderFornecedores();
+}
+
+function setFornTipo(tipo) {
+  fornTipoFiltro = tipo;
+  document.querySelectorAll('#forn-tipo-chips .toggle-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tipo === tipo));
+  renderFornecedores();
+}
+
+function fmtDataCompra(d) {
+  return d ? new Date(d + 'T00:00').toLocaleDateString('pt-BR') : '-';
+}
+
+function tipoBadge(tipo) {
+  const cor = tipo === 'Insumo' ? '#7C3AED' : (tipo === 'Revenda' ? '#0EA5E9' : '#16A34A');
+  return '<span style="font-size:10px;font-weight:700;color:' + cor + ';background:' + cor + '22;padding:2px 6px;border-radius:6px;white-space:nowrap;">' + tipo + '</span>';
+}
+
+// Reúne todas as compras (produtos de revenda + insumos) numa lista única.
+function coletarCompras() {
+  const compras = [];
+  const push = (itemId, item, tipo, unidade, h) => {
+    compras.push({
+      itemId, item: (item || '').trim() || '(sem nome)', tipo, unidade: unidade || 'un',
+      fornecedor: (h.fornecedor || '').trim() || 'Sem fornecedor',
+      data: h.data || '',
+      qtdCompra: Number(h.qtdCompra) || 0,
+      custoCompra: Number(h.custoCompra) || 0,
+    });
+  };
+  produtos.forEach(p => (p.historicoCompras || []).forEach(h =>
+    push('p' + p.id, p.nome, p.tipo === 'revenda' ? 'Revenda' : 'Produto', p.precoUnidade, h)));
+  ingredientes.forEach(i => (i.historico || []).forEach(h =>
+    push('i' + i.id, i.nome, 'Insumo', i.unidade, h)));
+  compras.forEach(c => { c.custoUnit = c.qtdCompra > 0 ? c.custoCompra / c.qtdCompra : 0; });
+  return compras;
+}
+
+// Preenche o <select> de ordenação conforme a visão atual.
+function popularFornSort() {
+  const sel = document.getElementById('forn-sort');
+  if (!sel) return;
+  const opcoes = FORN_SORT_OPCOES[currentFornecedorView];
+  const atual = fornSortState[currentFornecedorView];
+  sel.innerHTML = opcoes.map(o =>
+    '<option value="' + o.v + '"' + (o.v === atual ? ' selected' : '') + '>' + o.t + '</option>').join('');
+}
+
+function renderFornecedores() {
+  const todas = coletarCompras();
+  popularFornSort();
+  const sortSel = document.getElementById('forn-sort');
+  if (sortSel && sortSel.value) fornSortState[currentFornecedorView] = sortSel.value;
+  const sort = fornSortState[currentFornecedorView];
+
+  const termo = (document.getElementById('forn-search')?.value || '').trim().toLowerCase();
+
+  // Filtro por tipo (chips) alimenta também as estatísticas; a busca só estreita a lista.
+  const porTipo = fornTipoFiltro === 'todos' ? todas : todas.filter(c => c.tipo === fornTipoFiltro);
+  const compras = termo
+    ? porTipo.filter(c => c.fornecedor.toLowerCase().includes(termo) || c.item.toLowerCase().includes(termo))
+    : porTipo;
+
+  // Estatísticas refletem o filtro de tipo (não a busca).
+  const fornSet = new Set(porTipo.filter(c => c.fornecedor !== 'Sem fornecedor').map(c => c.fornecedor));
+  const itemSet = new Set(porTipo.map(c => c.itemId));
+  const totalGasto = porTipo.reduce((s, c) => s + c.custoCompra, 0);
+  document.getElementById('forn-stat-qtd').textContent = fornSet.size;
+  document.getElementById('forn-stat-compras').textContent = porTipo.length;
+  document.getElementById('forn-stat-total').textContent = money(totalGasto);
+  document.getElementById('forn-stat-itens').textContent = itemSet.size;
+
+  const content = document.getElementById('forn-content');
+  if (!todas.length) {
+    content.innerHTML = '<p class="section-sub">Nenhuma compra registrada ainda. Registre compras no histórico (botão "Carrinho") dos produtos de revenda e dos insumos — elas aparecem aqui automaticamente.</p>';
+    return;
+  }
+  if (!compras.length) {
+    content.innerHTML = '<p class="section-sub">Nenhum resultado com os filtros atuais.</p>';
+    return;
+  }
+  const expand = !!termo; // com busca ativa, já abre os cards para mostrar o resultado
+  content.innerHTML = currentFornecedorView === 'fornecedor'
+    ? renderFornecedorPorFornecedor(compras, expand, sort)
+    : renderFornecedorPorItem(compras, expand, sort);
+}
+
+function toggleFornCard(header) {
+  const body = header.nextElementSibling;
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  const chev = header.querySelector('.forn-chev');
+  if (chev) chev.textContent = open ? '▾' : '▸';
+}
+
+function expandirFornCards(open) {
+  document.querySelectorAll('#forn-content .sheet-card').forEach(card => {
+    const body = card.querySelector('.table-wrap');
+    const chev = card.querySelector('.forn-chev');
+    if (body) body.style.display = open ? 'block' : 'none';
+    if (chev) chev.textContent = open ? '▾' : '▸';
+  });
+}
+
+function fornChevron(expand) {
+  return '<span class="forn-chev" style="color:var(--text-light);font-size:12px;margin-right:8px;">' + (expand ? '▾' : '▸') + '</span>';
+}
+
+// Visão "Por fornecedor": um card por fornecedor com todas as suas compras.
+function renderFornecedorPorFornecedor(compras, expand, sort) {
+  const grupos = {};
+  compras.forEach(c => { (grupos[c.fornecedor] = grupos[c.fornecedor] || []).push(c); });
+  const totalDe = f => grupos[f].reduce((s, c) => s + c.custoCompra, 0);
+  const recenteDe = f => grupos[f].reduce((m, c) => c.data > m ? c.data : m, '');
+  const ordenados = Object.keys(grupos).sort((a, b) => {
+    switch (sort) {
+      case 'total_asc': return totalDe(a) - totalDe(b);
+      case 'compras_desc': return grupos[b].length - grupos[a].length;
+      case 'recente': return recenteDe(b).localeCompare(recenteDe(a));
+      case 'nome_asc': return a.localeCompare(b, 'pt-BR');
+      default: return totalDe(b) - totalDe(a); // total_desc
+    }
+  });
+
+  return ordenados.map(forn => {
+    const lista = grupos[forn].slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+    const total = lista.reduce((s, c) => s + c.custoCompra, 0);
+    const nItens = new Set(lista.map(c => c.itemId)).size;
+    const rows = lista.map(c =>
+      '<tr>' +
+        '<td>' + fmtDataCompra(c.data) + '</td>' +
+        '<td>' + escHtml(c.item) + ' ' + tipoBadge(c.tipo) + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);">' + (c.qtdCompra || '-') + ' ' + escHtml(c.unidade) + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);">' + money(c.custoCompra) + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);">' + money(c.custoUnit) + '</td>' +
+      '</tr>').join('');
+    return '<div class="sheet-card" style="margin-bottom:12px;">' +
+      '<div onclick="toggleFornCard(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;">' +
+        '<div style="display:flex;align-items:center;">' + fornChevron(expand) +
+          '<div><div style="font-weight:700;font-size:15px;">' + escHtml(forn) + '</div>' +
+          '<div style="font-size:12px;color:var(--text-light);">' + lista.length + ' compras · ' + nItens + ' itens diferentes</div></div></div>' +
+        '<div style="text-align:right;"><div style="font-family:var(--font-mono);font-weight:700;">' + money(total) + '</div>' +
+          '<div style="font-size:11px;color:var(--text-light);">total comprado</div></div>' +
+      '</div>' +
+      '<div class="table-wrap" style="display:' + (expand ? 'block' : 'none') + ';border-top:1px solid var(--border);">' +
+        '<table class="sheet-table"><thead><tr>' +
+          '<th>Data</th><th>Item</th><th style="text-align:right;">Qtd.</th><th style="text-align:right;">Valor</th><th style="text-align:right;">/un</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table>' +
+      '</div>' +
+    '</div>';
+  }).join('');
+}
+
+// Visão "Por produto/insumo": um card por item comparando fornecedores.
+function renderFornecedorPorItem(compras, expand, sort) {
+  const grupos = {};
+  compras.forEach(c => { (grupos[c.itemId] = grupos[c.itemId] || []).push(c); });
+
+  // Pré-calcula métricas de cada item para permitir ordenação.
+  const cards = Object.keys(grupos).map(id => {
+    const lista = grupos[id];
+    const item = lista[0];
+    const porForn = {};
+    lista.forEach(c => { (porForn[c.fornecedor] = porForn[c.fornecedor] || []).push(c); });
+    const linhas = Object.keys(porForn).map(forn => {
+      const cs = porForn[forn].slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
+      const unitVals = cs.map(c => c.custoUnit).filter(v => v > 0);
+      const medio = unitVals.length ? unitVals.reduce((s, v) => s + v, 0) / unitVals.length : 0;
+      const menor = unitVals.length ? Math.min(...unitVals) : 0;
+      return { forn, nCompras: cs.length, ultima: cs[0].data, ultimoUnit: cs[0].custoUnit, medio, menor };
+    });
+    const comPreco = linhas.filter(l => l.medio > 0);
+    const melhorMedio = comPreco.length ? Math.min(...comPreco.map(l => l.medio)) : null;
+    linhas.sort((a, b) => (a.medio || Infinity) - (b.medio || Infinity));
+    return { item, lista, linhas, melhorMedio };
+  });
+
+  cards.sort((a, b) => {
+    switch (sort) {
+      case 'preco_asc': return (a.melhorMedio ?? Infinity) - (b.melhorMedio ?? Infinity);
+      case 'preco_desc': return (b.melhorMedio ?? -1) - (a.melhorMedio ?? -1);
+      case 'fornecedores_desc': return b.linhas.length - a.linhas.length;
+      case 'compras_desc': return b.lista.length - a.lista.length;
+      default: return a.item.item.localeCompare(b.item.item, 'pt-BR'); // nome_asc
+    }
+  });
+
+  return cards.map(({ item, lista, linhas, melhorMedio }) => {
+    const melhorLinha = melhorMedio != null ? linhas.find(l => l.medio === melhorMedio) : null;
+    const resumoMelhor = melhorLinha
+      ? '<span style="font-size:12px;color:var(--green);font-weight:700;">★ Melhor: ' + escHtml(melhorLinha.forn) + ' · ' + money(melhorLinha.medio) + '/' + escHtml(item.unidade) + '</span>'
+      : '<span style="font-size:12px;color:var(--text-light);">Sem preço unitário registrado</span>';
+
+    const rows = linhas.map(l => {
+      const isMelhor = melhorMedio != null && l.medio === melhorMedio;
+      return '<tr style="' + (isMelhor ? 'background:#F0FDF4;' : '') + '">' +
+        '<td>' + escHtml(l.forn) + (isMelhor ? ' <span style="font-size:10px;color:var(--green);font-weight:700;">★ MELHOR</span>' : '') + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);">' + l.nCompras + '</td>' +
+        '<td>' + fmtDataCompra(l.ultima) + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);">' + (l.ultimoUnit ? money(l.ultimoUnit) : '-') + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);font-weight:700;">' + (l.medio ? money(l.medio) : '-') + '</td>' +
+        '<td style="text-align:right;font-family:var(--font-mono);">' + (l.menor ? money(l.menor) : '-') + '</td>' +
+      '</tr>';
+    }).join('');
+
+    return '<div class="sheet-card" style="margin-bottom:12px;">' +
+      '<div onclick="toggleFornCard(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;">' +
+        '<div style="display:flex;align-items:center;">' + fornChevron(expand) +
+          '<div><div style="font-weight:700;font-size:15px;">' + escHtml(item.item) + ' ' + tipoBadge(item.tipo) + '</div>' +
+          '<div style="font-size:12px;color:var(--text-light);margin-top:2px;">' + linhas.length + ' fornecedor(es) · ' + lista.length + ' compras · preço por ' + escHtml(item.unidade) + '</div></div></div>' +
+        '<div style="text-align:right;">' + resumoMelhor + '</div>' +
+      '</div>' +
+      '<div class="table-wrap" style="display:' + (expand ? 'block' : 'none') + ';border-top:1px solid var(--border);">' +
+        '<table class="sheet-table"><thead><tr>' +
+          '<th>Fornecedor</th><th style="text-align:right;">Compras</th><th>Última</th><th style="text-align:right;">Último /un</th><th style="text-align:right;">Médio /un</th><th style="text-align:right;">Menor /un</th>' +
+        '</tr></thead><tbody>' + rows + '</tbody></table>' +
+      '</div>' +
+    '</div>';
+  }).join('');
 }
 
 function setReceitaView(view) {
@@ -4438,6 +4738,7 @@ function renderIngredientes() {
       <td style="min-width:110px;">${derivados}</td>
       <td style="min-width:160px;">${variacaoCell}</td>
       <td style="white-space:nowrap;">
+        ${classSelectHtml(ing.nome, `reclassifyIngrediente(${ing.id}, this.value)`)}
         <button class="btn btn-ghost btn-sm" onclick="openHistoricoModal(${ing.id})" title="Histórico de compras" style="margin-right:2px;">
           Carrinho ${nCompras > 0 ? `<span style="font-size:10px;background:var(--gold-light);color:var(--brown);border-radius:999px;padding:1px 5px;">${nCompras}</span>` : ''}
         </button>
@@ -4709,6 +5010,115 @@ function clearQuickInsumoForm() {
   });
   const unidade = document.getElementById('quick-insumo-unidade');
   if (unidade) unidade.value = 'g';
+  const revenda = document.getElementById('quick-insumo-revenda');
+  if (revenda) revenda.checked = false;
+  const ambos = document.getElementById('quick-insumo-ambos');
+  if (ambos) ambos.checked = false;
+}
+
+// Cria (ou lança nova compra em) um produto de revenda. Retorna true se já existia.
+function upsertQuickRevenda(nome, { fornecedor, data, qtdCompra, custoCompra }) {
+  let prod = produtos.find(p => (p.tipo || 'fabricacao') === 'revenda' && (p.nome || '').toLowerCase() === nome.toLowerCase());
+  const existed = !!prod;
+  if (!prod) {
+    prod = { id: ++nextId, nome, tipo: 'revenda', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: '', custo: 0, preco: 0, precoUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', qtdComprada: 0, valorCompra: 0, historicoCompras: [] };
+    produtos.push(prod);
+  }
+  if (!prod.historicoCompras) prod.historicoCompras = [];
+  if (qtdCompra > 0 || custoCompra > 0 || fornecedor || data) {
+    prod.historicoCompras.push({ id: ++nextId, qtdCompra, custoCompra, fornecedor, data });
+    prod.qtdComprada = qtdCompra;
+    prod.valorCompra = custoCompra;
+    if (qtdCompra > 0 && custoCompra > 0) prod.custo = custoCompra / qtdCompra;
+  }
+  return existed;
+}
+
+// ---- Reclassificação de itens (insumo / revenda / ambos) direto na tabela ----
+// Itens "ambos" são representados por um ingrediente E um produto de revenda com
+// o mesmo nome. Estas funções convertem entre as três classificações, migrando o
+// histórico de compras de um lado para o outro quando necessário.
+function getItemClass(nome) {
+  const lc = (nome || '').toLowerCase();
+  const hasIng = ingredientes.some(i => (i.nome || '').toLowerCase() === lc);
+  const hasRev = produtos.some(p => (p.tipo || 'fabricacao') === 'revenda' && (p.nome || '').toLowerCase() === lc);
+  if (hasIng && hasRev) return 'ambos';
+  if (hasRev) return 'revenda';
+  return 'insumo';
+}
+
+function setItemClassByName(nome, target) {
+  nome = (nome || '').trim();
+  if (!nome) return showToast('Dê um nome ao item antes de classificar', 'error');
+  const lc = nome.toLowerCase();
+  let ing = ingredientes.find(i => (i.nome || '').toLowerCase() === lc);
+  let rev = produtos.find(p => (p.tipo || 'fabricacao') === 'revenda' && (p.nome || '').toLowerCase() === lc);
+  const wantIng = target === 'insumo' || target === 'ambos';
+  const wantRev = target === 'revenda' || target === 'ambos';
+  if (getItemClass(nome) === target) return;
+
+  // Confirma antes de remover um ingrediente que está em uso nas fichas técnicas
+  if (!wantIng && ing) {
+    const usadoEm = receitas.filter(r => (r.itens || []).some(it => it.ingId === ing.id)).length;
+    if (usadoEm > 0 && !confirm(`"${nome}" é usado em ${usadoEm} ficha(s) técnica(s). Ao deixar de ser insumo ele sairá dessas fichas. Continuar?`)) {
+      renderCMV();
+      return;
+    }
+  }
+
+  // Cria o que faltar, migrando o histórico do outro lado
+  if (wantIng && !ing) {
+    ing = { id: ++nextId, nome, unidade: 'un', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] };
+    if (rev) {
+      ing.historico = (rev.historicoCompras || []).map(h => ({ id: ++nextId, fornecedor: h.fornecedor || '', data: h.data || '', qtdCompra: Number(h.qtdCompra) || 0, custoCompra: Number(h.custoCompra) || 0 }));
+      const last = ing.historico[ing.historico.length - 1];
+      if (last) { ing.qtdCompra = last.qtdCompra; ing.custoCompra = last.custoCompra; }
+    }
+    ingredientes.push(ing);
+  }
+  if (wantRev && !rev) {
+    rev = { id: ++nextId, nome, tipo: 'revenda', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: '', custo: 0, preco: 0, precoUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', qtdComprada: 0, valorCompra: 0, historicoCompras: [] };
+    if (ing) {
+      rev.historicoCompras = (ing.historico || []).map(h => ({ id: ++nextId, fornecedor: h.fornecedor || '', data: h.data || '', qtdCompra: Number(h.qtdCompra) || 0, custoCompra: Number(h.custoCompra) || 0 }));
+      const last = rev.historicoCompras[rev.historicoCompras.length - 1];
+      if (last) { rev.qtdComprada = last.qtdCompra; rev.valorCompra = last.custoCompra; if (last.qtdCompra > 0 && last.custoCompra > 0) rev.custo = last.custoCompra / last.qtdCompra; }
+    }
+    produtos.push(rev);
+  }
+  // Remove o que não é mais desejado
+  if (!wantIng && ing) {
+    ingredientes = ingredientes.filter(i => i.id !== ing.id);
+    receitas = receitas.map(r => ({ ...r, itens: (r.itens || []).filter(it => it.ingId !== ing.id) }));
+    db.from('ingredientes').delete().eq('id', ing.id);
+  }
+  if (!wantRev && rev) {
+    produtos = produtos.filter(p => p.id !== rev.id);
+    receitas = receitas.filter(r => r.prodId !== rev.id);
+    db.from('produtos').delete().eq('id', rev.id);
+  }
+  saveAll();
+  refreshProductCostsFromRecipes();
+  renderCMV();
+  renderProdutos();
+  const labels = { insumo: 'Só insumo', revenda: 'Só revenda', ambos: 'Insumo + revenda' };
+  showToast(`"${nome}" agora é: ${labels[target]}`, 'success');
+}
+
+function reclassifyIngrediente(ingId, target) {
+  const ing = ingredientes.find(i => i.id === ingId);
+  if (ing) setItemClassByName(ing.nome, target);
+}
+function reclassifyRevenda(prodId, target) {
+  const p = produtos.find(pr => pr.id === prodId);
+  if (p) setItemClassByName(p.nome, target);
+}
+function classSelectHtml(nome, onchangeCall) {
+  const cls = getItemClass(nome);
+  return `<select class="sheet-select" style="min-width:130px;" onchange="${onchangeCall}" title="Onde este item aparece">
+    <option value="insumo" ${cls === 'insumo' ? 'selected' : ''}>Só insumo</option>
+    <option value="revenda" ${cls === 'revenda' ? 'selected' : ''}>Só revenda</option>
+    <option value="ambos" ${cls === 'ambos' ? 'selected' : ''}>Insumo + revenda</option>
+  </select>`;
 }
 
 function handleQuickInsumoKey(e) {
@@ -4732,30 +5142,35 @@ function submitQuickInsumo() {
   const dataEl = document.getElementById('quick-insumo-data');
   const qtdEl = document.getElementById('quick-insumo-qtd');
   const custoEl = document.getElementById('quick-insumo-custo');
+  const revendaEl = document.getElementById('quick-insumo-revenda');
+  const ambosEl = document.getElementById('quick-insumo-ambos');
   const nome = (nomeEl?.value || '').trim();
   if (!nome) return showToast('Informe o nome do insumo', 'error');
 
-  let ing = ingredientes.find(i => (i.nome || '').toLowerCase() === nome.toLowerCase());
-  const existed = !!ing;
-  if (!ing) {
-    ing = { id: ++nextId, nome, unidade: unidadeEl?.value || 'g', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] };
-    ingredientes.push(ing);
-  } else if (unidadeEl?.value) {
-    ing.unidade = unidadeEl.value;
-  }
-
   const compra = {
-    id: ++nextId,
     fornecedor: fornecedorEl?.value || '',
     data: dataEl?.value || '',
     qtdCompra: parseFloat(qtdEl?.value) || 0,
     custoCompra: parseMoney(custoEl?.value)
   };
-  if (!ing.historico) ing.historico = [];
-  if (compra.qtdCompra > 0 || compra.custoCompra > 0 || compra.fornecedor || compra.data) {
-    ing.historico.push(compra);
-    ing.qtdCompra = compra.qtdCompra;
-    ing.custoCompra = compra.custoCompra;
+  const unidade = unidadeEl?.value || 'g';
+
+  const comoInsumo = ambosEl?.checked || !revendaEl?.checked;
+  const comoRevenda = ambosEl?.checked || revendaEl?.checked;
+
+  let msg;
+  if (comoInsumo && comoRevenda) {
+    upsertQuickInsumo(nome, unidade, compra);
+    upsertQuickRevenda(nome, compra);
+    msg = 'Cadastrado como insumo e material de revenda';
+  } else if (comoRevenda) {
+    msg = upsertQuickRevenda(nome, compra)
+      ? 'Compra lancada no material de revenda existente'
+      : 'Material de revenda criado na lista de revenda';
+  } else {
+    msg = upsertQuickInsumo(nome, unidade, compra)
+      ? 'Compra lancada no insumo existente'
+      : 'Insumo criado na planilha';
   }
 
   saveAll();
@@ -4764,7 +5179,26 @@ function submitQuickInsumo() {
   renderProdutos();
   clearQuickInsumoForm();
   nomeEl?.focus();
-  showToast(existed ? 'Compra lancada no insumo existente' : 'Insumo criado na planilha', 'success');
+  showToast(msg, 'success');
+}
+
+// Cria (ou lança nova compra em) um ingrediente. Retorna true se já existia.
+function upsertQuickInsumo(nome, unidade, compra) {
+  let ing = ingredientes.find(i => (i.nome || '').toLowerCase() === nome.toLowerCase());
+  const existed = !!ing;
+  if (!ing) {
+    ing = { id: ++nextId, nome, unidade: unidade || 'g', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] };
+    ingredientes.push(ing);
+  } else if (unidade) {
+    ing.unidade = unidade;
+  }
+  if (!ing.historico) ing.historico = [];
+  if (compra.qtdCompra > 0 || compra.custoCompra > 0 || compra.fornecedor || compra.data) {
+    ing.historico.push({ id: ++nextId, fornecedor: compra.fornecedor, data: compra.data, qtdCompra: compra.qtdCompra, custoCompra: compra.custoCompra });
+    ing.qtdCompra = compra.qtdCompra;
+    ing.custoCompra = compra.custoCompra;
+  }
+  return existed;
 }
 
 function addIngredienteRow() {
