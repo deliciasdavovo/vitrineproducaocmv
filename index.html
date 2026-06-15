@@ -1704,8 +1704,22 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     <button class="toggle-btn" id="forn-tab-item" onclick="setFornecedorView('item')">Por produto / insumo</button>
   </div>
 
-  <div class="form-group" style="margin-bottom:16px;max-width:340px;">
-    <input type="text" id="forn-search" placeholder="Buscar fornecedor, produto ou insumo…" oninput="renderFornecedores()">
+  <!-- Barra de filtros e ordenação -->
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:14px;">
+    <input type="text" id="forn-search" placeholder="🔎 Buscar fornecedor, produto ou insumo…" oninput="renderFornecedores()" style="flex:1;min-width:200px;max-width:320px;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);">
+    <select id="forn-sort" onchange="renderFornecedores()" style="border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);"></select>
+    <div style="display:flex;gap:6px;margin-left:auto;">
+      <button class="btn btn-ghost btn-sm" onclick="expandirFornCards(true)">Expandir tudo</button>
+      <button class="btn btn-ghost btn-sm" onclick="expandirFornCards(false)">Recolher tudo</button>
+    </div>
+  </div>
+
+  <!-- Filtro por tipo -->
+  <div class="toggle-row" id="forn-tipo-chips" style="margin-bottom:16px;flex-wrap:wrap;">
+    <button class="toggle-btn active" data-tipo="todos" onclick="setFornTipo('todos')">Todos</button>
+    <button class="toggle-btn" data-tipo="Produto" onclick="setFornTipo('Produto')">Produção</button>
+    <button class="toggle-btn" data-tipo="Revenda" onclick="setFornTipo('Revenda')">Revenda</button>
+    <button class="toggle-btn" data-tipo="Insumo" onclick="setFornTipo('Insumo')">Insumo</button>
   </div>
 
   <div id="forn-content"></div>
@@ -4371,11 +4385,38 @@ function deleteRevendaHistoricoEntry(prodId, entryId) {
 // FORNECEDORES — histórico de compras agregado por fornecedor / item
 // ============================================================
 let currentFornecedorView = 'fornecedor';
+let fornTipoFiltro = 'todos';
+// Ordenação memorizada por visão (cada visão tem suas próprias opções).
+const fornSortState = { fornecedor: 'total_desc', item: 'nome_asc' };
+
+const FORN_SORT_OPCOES = {
+  fornecedor: [
+    { v: 'total_desc', t: 'Maior valor comprado' },
+    { v: 'total_asc', t: 'Menor valor comprado' },
+    { v: 'compras_desc', t: 'Mais compras' },
+    { v: 'recente', t: 'Compra mais recente' },
+    { v: 'nome_asc', t: 'Nome (A–Z)' },
+  ],
+  item: [
+    { v: 'nome_asc', t: 'Nome (A–Z)' },
+    { v: 'preco_asc', t: 'Menor preço médio' },
+    { v: 'preco_desc', t: 'Maior preço médio' },
+    { v: 'fornecedores_desc', t: 'Mais fornecedores' },
+    { v: 'compras_desc', t: 'Mais compras' },
+  ],
+};
 
 function setFornecedorView(view) {
   currentFornecedorView = view;
   document.getElementById('forn-tab-forn').classList.toggle('active', view === 'fornecedor');
   document.getElementById('forn-tab-item').classList.toggle('active', view === 'item');
+  renderFornecedores();
+}
+
+function setFornTipo(tipo) {
+  fornTipoFiltro = tipo;
+  document.querySelectorAll('#forn-tipo-chips .toggle-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.tipo === tipo));
   renderFornecedores();
 }
 
@@ -4408,19 +4449,37 @@ function coletarCompras() {
   return compras;
 }
 
+// Preenche o <select> de ordenação conforme a visão atual.
+function popularFornSort() {
+  const sel = document.getElementById('forn-sort');
+  if (!sel) return;
+  const opcoes = FORN_SORT_OPCOES[currentFornecedorView];
+  const atual = fornSortState[currentFornecedorView];
+  sel.innerHTML = opcoes.map(o =>
+    '<option value="' + o.v + '"' + (o.v === atual ? ' selected' : '') + '>' + o.t + '</option>').join('');
+}
+
 function renderFornecedores() {
   const todas = coletarCompras();
-  const termo = (document.getElementById('forn-search')?.value || '').trim().toLowerCase();
-  const compras = termo
-    ? todas.filter(c => c.fornecedor.toLowerCase().includes(termo) || c.item.toLowerCase().includes(termo))
-    : todas;
+  popularFornSort();
+  const sortSel = document.getElementById('forn-sort');
+  if (sortSel && sortSel.value) fornSortState[currentFornecedorView] = sortSel.value;
+  const sort = fornSortState[currentFornecedorView];
 
-  // Estatísticas sempre sobre o total (não sobre o filtro).
-  const fornSet = new Set(todas.filter(c => c.fornecedor !== 'Sem fornecedor').map(c => c.fornecedor));
-  const itemSet = new Set(todas.map(c => c.itemId));
-  const totalGasto = todas.reduce((s, c) => s + c.custoCompra, 0);
+  const termo = (document.getElementById('forn-search')?.value || '').trim().toLowerCase();
+
+  // Filtro por tipo (chips) alimenta também as estatísticas; a busca só estreita a lista.
+  const porTipo = fornTipoFiltro === 'todos' ? todas : todas.filter(c => c.tipo === fornTipoFiltro);
+  const compras = termo
+    ? porTipo.filter(c => c.fornecedor.toLowerCase().includes(termo) || c.item.toLowerCase().includes(termo))
+    : porTipo;
+
+  // Estatísticas refletem o filtro de tipo (não a busca).
+  const fornSet = new Set(porTipo.filter(c => c.fornecedor !== 'Sem fornecedor').map(c => c.fornecedor));
+  const itemSet = new Set(porTipo.map(c => c.itemId));
+  const totalGasto = porTipo.reduce((s, c) => s + c.custoCompra, 0);
   document.getElementById('forn-stat-qtd').textContent = fornSet.size;
-  document.getElementById('forn-stat-compras').textContent = todas.length;
+  document.getElementById('forn-stat-compras').textContent = porTipo.length;
   document.getElementById('forn-stat-total').textContent = money(totalGasto);
   document.getElementById('forn-stat-itens').textContent = itemSet.size;
 
@@ -4430,26 +4489,51 @@ function renderFornecedores() {
     return;
   }
   if (!compras.length) {
-    content.innerHTML = '<p class="section-sub">Nenhum resultado para "' + escHtml(termo) + '".</p>';
+    content.innerHTML = '<p class="section-sub">Nenhum resultado com os filtros atuais.</p>';
     return;
   }
   const expand = !!termo; // com busca ativa, já abre os cards para mostrar o resultado
   content.innerHTML = currentFornecedorView === 'fornecedor'
-    ? renderFornecedorPorFornecedor(compras, expand)
-    : renderFornecedorPorItem(compras, expand);
+    ? renderFornecedorPorFornecedor(compras, expand, sort)
+    : renderFornecedorPorItem(compras, expand, sort);
 }
 
 function toggleFornCard(header) {
   const body = header.nextElementSibling;
-  body.style.display = body.style.display === 'none' ? 'block' : 'none';
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  const chev = header.querySelector('.forn-chev');
+  if (chev) chev.textContent = open ? '▾' : '▸';
+}
+
+function expandirFornCards(open) {
+  document.querySelectorAll('#forn-content .sheet-card').forEach(card => {
+    const body = card.querySelector('.table-wrap');
+    const chev = card.querySelector('.forn-chev');
+    if (body) body.style.display = open ? 'block' : 'none';
+    if (chev) chev.textContent = open ? '▾' : '▸';
+  });
+}
+
+function fornChevron(expand) {
+  return '<span class="forn-chev" style="color:var(--text-light);font-size:12px;margin-right:8px;">' + (expand ? '▾' : '▸') + '</span>';
 }
 
 // Visão "Por fornecedor": um card por fornecedor com todas as suas compras.
-function renderFornecedorPorFornecedor(compras, expand) {
+function renderFornecedorPorFornecedor(compras, expand, sort) {
   const grupos = {};
   compras.forEach(c => { (grupos[c.fornecedor] = grupos[c.fornecedor] || []).push(c); });
-  const ordenados = Object.keys(grupos).sort((a, b) =>
-    grupos[b].reduce((s, c) => s + c.custoCompra, 0) - grupos[a].reduce((s, c) => s + c.custoCompra, 0));
+  const totalDe = f => grupos[f].reduce((s, c) => s + c.custoCompra, 0);
+  const recenteDe = f => grupos[f].reduce((m, c) => c.data > m ? c.data : m, '');
+  const ordenados = Object.keys(grupos).sort((a, b) => {
+    switch (sort) {
+      case 'total_asc': return totalDe(a) - totalDe(b);
+      case 'compras_desc': return grupos[b].length - grupos[a].length;
+      case 'recente': return recenteDe(b).localeCompare(recenteDe(a));
+      case 'nome_asc': return a.localeCompare(b, 'pt-BR');
+      default: return totalDe(b) - totalDe(a); // total_desc
+    }
+  });
 
   return ordenados.map(forn => {
     const lista = grupos[forn].slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
@@ -4465,8 +4549,9 @@ function renderFornecedorPorFornecedor(compras, expand) {
       '</tr>').join('');
     return '<div class="sheet-card" style="margin-bottom:12px;">' +
       '<div onclick="toggleFornCard(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;">' +
-        '<div><div style="font-weight:700;font-size:15px;">' + escHtml(forn) + '</div>' +
-          '<div style="font-size:12px;color:var(--text-light);">' + lista.length + ' compras · ' + nItens + ' itens diferentes</div></div>' +
+        '<div style="display:flex;align-items:center;">' + fornChevron(expand) +
+          '<div><div style="font-weight:700;font-size:15px;">' + escHtml(forn) + '</div>' +
+          '<div style="font-size:12px;color:var(--text-light);">' + lista.length + ' compras · ' + nItens + ' itens diferentes</div></div></div>' +
         '<div style="text-align:right;"><div style="font-family:var(--font-mono);font-weight:700;">' + money(total) + '</div>' +
           '<div style="font-size:11px;color:var(--text-light);">total comprado</div></div>' +
       '</div>' +
@@ -4480,13 +4565,12 @@ function renderFornecedorPorFornecedor(compras, expand) {
 }
 
 // Visão "Por produto/insumo": um card por item comparando fornecedores.
-function renderFornecedorPorItem(compras, expand) {
+function renderFornecedorPorItem(compras, expand, sort) {
   const grupos = {};
   compras.forEach(c => { (grupos[c.itemId] = grupos[c.itemId] || []).push(c); });
-  const ids = Object.keys(grupos).sort((a, b) =>
-    grupos[a][0].item.localeCompare(grupos[b][0].item, 'pt-BR'));
 
-  return ids.map(id => {
+  // Pré-calcula métricas de cada item para permitir ordenação.
+  const cards = Object.keys(grupos).map(id => {
     const lista = grupos[id];
     const item = lista[0];
     const porForn = {};
@@ -4498,12 +4582,24 @@ function renderFornecedorPorItem(compras, expand) {
       const menor = unitVals.length ? Math.min(...unitVals) : 0;
       return { forn, nCompras: cs.length, ultima: cs[0].data, ultimoUnit: cs[0].custoUnit, medio, menor };
     });
-    // Melhor fornecedor = menor preço unitário médio (entre os que têm preço).
     const comPreco = linhas.filter(l => l.medio > 0);
     const melhorMedio = comPreco.length ? Math.min(...comPreco.map(l => l.medio)) : null;
     linhas.sort((a, b) => (a.medio || Infinity) - (b.medio || Infinity));
-    const melhorLinha = melhorMedio != null ? linhas.find(l => l.medio === melhorMedio) : null;
+    return { item, lista, linhas, melhorMedio };
+  });
 
+  cards.sort((a, b) => {
+    switch (sort) {
+      case 'preco_asc': return (a.melhorMedio ?? Infinity) - (b.melhorMedio ?? Infinity);
+      case 'preco_desc': return (b.melhorMedio ?? -1) - (a.melhorMedio ?? -1);
+      case 'fornecedores_desc': return b.linhas.length - a.linhas.length;
+      case 'compras_desc': return b.lista.length - a.lista.length;
+      default: return a.item.item.localeCompare(b.item.item, 'pt-BR'); // nome_asc
+    }
+  });
+
+  return cards.map(({ item, lista, linhas, melhorMedio }) => {
+    const melhorLinha = melhorMedio != null ? linhas.find(l => l.medio === melhorMedio) : null;
     const resumoMelhor = melhorLinha
       ? '<span style="font-size:12px;color:var(--green);font-weight:700;">★ Melhor: ' + escHtml(melhorLinha.forn) + ' · ' + money(melhorLinha.medio) + '/' + escHtml(item.unidade) + '</span>'
       : '<span style="font-size:12px;color:var(--text-light);">Sem preço unitário registrado</span>';
@@ -4522,8 +4618,9 @@ function renderFornecedorPorItem(compras, expand) {
 
     return '<div class="sheet-card" style="margin-bottom:12px;">' +
       '<div onclick="toggleFornCard(this)" style="cursor:pointer;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:14px 16px;">' +
-        '<div><div style="font-weight:700;font-size:15px;">' + escHtml(item.item) + ' ' + tipoBadge(item.tipo) + '</div>' +
-          '<div style="font-size:12px;color:var(--text-light);margin-top:2px;">' + linhas.length + ' fornecedor(es) · ' + lista.length + ' compras · preço por ' + escHtml(item.unidade) + '</div></div>' +
+        '<div style="display:flex;align-items:center;">' + fornChevron(expand) +
+          '<div><div style="font-weight:700;font-size:15px;">' + escHtml(item.item) + ' ' + tipoBadge(item.tipo) + '</div>' +
+          '<div style="font-size:12px;color:var(--text-light);margin-top:2px;">' + linhas.length + ' fornecedor(es) · ' + lista.length + ' compras · preço por ' + escHtml(item.unidade) + '</div></div></div>' +
         '<div style="text-align:right;">' + resumoMelhor + '</div>' +
       '</div>' +
       '<div class="table-wrap" style="display:' + (expand ? 'block' : 'none') + ';border-top:1px solid var(--border);">' +
