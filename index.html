@@ -4231,7 +4231,10 @@ function renderRevendaCMV() {
       <td><span class="sheet-readonly">${calculavel ? money(margem) : '—'}</span></td>
       <td><span class="sheet-readonly">${calculavel ? margemPct.toFixed(1) + '%' : '—'}</span></td>
       ${renderCmvTd(cmv, calculavel)}
-      <td><button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))">??</button></td>
+      <td style="white-space:nowrap;">
+        ${classSelectHtml(p.nome, `reclassifyRevenda(${p.id}, this.value)`)}
+        <button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))" title="Editar produto">Editar</button>
+      </td>
     </tr>`;
   }).join('');
   tbodies.forEach(tbody => { tbody.innerHTML = html; });
@@ -4444,6 +4447,7 @@ function renderIngredientes() {
       <td style="min-width:110px;">${derivados}</td>
       <td style="min-width:160px;">${variacaoCell}</td>
       <td style="white-space:nowrap;">
+        ${classSelectHtml(ing.nome, `reclassifyIngrediente(${ing.id}, this.value)`)}
         <button class="btn btn-ghost btn-sm" onclick="openHistoricoModal(${ing.id})" title="Histórico de compras" style="margin-right:2px;">
           Carrinho ${nCompras > 0 ? `<span style="font-size:10px;background:var(--gold-light);color:var(--brown);border-radius:999px;padding:1px 5px;">${nCompras}</span>` : ''}
         </button>
@@ -4737,6 +4741,93 @@ function upsertQuickRevenda(nome, { fornecedor, data, qtdCompra, custoCompra }) 
     if (qtdCompra > 0 && custoCompra > 0) prod.custo = custoCompra / qtdCompra;
   }
   return existed;
+}
+
+// ---- Reclassificação de itens (insumo / revenda / ambos) direto na tabela ----
+// Itens "ambos" são representados por um ingrediente E um produto de revenda com
+// o mesmo nome. Estas funções convertem entre as três classificações, migrando o
+// histórico de compras de um lado para o outro quando necessário.
+function getItemClass(nome) {
+  const lc = (nome || '').toLowerCase();
+  const hasIng = ingredientes.some(i => (i.nome || '').toLowerCase() === lc);
+  const hasRev = produtos.some(p => (p.tipo || 'fabricacao') === 'revenda' && (p.nome || '').toLowerCase() === lc);
+  if (hasIng && hasRev) return 'ambos';
+  if (hasRev) return 'revenda';
+  return 'insumo';
+}
+
+function setItemClassByName(nome, target) {
+  nome = (nome || '').trim();
+  if (!nome) return showToast('Dê um nome ao item antes de classificar', 'error');
+  const lc = nome.toLowerCase();
+  let ing = ingredientes.find(i => (i.nome || '').toLowerCase() === lc);
+  let rev = produtos.find(p => (p.tipo || 'fabricacao') === 'revenda' && (p.nome || '').toLowerCase() === lc);
+  const wantIng = target === 'insumo' || target === 'ambos';
+  const wantRev = target === 'revenda' || target === 'ambos';
+  if (getItemClass(nome) === target) return;
+
+  // Confirma antes de remover um ingrediente que está em uso nas fichas técnicas
+  if (!wantIng && ing) {
+    const usadoEm = receitas.filter(r => (r.itens || []).some(it => it.ingId === ing.id)).length;
+    if (usadoEm > 0 && !confirm(`"${nome}" é usado em ${usadoEm} ficha(s) técnica(s). Ao deixar de ser insumo ele sairá dessas fichas. Continuar?`)) {
+      renderCMV();
+      return;
+    }
+  }
+
+  // Cria o que faltar, migrando o histórico do outro lado
+  if (wantIng && !ing) {
+    ing = { id: ++nextId, nome, unidade: 'un', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] };
+    if (rev) {
+      ing.historico = (rev.historicoCompras || []).map(h => ({ id: ++nextId, fornecedor: h.fornecedor || '', data: h.data || '', qtdCompra: Number(h.qtdCompra) || 0, custoCompra: Number(h.custoCompra) || 0 }));
+      const last = ing.historico[ing.historico.length - 1];
+      if (last) { ing.qtdCompra = last.qtdCompra; ing.custoCompra = last.custoCompra; }
+    }
+    ingredientes.push(ing);
+  }
+  if (wantRev && !rev) {
+    rev = { id: ++nextId, nome, tipo: 'revenda', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: '', custo: 0, preco: 0, precoUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', qtdComprada: 0, valorCompra: 0, historicoCompras: [] };
+    if (ing) {
+      rev.historicoCompras = (ing.historico || []).map(h => ({ id: ++nextId, fornecedor: h.fornecedor || '', data: h.data || '', qtdCompra: Number(h.qtdCompra) || 0, custoCompra: Number(h.custoCompra) || 0 }));
+      const last = rev.historicoCompras[rev.historicoCompras.length - 1];
+      if (last) { rev.qtdComprada = last.qtdCompra; rev.valorCompra = last.custoCompra; if (last.qtdCompra > 0 && last.custoCompra > 0) rev.custo = last.custoCompra / last.qtdCompra; }
+    }
+    produtos.push(rev);
+  }
+  // Remove o que não é mais desejado
+  if (!wantIng && ing) {
+    ingredientes = ingredientes.filter(i => i.id !== ing.id);
+    receitas = receitas.map(r => ({ ...r, itens: (r.itens || []).filter(it => it.ingId !== ing.id) }));
+    db.from('ingredientes').delete().eq('id', ing.id);
+  }
+  if (!wantRev && rev) {
+    produtos = produtos.filter(p => p.id !== rev.id);
+    receitas = receitas.filter(r => r.prodId !== rev.id);
+    db.from('produtos').delete().eq('id', rev.id);
+  }
+  saveAll();
+  refreshProductCostsFromRecipes();
+  renderCMV();
+  renderProdutos();
+  const labels = { insumo: 'Só insumo', revenda: 'Só revenda', ambos: 'Insumo + revenda' };
+  showToast(`"${nome}" agora é: ${labels[target]}`, 'success');
+}
+
+function reclassifyIngrediente(ingId, target) {
+  const ing = ingredientes.find(i => i.id === ingId);
+  if (ing) setItemClassByName(ing.nome, target);
+}
+function reclassifyRevenda(prodId, target) {
+  const p = produtos.find(pr => pr.id === prodId);
+  if (p) setItemClassByName(p.nome, target);
+}
+function classSelectHtml(nome, onchangeCall) {
+  const cls = getItemClass(nome);
+  return `<select class="sheet-select" style="min-width:130px;" onchange="${onchangeCall}" title="Onde este item aparece">
+    <option value="insumo" ${cls === 'insumo' ? 'selected' : ''}>Só insumo</option>
+    <option value="revenda" ${cls === 'revenda' ? 'selected' : ''}>Só revenda</option>
+    <option value="ambos" ${cls === 'ambos' ? 'selected' : ''}>Insumo + revenda</option>
+  </select>`;
 }
 
 function handleQuickInsumoKey(e) {
