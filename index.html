@@ -509,67 +509,99 @@ tr:hover td { background: var(--surface-soft); }
   padding: 4px 9px;
 }
 .vitrine-slot {
-  background: linear-gradient(180deg, #FFFFFF, #F8FAFC);
-  border: 1px solid #CBD5E1;
-  border-radius: 7px 7px 12px 12px;
-  min-height: 64px;
-  padding: 8px 10px;
+  background: #FFFFFF;
+  border: 1px solid #D8DEE9;
+  border-radius: 12px;
+  min-height: 104px;
+  padding: 26px 11px 9px;
   cursor: pointer;
-  transition: all .15s;
+  transition: border-color .15s, box-shadow .15s, transform .15s;
   position: relative;
   display: flex;
-  align-items: center;
-  box-shadow: inset 0 -5px 0 rgba(15,23,42,0.06), 0 4px 10px rgba(15,23,42,0.05);
+  flex-direction: column;
+  box-shadow: 0 2px 6px rgba(15,23,42,0.06);
   min-width: 0;
 }
-.vitrine-slot:hover { border-color: var(--brown); background: #EFF6FF; transform: translateY(-1px); }
-.vitrine-slot.filled { background: #FFFFFF; border-style: solid; border-color: rgba(37,99,235,0.35); box-shadow: inset 0 -5px 0 rgba(37,99,235,0.08), 0 5px 12px rgba(15,23,42,0.07); }
-.vitrine-slot.filled:hover { border-color: var(--brown); }
+.vitrine-slot:hover { border-color: var(--blue); box-shadow: 0 7px 16px rgba(37,99,235,0.15); transform: translateY(-1px); }
+.vitrine-slot.empty {
+  border-style: dashed;
+  border-color: #CBD5E1;
+  background: #F8FAFC;
+  box-shadow: none;
+  justify-content: center;
+  align-items: center;
+}
+.vitrine-slot.empty:hover { background: #EFF6FF; }
+.vitrine-slot.filled { border-color: rgba(37,99,235,0.30); }
+.vitrine-slot.low { border-color: var(--gold); background: #FFFBEB; box-shadow: 0 2px 8px rgba(245,158,11,0.20); }
+.vitrine-slot.low:hover { border-color: var(--gold); }
+.vitrine-slot.out { border-color: var(--red); background: #FEF2F2; }
+.vitrine-slot.out:hover { border-color: var(--red); }
 .vitrine-slot.sold {
   border-color: rgba(22,163,74,0.55);
   background: linear-gradient(180deg, #F0FDF4, #DCFCE7);
-  box-shadow: inset 0 -5px 0 rgba(22,163,74,0.20), 0 5px 12px rgba(22,163,74,0.12);
 }
 .vitrine-slot.loss {
   border-color: rgba(220,38,38,0.45);
   background: linear-gradient(180deg, #FEF2F2, #FEE2E2);
-  box-shadow: inset 0 -5px 0 rgba(220,38,38,0.16), 0 5px 12px rgba(220,38,38,0.10);
 }
 .vitrine-slot.expired {
   border-color: var(--red);
   background: #FFF0F0;
-  box-shadow: inset 0 -5px 0 rgba(220,38,38,0.18), 0 5px 12px rgba(220,38,38,0.10);
 }
 .slot-expired {
   display: inline-flex;
-  margin-top: 4px;
-  padding: 2px 5px;
-  border: 1px solid var(--red);
+  margin-top: 2px;
+  padding: 2px 6px;
   border-radius: 999px;
-  background: #FFFFFF;
-  color: var(--red);
-  font-size: 10px;
+  background: var(--red);
+  color: #FFFFFF;
+  font-size: 9px;
   font-weight: 800;
+  letter-spacing: .3px;
   text-transform: uppercase;
 }
 .vitrine-slot .slot-num {
   position: absolute;
-  top: 4px;
-  left: 6px;
+  top: 7px;
+  left: 9px;
   font-family: var(--font-mono);
   font-size: 9px;
   font-weight: 700;
   color: var(--text-light);
 }
-.vitrine-slot .slot-content { margin-left: 4px; padding-top: 7px; }
-.vitrine-slot .slot-name { font-size: 12px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.vitrine-slot .slot-content { width: 100%; display: flex; flex-direction: column; gap: 6px; flex: 1; }
+.vitrine-slot .slot-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; }
 .vitrine-slot .slot-qty { font-size: 11px; color: var(--text-light); }
+/* Quantity stepper */
+.slot-qtyline { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
+.slot-qtynum { font-size: 19px; font-weight: 800; color: var(--text); font-family: var(--font-mono); min-width: 18px; text-align: center; line-height: 1; }
+.slot-unit { font-size: 11px; color: var(--text-light); font-weight: 600; }
+.slot-step {
+  width: 24px; height: 24px; border-radius: 7px;
+  border: 1px solid var(--border); background: #FFFFFF;
+  font-size: 16px; font-weight: 700; line-height: 1; color: var(--text-mid);
+  cursor: pointer; display: inline-flex; align-items: center; justify-content: center;
+  flex-shrink: 0; transition: all .12s; padding: 0;
+}
+.slot-step:hover { background: var(--blue); color: #FFFFFF; border-color: var(--blue); }
+.slot-step.minus:hover { background: var(--red); border-color: var(--red); }
+.slot-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; }
+.slot-time { font-size: 10px; color: var(--text-light); white-space: nowrap; }
+.stock-badge {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 999px;
+  text-transform: uppercase; letter-spacing: .3px; white-space: nowrap;
+}
+.stock-badge.ok { background: #EEF2F7; color: var(--text-light); }
+.stock-badge.low { background: var(--gold); color: #FFFFFF; }
+.stock-badge.out { background: var(--red); color: #FFFFFF; }
 .vitrine-slot .slot-role {
   position: absolute;
-  top: 4px;
-  right: 8px;
+  top: 7px;
+  left: 28px;
+  right: 24px;
   font-family: var(--font-mono);
-  max-width: calc(100% - 34px);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -578,21 +610,25 @@ tr:hover td { background: var(--surface-soft); }
   color: var(--text-light);
   text-transform: uppercase;
   letter-spacing: 0.3px;
+  text-align: right;
 }
 .vitrine-slot .slot-remove {
   position: absolute;
-  top: 21px;
+  top: 4px;
   right: 6px;
-  font-size: 14px;
+  font-size: 16px;
   color: var(--text-light);
   cursor: pointer;
   line-height: 1;
   padding: 2px;
+  opacity: 0;
+  transition: opacity .12s, color .12s;
 }
+.vitrine-slot:hover .slot-remove { opacity: 1; }
 .vitrine-slot .slot-remove:hover { color: var(--red); }
 .vitrine-slot.empty .slot-plus {
-  font-size: 18px;
-  color: var(--border);
+  font-size: 22px;
+  color: #94A3B8;
   margin: auto;
 }
 
@@ -1908,10 +1944,22 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         <select id="slot-produto"></select>
       </div>
     </div>
-    <div class="form-row">
-      <div class="form-group"><label>Quantidade na vitrine</label><input type="number" id="slot-qty" min="1" value="1"></div>
-      <div class="form-group"><label>Espaço na vitrine</label><select id="slot-pos"></select></div>
+    <div class="form-row three">
+      <div class="form-group"><label>Quantidade na vitrine</label><input type="number" id="slot-qty" min="0" value="1"></div>
+      <div class="form-group"><label>Unidade</label>
+        <select id="slot-unidade">
+          <option value="un">unidade</option>
+          <option value="fatia">fatia</option>
+          <option value="inteira">inteira</option>
+          <option value="pedaco">pedaço</option>
+          <option value="pote">pote</option>
+          <option value="bandeja">bandeja</option>
+          <option value="kg">kg</option>
+        </select>
+      </div>
+      <div class="form-group"><label>Estoque mínimo</label><input type="number" id="slot-min" min="0" placeholder="ex: 2"></div>
     </div>
+    <div class="form-group" style="margin-bottom:12px;"><label>Espaço na vitrine</label><select id="slot-pos"></select></div>
     <div class="form-row">
       <div class="form-group"><label>Quantidade produzida</label><input type="number" id="slot-produced" min="0" value="0"></div>
       <div class="form-group"><label>Entrada na vitrine</label><input type="datetime-local" id="slot-entry"></div>
@@ -2068,6 +2116,44 @@ function getExpirationInfo(item, prod) {
     expired,
     label: expired ? 'Fora do prazo' : `Vence ${formatDateTimeShort(expiresAt.toISOString())}`
   };
+}
+
+// Rótulo da unidade de medida da vitrine (com plural)
+function vitrineUnitLabel(unit, qty) {
+  const map = {
+    un: ['un.', 'un.'],
+    unidade: ['unidade', 'unidades'],
+    fatia: ['fatia', 'fatias'],
+    inteira: ['inteira', 'inteiras'],
+    pedaco: ['pedaço', 'pedaços'],
+    pote: ['pote', 'potes'],
+    bandeja: ['bandeja', 'bandejas'],
+    kg: ['kg', 'kg']
+  };
+  const pair = map[unit] || ['un.', 'un.'];
+  return Number(qty) === 1 ? pair[0] : pair[1];
+}
+
+// Situação de estoque do item da vitrine
+function getSlotStock(item) {
+  const qty = Number(item.qty) || 0;
+  const hasMin = item.minQty !== undefined && item.minQty !== null && item.minQty !== '';
+  const min = hasMin ? Number(item.minQty) : null;
+  if (qty <= 0) return { level: 'out', label: 'Acabou', min };
+  if (min !== null && qty <= min) return { level: 'low', label: 'Repor', min };
+  if (min !== null) return { level: 'ok', label: `mín ${min}`, min };
+  return { level: 'ok', label: '', min: null };
+}
+
+// Ajuste rápido de quantidade direto no slot (+/-)
+function adjustSlotQty(slotNum, delta, e) {
+  if (e) e.stopPropagation();
+  const vitrine = getVitrine();
+  const item = vitrine.find(v => v.slot === slotNum);
+  if (!item) return;
+  item.qty = Math.max(0, (Number(item.qty) || 0) + delta);
+  saveAll();
+  renderVitrine();
 }
 
 // Layouts de vitrine por unidade
@@ -2383,6 +2469,8 @@ async function syncToSupabase() {
         allSlots.push({
           unit: currentUnit, dia, slot: s.slot, prod_id: s.prodId,
           qty: s.qty || 0, produced_qty: s.producedQty || 0,
+          min_qty: (s.minQty === undefined || s.minQty === null || s.minQty === '') ? null : s.minQty,
+          unidade_medida: s.unidadeMedida || 'un',
           entry_at: s.entryAt || null, status: s.status || 'em_vitrine'
         });
       });
@@ -2575,6 +2663,8 @@ async function loadFromSupabase() {
       if (!vitrines[s.unit][s.dia]) vitrines[s.unit][s.dia] = [];
       vitrines[s.unit][s.dia].push({
         prodId: s.prod_id, qty: s.qty, producedQty: s.produced_qty,
+        minQty: (s.min_qty === undefined || s.min_qty === null) ? null : Number(s.min_qty),
+        unidadeMedida: s.unidade_medida || 'un',
         entryAt: s.entry_at, status: s.status, slot: s.slot
       });
     });
@@ -2757,17 +2847,31 @@ function renderVitrine() {
         const item = vitrine.find(v => v.slot === slotNumber);
         const prod = item ? produtos.find(p => p.id === item.prodId) : null;
         const expiration = item && prod ? getExpirationInfo(item, prod) : { expired: false };
+        const stock = item ? getSlotStock(item) : null;
         const div = document.createElement('div');
-        div.className = 'vitrine-slot ' + (item ? `filled ${item.status === 'vendeu' ? 'sold' : ''} ${item.status === 'perda' || item.status === 'validade' ? 'loss' : ''} ${expiration.expired ? 'expired' : ''}` : 'empty');
+        const stockClass = stock && !expiration.expired ? (stock.level === 'out' ? 'out' : stock.level === 'low' ? 'low' : '') : '';
+        div.className = 'vitrine-slot ' + (item ? `filled ${item.status === 'vendeu' ? 'sold' : ''} ${item.status === 'perda' || item.status === 'validade' ? 'loss' : ''} ${expiration.expired ? 'expired' : ''} ${stockClass}` : 'empty');
         div.dataset.slotNumber = slotNumber;
         div.innerHTML = `<span class="slot-num">${offset + 1}</span><span class="slot-role" title="${role}">${role}</span>`;
         if (item && prod) {
+          const unitLabel = vitrineUnitLabel(item.unidadeMedida, item.qty);
+          const badge = expiration.expired
+            ? '<span class="slot-expired">Fora do prazo</span>'
+            : (stock.label ? `<span class="stock-badge ${stock.level}">${stock.label}</span>` : '');
+          const timeLabel = item.entryAt ? `há ${formatDisplayTime(item.entryAt)}` : '';
           div.innerHTML += `
             <div class="slot-content">
-              <div class="slot-name">${prod.nome}</div>
-              <div class="slot-qty">${item.qty} un. na vitrine${item.producedQty ? ` · prod. ${item.producedQty}` : ''}</div>
-              <div class="slot-qty">${item.entryAt ? `há ${formatDisplayTime(item.entryAt)}` : 'sem horário de entrada'}</div>
-              ${expiration.expired ? '<div class="slot-expired">Fora do prazo</div>' : ''}
+              <div class="slot-name" title="${prod.nome}">${prod.nome}</div>
+              <div class="slot-qtyline">
+                <button class="slot-step minus" title="Diminuir" onclick="adjustSlotQty(${slotNumber}, -1, event)">−</button>
+                <span class="slot-qtynum">${item.qty}</span>
+                <button class="slot-step plus" title="Aumentar" onclick="adjustSlotQty(${slotNumber}, 1, event)">+</button>
+                <span class="slot-unit">${unitLabel}</span>
+              </div>
+              <div class="slot-foot">
+                ${badge}
+                ${timeLabel ? `<span class="slot-time">${timeLabel}</span>` : ''}
+              </div>
             </div>
             <span class="slot-remove" onclick="removeSlot(${slotNumber}, event)">×</span>`;
         } else {
@@ -2809,13 +2913,17 @@ function renderVitrineSlotList() {
       }
       const timeLabel = item.entryAt ? `ha ${formatDisplayTime(item.entryAt)}` : '&#8212;';
       const statusClass = item.status === 'vendeu' ? 'sold' : (item.status === 'perda' || item.status === 'validade' ? 'loss' : '');
+      const stock = getSlotStock(item);
+      const stockBadge = !expiration.expired && stock.label && stock.level !== 'ok'
+        ? `<span class="stock-badge ${stock.level}" style="margin-left:6px;">${stock.label}</span>` : '';
+      const unitLabel = vitrineUnitLabel(item.unidadeMedida, item.qty);
       return `<div class="slot-list-row ${statusClass} ${expiration.expired ? 'expired' : ''}" data-slot-number="${slotNumber}" onclick="openSlotModal(${slotNumber}, ${vitrine.indexOf(item)})" oncontextmenu="openSlotContextMenu(event, ${slotNumber})">
         <div><div class="slot-list-code">${num}</div><div class="slot-list-meta" style="font-size:10px;margin-top:2px;">${role}</div></div>
         <div>
-          <div class="slot-list-name">${prod.nome}</div>
-          <div class="slot-list-meta">${timeLabel}${expiration.expired ? ' &middot; Fora do prazo' : ''}</div>
+          <div class="slot-list-name">${prod.nome}${stockBadge}</div>
+          <div class="slot-list-meta">${timeLabel}${expiration.expired ? ' &middot; Fora do prazo' : ''}${stock.min !== null ? ` &middot; mín ${stock.min}` : ''}</div>
         </div>
-        <div class="slot-list-qty">${item.qty} un.</div>
+        <div class="slot-list-qty">${item.qty} ${unitLabel}</div>
         <button class="btn btn-ghost btn-sm" onclick="removeSlot(${slotNumber}, event)">&#215;</button>
       </div>`;
     }).join('');
@@ -2902,7 +3010,7 @@ function addToVitrineAuto(prod, qty) {
       const slotNum = section.start + i;
       if (!vitrine.some(v => v.slot === slotNum)) {
         vitrine.push({
-          prodId: prod.id, qty, producedQty: qty,
+          prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
           entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: slotNum
         });
         showToast(`${prod.nome} adicionado ao slot ${i + 1} &#10003;`, 'success');
@@ -2962,6 +3070,8 @@ function openSlotModal(slotNum, editIdx) {
   posSelect.onchange = () => renderSlotProdutoOptions();
   renderSlotProdutoOptions();
   document.getElementById('slot-qty').value = 1;
+  document.getElementById('slot-unidade').value = 'un';
+  document.getElementById('slot-min').value = '';
   document.getElementById('slot-produced').value = '';
   document.getElementById('slot-entry').value = nowLocalInputValue();
   document.getElementById('slot-edit-idx').value = editIdx !== undefined ? editIdx : '';
@@ -2972,6 +3082,8 @@ function openSlotModal(slotNum, editIdx) {
       renderSlotProdutoOptions(item.prodId);
       sel.value = item.prodId;
       document.getElementById('slot-qty').value = item.qty;
+      document.getElementById('slot-unidade').value = item.unidadeMedida || 'un';
+      document.getElementById('slot-min').value = (item.minQty !== undefined && item.minQty !== null) ? item.minQty : '';
       document.getElementById('slot-produced').value = item.producedQty || item.qty || '';
       document.getElementById('slot-entry').value = item.entryAt || nowLocalInputValue();
       posSelect.value = item.slot;
@@ -2999,7 +3111,11 @@ function renderSlotProdutoOptions(keepProdId = null) {
 
 function saveSlot() {
   const prodId = parseInt(document.getElementById('slot-produto').value);
-  const qty = parseInt(document.getElementById('slot-qty').value) || 1;
+  const qtyRaw = document.getElementById('slot-qty').value;
+  const qty = qtyRaw === '' ? 1 : Math.max(0, parseInt(qtyRaw) || 0);
+  const unidadeMedida = document.getElementById('slot-unidade').value || 'un';
+  const minRaw = document.getElementById('slot-min').value;
+  const minQty = minRaw === '' ? null : Math.max(0, parseInt(minRaw) || 0);
   const producedQty = parseInt(document.getElementById('slot-produced').value) || qty;
   const entryAt = document.getElementById('slot-entry').value || nowLocalInputValue();
   const pos = parseInt(document.getElementById('slot-pos').value) || 1;
@@ -3023,11 +3139,11 @@ function saveSlot() {
     vitrine.splice(existingIdx, 1);
   }
 
-  vitrine.push({ prodId, qty, producedQty, entryAt, status: 'em_vitrine', slot: pos });
+  vitrine.push({ prodId, qty, producedQty, minQty, unidadeMedida, entryAt, status: 'em_vitrine', slot: pos });
   saveAll();
   closeModal('modal-slot');
   renderVitrine();
-  showToast('Produto adicionado à vitrine ?', 'success');
+  showToast('Produto adicionado à vitrine', 'success');
 }
 
 function removeSlot(slotNum, e) {

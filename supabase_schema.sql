@@ -108,6 +108,8 @@ alter table vitrine_slots add column if not exists slot text;
 alter table vitrine_slots add column if not exists prod_id bigint;
 alter table vitrine_slots add column if not exists qty numeric;
 alter table vitrine_slots add column if not exists produced_qty numeric;
+alter table vitrine_slots add column if not exists min_qty numeric;
+alter table vitrine_slots add column if not exists unidade_medida text;
 alter table vitrine_slots add column if not exists entry_at timestamptz;
 alter table vitrine_slots add column if not exists status text;
 
