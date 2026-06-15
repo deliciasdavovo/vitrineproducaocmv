@@ -1638,11 +1638,11 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <th>CMV %</th>
               <th>Preço venda (R$)</th>
               <th>Custo ficha</th>
-              <th>Rend.</th>
               <th>Custo un.</th>
-              <th>Categoria</th>
               <th>Lucro un.</th>
               <th>Margem %</th>
+              <th>Rend.</th>
+              <th>Categoria</th>
             </tr>
           </thead>
           <tbody id="producao-tbody"></tbody>
@@ -4162,11 +4162,11 @@ function renderProducaoCMV() {
       ${renderCmvTd(cmv, calculavel)}
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateProducaoPreco(${p.id}, this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
       <td><span class="sheet-readonly">${temFicha ? money(custoTotal) : '<span style="color:var(--text-light);">sem ficha</span>'}</span></td>
-      <td><span class="sheet-readonly">${temFicha ? rendimento : '—'}</span></td>
       <td><span class="sheet-readonly">${custoNaUnidade > 0 ? custoUnDisplay : '—'}</span></td>
-      <td><span class="sheet-readonly" style="font-size:12px;">${p.categoria || '—'}</span></td>
       <td><span class="sheet-readonly" style="font-weight:600;color:${lucro >= 0 ? 'var(--green)' : 'var(--red)'};">${calculavel ? money(lucro) : '—'}</span></td>
       <td><span class="sheet-readonly">${calculavel ? margem.toFixed(1) + '%' : '—'}</span></td>
+      <td><span class="sheet-readonly">${temFicha ? rendimento : '—'}</span></td>
+      <td><span class="sheet-readonly" style="font-size:12px;">${p.categoria || '—'}</span></td>
     </tr>`;
   }).join('');
 }
