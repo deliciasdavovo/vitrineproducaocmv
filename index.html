@@ -1450,6 +1450,8 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <th>Categoria</th>
               <th>Curva</th>
               <th>Vitrine</th>
+              <th>Validade (dias)</th>
+              <th>Responsável</th>
               <th>Preço R$</th>
               <th>Por</th>
               <th>Custo ficha</th>
@@ -4189,6 +4191,7 @@ function renderFabricacaoSheet(resort = true) {
   fabRenderOrder = fabricacao.map(p => p.id);
   const curvaOptions = `<option value="A">A</option><option value="B">B</option><option value="C">C</option><option value="">—</option>`;
   const precoUnidadeOptions = selected => `<option value="un" ${selected === 'un' ? 'selected' : ''}>Unidade</option><option value="kg" ${selected === 'kg' ? 'selected' : ''}>Kg</option>`;
+  const respOptions = ['Alexandre','Tiago','Anderson','Lucas','Outro'].map(r => `<option value="${r}">${r}</option>`).join('');
   // Mostra divisórias de categoria quando a planilha está ordenada por categoria.
   const agrupaPorCategoria = fabOrdem === 'categoria';
   // Contagem por categoria (só dos itens não-novos) para o badge da divisória.
@@ -4210,7 +4213,7 @@ function renderFabricacaoSheet(resort = true) {
       const cat = (p.categoria || '').trim() || 'Sem categoria';
       if (cat !== ultimaCategoria) {
         ultimaCategoria = cat;
-        linhas.push(`<tr class="sheet-group-row"><td colspan="10"><div class="sheet-group-label">${escHtml(cat)}<span class="sheet-group-count">${catCount[cat]} ${catCount[cat] === 1 ? 'produto' : 'produtos'}</span></div></td></tr>`);
+        linhas.push(`<tr class="sheet-group-row"><td colspan="12"><div class="sheet-group-label">${escHtml(cat)}<span class="sheet-group-count">${catCount[cat]} ${catCount[cat] === 1 ? 'produto' : 'produtos'}</span></div></td></tr>`);
       }
     }
     const pv = inferProductVitrine(p);
@@ -4225,6 +4228,8 @@ function renderFabricacaoSheet(resort = true) {
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'categoria',this.value)">${getCategoriaOptions(p.categoria)}</select></td>
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'curva',this.value)">${curvaOptions.replace(`value="${p.curva}"`,`value="${p.curva}" selected`)}</select></td>
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'vitrine',this.value)">${getVitrineOptions(pv)}</select></td>
+      <td><input class="sheet-input" type="number" min="1" value="${p.validade||1}" onblur="updateFabricacaoCell(${p.id},'validade',this.value)" style="min-width:60px;text-align:center;"></td>
+      <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'resp',this.value)">${respOptions.replace(`value="${p.resp||'Alexandre'}"`,`value="${p.resp||'Alexandre'}" selected`)}</select></td>
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateFabricacaoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'precoUnidade',this.value)">${precoUnidadeOptions(getPrecoUnidadeLabel(p))}</select></td>
       <td><span class="sheet-readonly">${custoNaUnidade > 0 ? money(custoNaUnidade) + custoLabel : (temFicha ? '—' : '<span style="color:var(--text-light);">sem ficha</span>')}</span></td>
@@ -4233,7 +4238,7 @@ function renderFabricacaoSheet(resort = true) {
       <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
     </tr>`);
   });
-  tbody.innerHTML = linhas.join('') || `<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado — clique em "+ Novo produto de fabricação"</td></tr>`;
+  tbody.innerHTML = linhas.join('') || `<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado — clique em "+ Novo produto de fabricação"</td></tr>`;
 }
 
 function updateFabricacaoCell(id, field, value) {
