@@ -1163,29 +1163,29 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     <span>Gestão de Vitrines</span>
   </div>
   <div class="group-switcher">
-    <button class="group-btn active" data-group="vitrines" onclick="showGroup('vitrines')">Vitrines</button>
-    <button class="group-btn" data-group="cmv" onclick="showGroup('cmv')">CMV</button>
+    <button class="group-btn" data-group="vitrines" onclick="showGroup('vitrines')">Vitrines</button>
+    <button class="group-btn active" data-group="cmv" onclick="showGroup('cmv')">CMV</button>
   </div>
 </div>
 
 <!-- NAV: VITRINES -->
-<div class="nav" id="nav-vitrines">
-  <button class="nav-btn active" data-page="vitrine" onclick="showPage('vitrine')">Vitrines</button>
+<div class="nav" id="nav-vitrines" style="display:none">
+  <button class="nav-btn" data-page="vitrine" onclick="showPage('vitrine')">Vitrines</button>
   <button class="nav-btn" data-page="cronograma" onclick="showPage('cronograma')">Cronograma</button>
   <button class="nav-btn" data-page="perdas" onclick="showPage('perdas')">Perdas</button>
   <button class="nav-btn" data-page="pedido" onclick="showPage('pedido')">Pedido de Produção</button>
 </div>
 
 <!-- NAV: CMV -->
-<div class="nav" id="nav-cmv" style="display:none">
+<div class="nav" id="nav-cmv" style="display:flex">
   <button class="nav-btn" data-page="insumos" onclick="showPage('insumos')">Insumos & Fichas</button>
-  <button class="nav-btn" data-page="cmv" onclick="showPage('cmv')">CMV</button>
+  <button class="nav-btn active" data-page="cmv" onclick="showPage('cmv')">CMV</button>
   <button class="nav-btn" data-page="fornecedores" onclick="showPage('fornecedores')">Fornecedores</button>
   <button class="nav-btn" data-page="banco" onclick="showPage('banco')">Banco de Dados</button>
 </div>
 
 <!-- ===================== PAGE: VITRINE ===================== -->
-<div class="page active" id="page-vitrine">
+<div class="page" id="page-vitrine">
   <h2 class="section-title">Vitrine da Semana</h2>
   <p class="section-sub" id="vitrine-unidade-label">Unidade: Matriz — clique em uma posição para adicionar produto</p>
 
@@ -1606,7 +1606,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 </div>
 
 <!-- ===================== PAGE: CMV ===================== -->
-<div class="page" id="page-cmv">
+<div class="page active" id="page-cmv">
   <h2 class="section-title">CMV — Custo da Mercadoria Vendida</h2>
   <p class="section-sub">CMV dos produtos de produção e de revenda. Os custos vêm dos insumos e fichas técnicas cadastrados na aba Insumos &amp; Fichas.</p>
 
