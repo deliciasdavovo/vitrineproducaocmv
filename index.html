@@ -1153,6 +1153,9 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 </head>
 <body>
 
+<!-- Lista compartilhada de fornecedores já cadastrados (preenche os campos "Fornecedor") -->
+<datalist id="fornecedores-list"></datalist>
+
 <!-- HEADER -->
 <div class="header">
   <div class="header-logo">
@@ -1470,7 +1473,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         <option value="ml">ml</option>
         <option value="un">un</option>
       </select>
-      <input id="quick-insumo-fornecedor" placeholder="Fornecedor" onkeydown="handleQuickInsumoKey(event)">
+      <input id="quick-insumo-fornecedor" list="fornecedores-list" placeholder="Fornecedor" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-data" type="date" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-qtd" type="number" min="0" step="0.001" placeholder="Qtd. compra" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)">
@@ -1864,7 +1867,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     <div id="revenda-historico-list" style="margin-bottom:16px;"></div>
     <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">Registrar nova compra</div>
     <div class="form-row">
-      <div class="form-group"><label>Fornecedor</label><input type="text" id="revhist-fornecedor" placeholder="ex: Distribuidora"></div>
+      <div class="form-group"><label>Fornecedor</label><input type="text" id="revhist-fornecedor" list="fornecedores-list" placeholder="ex: Distribuidora"></div>
       <div class="form-group"><label>Data</label><input type="date" id="revhist-data"></div>
     </div>
     <div class="form-row">
@@ -1914,7 +1917,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     </div>
     <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin:12px 0 6px;text-transform:uppercase;letter-spacing:0.4px;">Última compra</div>
     <div class="form-row">
-      <div class="form-group"><label>Fornecedor</label><input type="text" id="ing-fornecedor" placeholder="ex: Makro, Atacadão…"></div>
+      <div class="form-group"><label>Fornecedor</label><input type="text" id="ing-fornecedor" list="fornecedores-list" placeholder="ex: Makro, Atacadão…"></div>
       <div class="form-group"><label>Data da compra</label><input type="date" id="ing-data"></div>
     </div>
     <div class="form-row">
@@ -1936,7 +1939,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     <div id="historico-list" style="margin-bottom:16px;"></div>
     <div style="font-size:12px;font-weight:700;color:var(--text-mid);margin-bottom:8px;text-transform:uppercase;letter-spacing:0.4px;">Registrar nova compra</div>
     <div class="form-row">
-      <div class="form-group"><label>Fornecedor</label><input type="text" id="hist-fornecedor" placeholder="ex: Makro"></div>
+      <div class="form-group"><label>Fornecedor</label><input type="text" id="hist-fornecedor" list="fornecedores-list" placeholder="ex: Makro"></div>
       <div class="form-group"><label>Data</label><input type="date" id="hist-data"></div>
     </div>
     <div class="form-row">
@@ -2414,8 +2417,31 @@ function saveAll() {
   setStorage('ddv_categorias', categorias);
   setStorage('ddv_vitrine_tipos', vitrineTipos);
   setStorage('ddv_nextid', nextId);
+  refreshFornecedoresDatalist();
   clearTimeout(_sbTimer);
   _sbTimer = setTimeout(syncToSupabase, 900);
+}
+
+// Reúne todos os fornecedores já usados (produtos de revenda + insumos) e
+// preenche o <datalist> compartilhado, para o usuário selecionar em vez de digitar.
+function getFornecedoresUsados() {
+  const set = new Set();
+  const add = v => { const n = (v || '').trim(); if (n) set.add(n); };
+  (produtos || []).forEach(p => {
+    add(p.fornecedor);
+    (p.historicoCompras || []).forEach(h => add(h.fornecedor));
+  });
+  (ingredientes || []).forEach(i => {
+    add(i.fornecedor);
+    (i.historico || []).forEach(h => add(h.fornecedor));
+  });
+  return Array.from(set).sort((a, b) => a.localeCompare(b, 'pt-BR', { sensitivity: 'base' }));
+}
+
+function refreshFornecedoresDatalist() {
+  const dl = document.getElementById('fornecedores-list');
+  if (!dl) return;
+  dl.innerHTML = getFornecedoresUsados().map(f => '<option value="' + escHtml(f) + '"></option>').join('');
 }
 
 // ============================================================
@@ -3863,9 +3889,24 @@ function isProdutoVitrine(p) {
   return (p.tipo || 'fabricacao') === 'fabricacao' && !!p.curva;
 }
 
+// Ordena um histórico de compras da MAIS RECENTE para a mais antiga.
+// Critério principal é a DATA (formato AAAA-MM-DD, comparável como texto);
+// em caso de empate ou ausência de data, vence a última lançada (ordem de inserção).
+function historicoOrdenado(hist) {
+  return (hist || [])
+    .map((h, idx) => ({ h, idx }))
+    .sort((a, b) => {
+      const da = a.h.data || '';
+      const db = b.h.data || '';
+      if (da !== db) return db.localeCompare(da);
+      return b.idx - a.idx;
+    })
+    .map(x => x.h);
+}
+
 function getUltimaCompra(ing) {
   const hist = ing.historico || [];
-  return hist.length ? hist[hist.length - 1] : { qtdCompra: ing.qtdCompra || 0, custoCompra: ing.custoCompra || 0, fornecedor: '', data: '' };
+  return hist.length ? historicoOrdenado(hist)[0] : { qtdCompra: ing.qtdCompra || 0, custoCompra: ing.custoCompra || 0, fornecedor: '', data: '' };
 }
 
 function custoIngredienteUnit(ing) {
@@ -4153,7 +4194,7 @@ function getRevendaCusto(p) {
 
 function getUltimaCompraRevenda(p) {
   const hist = p.historicoCompras || [];
-  if (hist.length) return hist[hist.length - 1];
+  if (hist.length) return historicoOrdenado(hist)[0];
   return { qtdCompra: p.qtdComprada || 0, custoCompra: p.valorCompra || 0, fornecedor: '', data: '' };
 }
 
@@ -4162,9 +4203,9 @@ function syncRevendaUltimaCompra(p) {
   if (!p.historicoCompras.length) {
     p.historicoCompras.push({ id: ++nextId, qtdCompra: 0, custoCompra: 0, fornecedor: '', data: '' });
   }
-  const last = p.historicoCompras[p.historicoCompras.length - 1];
-  last.qtdCompra = Number(p.qtdComprada) || 0;
-  last.custoCompra = Number(p.valorCompra) || 0;
+  const atual = historicoOrdenado(p.historicoCompras)[0] || p.historicoCompras[p.historicoCompras.length - 1];
+  atual.qtdCompra = Number(p.qtdComprada) || 0;
+  atual.custoCompra = Number(p.valorCompra) || 0;
 }
 
 function renderProducaoCMV() {
@@ -4290,7 +4331,7 @@ function openRevendaHistoricoModal(prodId) {
   document.getElementById('revhist-custo').value = '';
   document.getElementById('modal-revenda-historico-title').textContent = `Historico - ${prod.nome}`;
 
-  const hist = (prod.historicoCompras || []).slice().reverse();
+  const hist = historicoOrdenado(prod.historicoCompras);
   const listEl = document.getElementById('revenda-historico-list');
   if (!hist.length) {
     listEl.innerHTML = '<p style="color:var(--text-light);font-size:13px;padding:8px 0;">Nenhuma compra registrada ainda.</p>';
@@ -4634,7 +4675,7 @@ function renderIngredientes() {
           <option value="un" ${ing.unidade === 'un' ? 'selected' : ''}>un</option>
         </select>
       </td>
-      <td><input class="sheet-input" value="${escHtml(uc.fornecedor||'')}" onblur="updateIngredienteCompra(${ing.id},'fornecedor',this.value)" placeholder="Fornecedor" style="min-width:110px;"></td>
+      <td><input class="sheet-input" list="fornecedores-list" value="${escHtml(uc.fornecedor||'')}" onblur="updateIngredienteCompra(${ing.id},'fornecedor',this.value)" placeholder="Fornecedor" style="min-width:110px;"></td>
       <td><input class="sheet-input" type="date" value="${uc.data||''}" onchange="updateIngredienteCompra(${ing.id},'data',this.value)" style="min-width:120px;"></td>
       <td><input class="sheet-input" type="number" min="0" step="0.001" value="${uc.qtdCompra||''}" onblur="updateIngredienteCompra(${ing.id},'qtdCompra',this.value)" placeholder="ex: 5000" style="min-width:80px;"></td>
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(uc.custoCompra)}" oninput="maskMoney(this)" onblur="updateIngredienteCompra(${ing.id},'custoCompra',this.value)" placeholder="0,00" style="min-width:80px;"></td>
@@ -5278,7 +5319,7 @@ function openHistoricoModal(ingId) {
   document.getElementById('hist-custo').value = '';
   document.getElementById('modal-historico-title').textContent = `Histórico — ${ing.nome}`;
 
-  const hist = (ing.historico || []).slice().reverse();
+  const hist = historicoOrdenado(ing.historico);
   if (!hist.length) {
     document.getElementById('historico-list').innerHTML = '<p style="color:var(--text-light);font-size:13px;padding:8px 0;">Nenhuma compra registrada ainda.</p>';
   } else {
@@ -6022,6 +6063,7 @@ loadFromSupabase().then(() => {
   renderProdutos();
   renderVitrine();
   renderCMV();
+  refreshFornecedoresDatalist();
 });
 </script>
 </body>
