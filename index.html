@@ -3285,7 +3285,7 @@ function apoioMatchesFilter(item) {
 }
 
 function renderApoioProducao() {
-  const list = getApoioProducao();
+  const vitrine = getVitrine();
   const tbody = document.getElementById('apoio-tbody');
   const datalist = document.getElementById('apoio-produtos-list');
 
@@ -3299,29 +3299,35 @@ function renderApoioProducao() {
   const subtitle = document.getElementById('apoio-subtitle');
   if (subtitle) {
     subtitle.textContent = currentVitrineFilter === 'todas'
-      ? 'Produtos produzidos no dia'
-      : `Vitrine ${getVitrineLabel(currentVitrineFilter)} · produtos produzidos`;
+      ? 'Produtos na vitrine'
+      : `Vitrine ${getVitrineLabel(currentVitrineFilter)} · produtos`;
   }
 
-  // Mantém índice original (para remover) e filtra pela vitrine atual
-  const entries = list
+  // Lê diretamente da vitrine, filtrando pela seção atual
+  const entries = vitrine
     .map((item, index) => ({ item, index }))
-    .filter(({ item }) => apoioMatchesFilter(item));
+    .filter(({ item }) => {
+      const prod = produtos.find(p => p.id === item.prodId);
+      if (!prod) return false;
+      if (currentVitrineFilter === 'todas') return true;
+      return productFitsSection(prod, currentVitrineFilter);
+    });
 
   if (!entries.length) {
-    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-light);padding:22px;">Digite um produto e pressione Enter</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-light);padding:22px;">Vitrine vazia · adicione produtos acima</td></tr>';
     return;
   }
 
   tbody.innerHTML = entries.map(({ item, index }, pos) => {
+    const prod = produtos.find(p => p.id === item.prodId);
     const otherDay = item.prodDay && item.prodDay !== currentDay
       ? `<span class="apoio-day-badge" title="Produzido em outro dia">${dayShort[item.prodDay] || item.prodDay}</span>`
       : '';
     return `
     <tr>
-      <td><span class="sheet-row-code">${String(pos + 1).padStart(2, '0')}</span> ${item.nome}${otherDay}</td>
+      <td><span class="sheet-row-code">${String(pos + 1).padStart(2, '0')}</span> ${prod ? prod.nome : item.prodId}${otherDay}</td>
       <td>${item.qty}</td>
-      <td style="width:40px;text-align:right;"><button class="btn btn-ghost btn-sm" onclick="removeApoioRow(${index})" aria-label="Remover">&#215;</button></td>
+      <td style="width:40px;text-align:right;"><button class="btn btn-ghost btn-sm" onclick="removeSlot(${item.slot}, event)" aria-label="Remover">&#215;</button></td>
     </tr>`;
   }).join('');
 }
@@ -3356,17 +3362,15 @@ function addApoioRow() {
     return;
   }
 
-  getApoioProducao().push({ id: ++nextId, prodId: prod.id, nome: prod.nome, qty, prodDay });
-  addToVitrineAuto(prod, qty);
+  addToVitrineAuto(prod, qty, prodDay);
   saveAll();
   produtoInput.value = '';
   qtyInput.value = '';
-  renderApoioProducao();
   renderVitrine();
   produtoInput.focus();
 }
 
-function addToVitrineAuto(prod, qty) {
+function addToVitrineAuto(prod, qty, prodDay) {
   const vitrine = getVitrine();
   const layout = vitrineLayouts[currentUnit];
   const prodVitrine = inferProductVitrine(prod);
@@ -3377,7 +3381,8 @@ function addToVitrineAuto(prod, qty) {
       if (!vitrine.some(v => v.slot === slotNum)) {
         vitrine.push({
           prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
-          entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: slotNum
+          entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: slotNum,
+          prodDay: prodDay || currentDay
         });
         showToast(`${prod.nome} adicionado ao slot ${i + 1} &#10003;`, 'success');
         return;
@@ -3396,37 +3401,21 @@ function handleApoioPaste(event) {
     .map(row => row.split(/\t|;|,/).map(cell => cell.trim()));
   const diaSel = document.getElementById('apoio-dia');
   const prodDay = diaSel && diaSel.value ? diaSel.value : currentDay;
-  const list = getApoioProducao();
   rows.forEach(cells => {
     const nome = cells[0];
     const qty = parseInt(cells[1]) || 1;
     if (!nome) return;
-    const prod = produtos.find(p => p.nome.toLowerCase() === nome.toLowerCase());
-    list.push({
-      id: ++nextId,
-      prodId: prod ? prod.id : null,
-      nome: prod ? prod.nome : nome,
-      qty,
-      prodDay
-    });
+    const prod = produtos.find(p => isProdutoVitrine(p) && p.nome.toLowerCase() === nome.toLowerCase());
+    if (prod) addToVitrineAuto(prod, qty, prodDay);
   });
   saveAll();
-  renderApoioProducao();
+  renderVitrine();
   document.getElementById('apoio-produto').value = '';
   document.getElementById('apoio-qty').value = '';
 }
 
-function removeApoioRow(index) {
-  const apoio = getApoioProducao();
-  const item = apoio[index];
-  apoio.splice(index, 1);
-  if (item) {
-    const vitrine = getVitrine();
-    const vIdx = vitrine.findIndex(v => v.prodId === item.prodId);
-    if (vIdx >= 0) vitrine.splice(vIdx, 1);
-  }
-  saveAll();
-  renderVitrine();
+function removeApoioRow(slotNum) {
+  removeSlot(slotNum);
 }
 
 function openSlotModal(slotNum, editIdx) {
@@ -3515,17 +3504,8 @@ function saveSlot() {
     vitrine.splice(existingIdx, 1);
   }
 
-  vitrine.push({ prodId, qty, producedQty, minQty, unidadeMedida, entryAt, status: 'em_vitrine', slot: pos });
-
-  // Sincroniza com lista de apoio (somente em adições novas, não edições)
-  if (editIdx === '') {
-    const prod = produtos.find(p => p.id === prodId);
-    if (prod) {
-      const diaSel = document.getElementById('apoio-dia');
-      const prodDay = diaSel ? diaSel.value : currentDay;
-      getApoioProducao().push({ id: ++nextId, prodId: prod.id, nome: prod.nome, qty, prodDay });
-    }
-  }
+  const diaSel = document.getElementById('apoio-dia');
+  vitrine.push({ prodId, qty, producedQty, minQty, unidadeMedida, entryAt, status: 'em_vitrine', slot: pos, prodDay: diaSel ? diaSel.value : currentDay });
 
   saveAll();
   closeModal('modal-slot');
@@ -3537,13 +3517,7 @@ function removeSlot(slotNum, e) {
   if (e) e.stopPropagation();
   const vitrine = getVitrine();
   const idx = vitrine.findIndex(v => v.slot === slotNum);
-  if (idx >= 0) {
-    const removedProdId = vitrine[idx].prodId;
-    vitrine.splice(idx, 1);
-    const apoio = getApoioProducao();
-    const apoioIdx = apoio.findIndex(a => a.prodId === removedProdId);
-    if (apoioIdx >= 0) apoio.splice(apoioIdx, 1);
-  }
+  if (idx >= 0) vitrine.splice(idx, 1);
   saveAll();
   renderVitrine();
 }
