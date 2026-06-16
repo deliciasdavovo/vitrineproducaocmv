@@ -5131,9 +5131,11 @@ function renderIngredientes() {
       <td style="min-width:110px;">${derivados}</td>
       <td style="min-width:160px;">${variacaoCell}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="openHistoricoModal(${ing.id})" title="Carrinho de compras" aria-label="Carrinho de compras">${cartBtnLabel(nCompras)}</button></td>
-      <td style="white-space:nowrap;">
-        ${classSelectHtml(ing.nome, `reclassifyIngrediente(${ing.id}, this.value)`)}
-        <button class="btn btn-ghost btn-sm" onclick="deleteIngrediente(${ing.id})" style="color:var(--red)">×</button>
+      <td>
+        <div style="display:flex;align-items:center;gap:6px;white-space:nowrap;">
+          ${classSelectHtml(ing.nome, `reclassifyIngrediente(${ing.id}, this.value)`)}
+          <button type="button" class="btn btn-ghost btn-sm" onclick="deleteIngrediente(${ing.id})" title="Excluir insumo" aria-label="Excluir insumo" style="color:#fff;background:var(--red);border-color:var(--red);font-weight:700;padding:6px 10px;">Excluir</button>
+        </div>
       </td>
     </tr>`;
   }).join('') || `<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum ingrediente cadastrado</td></tr>`;
@@ -5587,7 +5589,8 @@ function upsertQuickInsumo(nome, unidade, compra) {
   const existed = !!ing;
   if (!ing) {
     ing = { id: ++nextId, nome, unidade: unidade || 'g', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] };
-    ingredientes.push(ing);
+    // Insere no topo para o insumo recém-criado aparecer na primeira linha.
+    ingredientes.unshift(ing);
   } else if (unidade) {
     ing.unidade = unidade;
   }
@@ -5601,7 +5604,8 @@ function upsertQuickInsumo(nome, unidade, compra) {
 }
 
 function addIngredienteRow() {
-  ingredientes.push({ id: ++nextId, nome: '', unidade: 'g', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] });
+  // Nova linha entra no topo, para o usuário preencher na primeira linha.
+  ingredientes.unshift({ id: ++nextId, nome: '', unidade: 'g', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] });
   saveAll();
   renderCMV();
 }
