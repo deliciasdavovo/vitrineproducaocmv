@@ -3417,9 +3417,16 @@ function handleApoioPaste(event) {
 }
 
 function removeApoioRow(index) {
-  getApoioProducao().splice(index, 1);
+  const apoio = getApoioProducao();
+  const item = apoio[index];
+  apoio.splice(index, 1);
+  if (item) {
+    const vitrine = getVitrine();
+    const vIdx = vitrine.findIndex(v => v.prodId === item.prodId);
+    if (vIdx >= 0) vitrine.splice(vIdx, 1);
+  }
   saveAll();
-  renderApoioProducao();
+  renderVitrine();
 }
 
 function openSlotModal(slotNum, editIdx) {
@@ -3509,6 +3516,17 @@ function saveSlot() {
   }
 
   vitrine.push({ prodId, qty, producedQty, minQty, unidadeMedida, entryAt, status: 'em_vitrine', slot: pos });
+
+  // Sincroniza com lista de apoio (somente em adições novas, não edições)
+  if (editIdx === '') {
+    const prod = produtos.find(p => p.id === prodId);
+    if (prod) {
+      const diaSel = document.getElementById('apoio-dia');
+      const prodDay = diaSel ? diaSel.value : currentDay;
+      getApoioProducao().push({ id: ++nextId, prodId: prod.id, nome: prod.nome, qty, prodDay });
+    }
+  }
+
   saveAll();
   closeModal('modal-slot');
   renderVitrine();
@@ -3519,7 +3537,13 @@ function removeSlot(slotNum, e) {
   if (e) e.stopPropagation();
   const vitrine = getVitrine();
   const idx = vitrine.findIndex(v => v.slot === slotNum);
-  if (idx >= 0) vitrine.splice(idx, 1);
+  if (idx >= 0) {
+    const removedProdId = vitrine[idx].prodId;
+    vitrine.splice(idx, 1);
+    const apoio = getApoioProducao();
+    const apoioIdx = apoio.findIndex(a => a.prodId === removedProdId);
+    if (apoioIdx >= 0) apoio.splice(apoioIdx, 1);
+  }
   saveAll();
   renderVitrine();
 }
