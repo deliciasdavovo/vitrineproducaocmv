@@ -305,6 +305,26 @@ tr:hover td { background: var(--surface-soft); }
 }
 .day-tab.active { background: var(--brown); border-color: var(--brown); color: #fff; box-shadow: 0 8px 18px rgba(30,41,59,0.15); }
 .day-tab:hover:not(.active) { border-color: var(--brown); color: var(--brown); background: var(--warm); }
+/* VITRINE FILTER TABS (navegação por vitrine) */
+.vitrine-filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+.vitrine-filter-tabs .vf-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-light); margin-right: 4px; }
+.vitrine-filter-tab {
+  padding: 8px 15px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-mid);
+  transition: all .15s;
+  font-family: var(--font-sans);
+}
+.vitrine-filter-tab.active { background: var(--blue); border-color: var(--blue); color: #fff; box-shadow: 0 8px 18px rgba(37,99,235,0.18); }
+.vitrine-filter-tab:hover:not(.active) { border-color: var(--blue); color: var(--blue); background: #EFF6FF; }
+.apoio-entry select { border: 0; padding: 10px 8px; font-size: 13px; font-family: var(--font-sans); background: #FFFFFF; color: var(--text-mid); outline: none; cursor: pointer; }
+.apoio-entry select:focus { background: #EFF6FF; box-shadow: inset 0 0 0 2px rgba(30,41,59,0.20); }
+.apoio-day-badge { display: inline-block; margin-left: 6px; padding: 1px 7px; border-radius: 999px; font-size: 10px; font-weight: 700; background: #FEF3C7; color: #92400E; vertical-align: middle; }
 
 /* VITRINE GRID */
 .vitrine-container { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 18px; align-items: start; }
@@ -358,7 +378,7 @@ tr:hover td { background: var(--surface-soft); }
 }
 .apoio-entry {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 94px;
+  grid-template-columns: minmax(0, 1fr) 76px 76px;
   gap: 0;
   border-bottom: 1px solid var(--border);
 }
@@ -1206,6 +1226,8 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     <button class="day-tab" onclick="setDay('dom')">Dom</button>
   </div>
 
+  <div class="vitrine-filter-tabs" id="vitrine-filter-tabs"></div>
+
   <div class="vitrine-container">
     <!-- Grade -->
     <div class="vitrine-panel">
@@ -1228,8 +1250,8 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     <div class="vitrine-panel">
       <div class="vitrine-panel-head">
         <div>
-          <div class="vitrine-section-label" style="margin-bottom:0;">Lista de Apoio</div>
-          <div class="vitrine-list-meta">Produtos produzidos no dia</div>
+          <div class="vitrine-section-label" style="margin-bottom:0;" id="apoio-title">Lista de Apoio</div>
+          <div class="vitrine-list-meta" id="apoio-subtitle">Produtos produzidos no dia</div>
         </div>
         <button class="toggle-btn" onclick="openFechamentoModal()">Fechar dia</button>
       </div>
@@ -1237,6 +1259,9 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         <div class="apoio-entry">
           <input type="text" id="apoio-produto" list="apoio-produtos-list" placeholder="Produto produzido" onkeydown="handleApoioKey(event, 'produto')" onpaste="handleApoioPaste(event)">
           <input type="number" id="apoio-qty" min="1" placeholder="Qtd." onkeydown="handleApoioKey(event, 'qty')">
+          <select id="apoio-dia" title="Dia em que o produto foi produzido">
+            <option value="seg">Seg</option><option value="ter">Ter</option><option value="qua">Qua</option><option value="qui">Qui</option><option value="sex">Sex</option><option value="sab">Sáb</option><option value="dom">Dom</option>
+          </select>
         </div>
         <datalist id="apoio-produtos-list"></datalist>
         <table class="apoio-table">
@@ -2159,8 +2184,10 @@ let currentDay = 'seg';
 let currentCronoDay = 'seg';
 let currentPedidoDay = 'seg';
 let currentVitrineMode = 'slots';
+let currentVitrineFilter = 'todas';
 
 const dayNames = { seg:'Segunda-feira', ter:'Terça-feira', qua:'Quarta-feira', qui:'Quinta-feira', sex:'Sexta-feira', sab:'Sábado', dom:'Domingo' };
+const dayShort = { seg:'Seg', ter:'Ter', qua:'Qua', qui:'Qui', sex:'Sex', sab:'Sáb', dom:'Dom' };
 const dayOrder = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
 
 // ============================================================
@@ -2285,6 +2312,13 @@ const vitrineLayouts = {
     ]
   }
 };
+
+// Grupos distintos de vitrine da unidade (ex: salgada, doce, sobremesa), na ordem do layout
+function getVitrineGroups(unit = currentUnit) {
+  const seen = [];
+  vitrineLayouts[unit].sections.forEach(s => { if (!seen.includes(s.id)) seen.push(s.id); });
+  return seen;
+}
 
 function getLayoutSlots(unit = currentUnit) {
   return vitrineLayouts[unit].sections.flatMap(section =>
@@ -2658,7 +2692,7 @@ async function syncToSupabase() {
     Object.entries(apoioProducao[currentUnit] || {}).forEach(([dia, items]) => {
       (items || []).forEach(a => {
         allApoio.push({
-          unit: currentUnit, dia, prod_id: a.prodId || null, nome: a.nome, qty: a.qty || 1
+          unit: currentUnit, dia, prod_id: a.prodId || null, nome: a.nome, qty: a.qty || 1, prod_day: a.prodDay || dia
         });
       });
     });
@@ -2875,7 +2909,7 @@ async function loadFromSupabase() {
       if (!apoioProducao[a.unit]) apoioProducao[a.unit] = {};
       if (!apoioProducao[a.unit][a.dia]) apoioProducao[a.unit][a.dia] = [];
       apoioProducao[a.unit][a.dia].push({
-        id: a.id, prodId: a.prod_id, nome: a.nome, qty: a.qty
+        id: a.id, prodId: a.prod_id, nome: a.nome, qty: a.qty, prodDay: a.prod_day || a.dia
       });
     });
     planoSemanal = {};
@@ -2963,7 +2997,30 @@ function setDay(day) {
   currentDay = day;
   document.querySelectorAll('#day-tabs .day-tab').forEach(b => b.classList.remove('active'));
   event.currentTarget.classList.add('active');
+  const diaSel = document.getElementById('apoio-dia');
+  if (diaSel) diaSel.value = day;
   renderVitrine();
+}
+
+function setVitrineFilter(filter) {
+  currentVitrineFilter = filter;
+  renderVitrine();
+}
+
+function renderVitrineFilterTabs() {
+  const wrap = document.getElementById('vitrine-filter-tabs');
+  if (!wrap) return;
+  const groups = getVitrineGroups();
+  // Se o filtro atual não existe nesta unidade, volta para "Todas"
+  if (currentVitrineFilter !== 'todas' && !groups.includes(currentVitrineFilter)) {
+    currentVitrineFilter = 'todas';
+  }
+  const tabs = [{ id: 'todas', label: 'Todas' }].concat(
+    groups.map(id => ({ id, label: getVitrineLabel(id) }))
+  );
+  wrap.innerHTML = '<span class="vf-label">Vitrine</span>' + tabs.map(t =>
+    `<button class="vitrine-filter-tab ${currentVitrineFilter === t.id ? 'active' : ''}" onclick="setVitrineFilter('${t.id}')">${t.label}</button>`
+  ).join('');
 }
 
 function setVitrineMode(mode) {
@@ -2993,11 +3050,14 @@ function renderVitrine() {
   document.getElementById('vitrine-unidade-label').textContent =
     `${getLayoutSummary()} — clique em um espaço para adicionar produto`;
 
+  renderVitrineFilterTabs();
+
   // Grade
   const grid = document.getElementById('vitrine-grid');
   grid.innerHTML = '';
 
-  layout.sections.forEach(section => {
+  const visibleSections = layout.sections.filter(s => currentVitrineFilter === 'todas' || s.id === currentVitrineFilter);
+  visibleSections.forEach(section => {
     const sectionEl = document.createElement('div');
     sectionEl.className = 'vitrine-category';
     sectionEl.innerHTML = `
@@ -3073,7 +3133,9 @@ function renderVitrineSlotList() {
   const layout = vitrineLayouts[currentUnit];
   const vitrine = getVitrine();
   const list = document.getElementById('vitrine-slot-list');
-  list.innerHTML = layout.sections.map(section => {
+  list.innerHTML = layout.sections
+    .filter(s => currentVitrineFilter === 'todas' || s.id === currentVitrineFilter)
+    .map(section => {
     const rows = Array.from({ length: section.count }, (_, index) => {
       const slotNumber = section.start + index;
       const item = vitrine.find(v => v.slot === slotNumber);
@@ -3117,27 +3179,58 @@ function getApoioProducao() {
   return apoioProducao[currentUnit][currentDay];
 }
 
+// Vitrine a que pertence um item de apoio (via produto cadastrado)
+function apoioItemVitrine(item) {
+  const prod = item.prodId ? produtos.find(p => p.id === item.prodId) : null;
+  return prod ? inferProductVitrine(prod) : 'todas';
+}
+
+function apoioMatchesFilter(item) {
+  if (currentVitrineFilter === 'todas') return true;
+  const v = apoioItemVitrine(item);
+  return v === 'todas' || v === currentVitrineFilter;
+}
+
 function renderApoioProducao() {
   const list = getApoioProducao();
   const tbody = document.getElementById('apoio-tbody');
   const datalist = document.getElementById('apoio-produtos-list');
+
+  // Datalist e título refletem a vitrine selecionada
   datalist.innerHTML = produtos
     .filter(isProdutoVitrine)
+    .filter(prod => currentVitrineFilter === 'todas' || productFitsSection(prod, currentVitrineFilter))
     .map(prod => `<option value="${prod.nome}"></option>`)
     .join('');
 
-  if (!list.length) {
+  const subtitle = document.getElementById('apoio-subtitle');
+  if (subtitle) {
+    subtitle.textContent = currentVitrineFilter === 'todas'
+      ? 'Produtos produzidos no dia'
+      : `Vitrine ${getVitrineLabel(currentVitrineFilter)} · produtos produzidos`;
+  }
+
+  // Mantém índice original (para remover) e filtra pela vitrine atual
+  const entries = list
+    .map((item, index) => ({ item, index }))
+    .filter(({ item }) => apoioMatchesFilter(item));
+
+  if (!entries.length) {
     tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;color:var(--text-light);padding:22px;">Digite um produto e pressione Enter</td></tr>';
     return;
   }
 
-  tbody.innerHTML = list.map((item, index) => `
+  tbody.innerHTML = entries.map(({ item, index }, pos) => {
+    const otherDay = item.prodDay && item.prodDay !== currentDay
+      ? `<span class="apoio-day-badge" title="Produzido em outro dia">${dayShort[item.prodDay] || item.prodDay}</span>`
+      : '';
+    return `
     <tr>
-      <td><span class="sheet-row-code">${String(index + 1).padStart(2, '0')}</span> ${item.nome}</td>
+      <td><span class="sheet-row-code">${String(pos + 1).padStart(2, '0')}</span> ${item.nome}${otherDay}</td>
       <td>${item.qty}</td>
-      <td style="width:40px;text-align:right;"><button class="btn btn-ghost btn-sm" onclick="removeApoioRow(${index})" aria-label="Remover">x</button></td>
-    </tr>
-  `).join('');
+      <td style="width:40px;text-align:right;"><button class="btn btn-ghost btn-sm" onclick="removeApoioRow(${index})" aria-label="Remover">&#215;</button></td>
+    </tr>`;
+  }).join('');
 }
 
 function handleApoioKey(event, field) {
@@ -3154,8 +3247,10 @@ function handleApoioKey(event, field) {
 function addApoioRow() {
   const produtoInput = document.getElementById('apoio-produto');
   const qtyInput = document.getElementById('apoio-qty');
+  const diaSel = document.getElementById('apoio-dia');
   const nome = produtoInput.value.trim();
   const qty = parseInt(qtyInput.value) || 1;
+  const prodDay = diaSel && diaSel.value ? diaSel.value : currentDay;
   if (!nome) { produtoInput.focus(); return; }
 
   const prod = produtos.find(p =>
@@ -3168,7 +3263,7 @@ function addApoioRow() {
     return;
   }
 
-  getApoioProducao().push({ id: ++nextId, prodId: prod.id, nome: prod.nome, qty });
+  getApoioProducao().push({ id: ++nextId, prodId: prod.id, nome: prod.nome, qty, prodDay });
   addToVitrineAuto(prod, qty);
   saveAll();
   produtoInput.value = '';
@@ -3206,6 +3301,8 @@ function handleApoioPaste(event) {
     .map(row => row.trim())
     .filter(Boolean)
     .map(row => row.split(/\t|;|,/).map(cell => cell.trim()));
+  const diaSel = document.getElementById('apoio-dia');
+  const prodDay = diaSel && diaSel.value ? diaSel.value : currentDay;
   const list = getApoioProducao();
   rows.forEach(cells => {
     const nome = cells[0];
@@ -3216,7 +3313,8 @@ function handleApoioPaste(event) {
       id: ++nextId,
       prodId: prod ? prod.id : null,
       nome: prod ? prod.nome : nome,
-      qty
+      qty,
+      prodDay
     });
   });
   saveAll();

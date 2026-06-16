@@ -131,6 +131,7 @@ alter table apoio_producao add column if not exists dia text;
 alter table apoio_producao add column if not exists prod_id bigint;
 alter table apoio_producao add column if not exists nome text;
 alter table apoio_producao add column if not exists qty numeric;
+alter table apoio_producao add column if not exists prod_day text;
 alter table apoio_producao add column if not exists created_at timestamptz default now();
 
 -- ---------- PLANO_SEMANAL ----------
