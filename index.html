@@ -5432,10 +5432,20 @@ function updateIngredienteCompra(id, field, value) {
 function renderQuickInsumoList() {
   const list = document.getElementById('quick-insumo-list');
   if (!list) return;
-  list.innerHTML = ingredientes
-    .slice()
-    .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''))
-    .map(ing => `<option value="${escHtml(ing.nome || '')}"></option>`)
+  const nomes = new Map();
+  ingredientes.forEach(ing => {
+    const nome = (ing.nome || '').trim();
+    if (nome) nomes.set(nome.toLowerCase(), nome);
+  });
+  produtos
+    .filter(p => (p.tipo || 'fabricacao') === 'revenda')
+    .forEach(p => {
+      const nome = (p.nome || '').trim();
+      if (nome && !nomes.has(nome.toLowerCase())) nomes.set(nome.toLowerCase(), nome);
+    });
+  list.innerHTML = Array.from(nomes.values())
+    .sort((a, b) => a.localeCompare(b))
+    .map(nome => `<option value="${escHtml(nome)}"></option>`)
     .join('');
 }
 
