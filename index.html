@@ -1546,13 +1546,15 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <input id="quick-insumo-data" type="date" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-qtd" type="number" min="0" step="0.001" placeholder="Qtd. compra" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)">
+      <button class="btn btn-primary" onclick="submitQuickInsumo()">Lancar</button>
+    </div>
+    <div class="quick-sheet-checks" style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;margin:-4px 0 12px;padding:2px 2px;">
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Material de revenda — cadastra este item como produto de revenda (garrafa PET) em vez de ingrediente">
         <input type="checkbox" id="quick-insumo-revenda" onchange="if(this.checked)document.getElementById('quick-insumo-ambos').checked=false" onkeydown="handleQuickInsumoKey(event)"> Revenda
       </label>
       <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Insumo + revenda — cadastra nas duas listas: como insumo e como produto de revenda em garrafa PET (ex: presunto)">
         <input type="checkbox" id="quick-insumo-ambos" onchange="if(this.checked)document.getElementById('quick-insumo-revenda').checked=false" onkeydown="handleQuickInsumoKey(event)"> Insumo + revenda
       </label>
-      <button class="btn btn-primary" onclick="submitQuickInsumo()">Lancar</button>
     </div>
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
       <button class="btn btn-ghost btn-sm" onclick="addIngredienteRow()">+ Criar linha vazia</button>
@@ -1704,6 +1706,15 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   <div class="toggle-row" id="cmv-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
     <button class="toggle-btn active" id="cmv-tab-prod" onclick="setCmvTab('producao')">Produtos Produção</button>
     <button class="toggle-btn" id="cmv-tab-rev" onclick="setCmvTab('revenda')">Produtos Revenda</button>
+  </div>
+
+  <!-- ORDENAÇÃO (ajuda a visualizar os maiores CMV) -->
+  <div class="sheet-toolbar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
+    <select class="sheet-select" id="cmv-ordem-select" onchange="setCmvOrdem(this.value)" style="width:auto;">
+      <option value="cmv">Ordenar: Maior CMV</option>
+      <option value="nome">Ordenar: Nome (A-Z)</option>
+      <option value="preco">Ordenar: Maior preço</option>
+    </select>
   </div>
 
   <!-- PAINEL PRODUTOS PRODUÇÃO -->
@@ -4307,7 +4318,10 @@ let currentReceitaView = 'flat';
 let fabBusca = '', fabOrdem = 'nome';
 let revBusca = '', revOrdem = 'nome';
 let fichaBusca = '', fichaOrdem = 'nome';
+// Ordenação da aba CMV (vale para os painéis Produção e Revenda)
+let cmvOrdem = 'cmv';
 
+function setCmvOrdem(v) { cmvOrdem = v; renderProducaoCMV(); renderRevendaCMV(); }
 function setFabBusca(v) { fabBusca = (v || '').toLowerCase(); fabNewIds.clear(); renderFabricacaoSheet(); }
 function setFabOrdem(v) { fabOrdem = v; fabNewIds.clear(); renderFabricacaoSheet(); }
 function setRevBusca(v) { revBusca = (v || '').toLowerCase(); renderRevendaCMV(); }
@@ -4492,7 +4506,19 @@ function syncRevendaUltimaCompra(p) {
 function renderProducaoCMV() {
   const tbody = document.getElementById('producao-tbody');
   if (!tbody) return;
-  const fabricacao = produtos.filter(p => (p.tipo || 'fabricacao') === 'fabricacao');
+  const prodCmv = p => {
+    const temFicha = getReceitasByProduto(p.id).length > 0;
+    const custo = temFicha ? getProdutoCustoNaUnidadePreco(p) : (Number(p.custo) || 0);
+    const preco = Number(p.preco) || 0;
+    return preco > 0 && custo > 0 ? (custo / preco) * 100 : 0;
+  };
+  const fabricacao = produtos
+    .filter(p => (p.tipo || 'fabricacao') === 'fabricacao')
+    .sort((a, b) => {
+      if (cmvOrdem === 'preco') return (Number(b.preco) || 0) - (Number(a.preco) || 0);
+      if (cmvOrdem === 'cmv') return prodCmv(b) - prodCmv(a);
+      return (a.nome || '').localeCompare(b.nome || '');
+    });
   if (!fabricacao.length) {
     tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>';
     return;
@@ -4535,29 +4561,17 @@ function updateProducaoPreco(prodId, value) {
 }
 
 function renderRevendaCMV() {
-  const tbodies = ['revenda-tbody', 'insumos-revenda-tbody']
-    .map(id => document.getElementById(id))
-    .filter(Boolean);
-  if (!tbodies.length) return;
-  const tbody = { set innerHTML(html) { tbodies.forEach(el => { el.innerHTML = html; }); } };
   const revCmv = p => {
     const custo = getRevendaCusto(p);
     const preco = Number(p.preco) || 0;
     return preco > 0 && custo > 0 ? (custo / preco) * 100 : 0;
   };
-  const revenda = produtos
-    .filter(p => (p.tipo || 'fabricacao') === 'revenda')
-    .filter(p => !revBusca || (p.nome || '').toLowerCase().includes(revBusca))
-    .sort((a, b) => {
-      if (revOrdem === 'preco') return (Number(b.preco) || 0) - (Number(a.preco) || 0);
-      if (revOrdem === 'cmv') return revCmv(b) - revCmv(a);
-      return (a.nome || '').localeCompare(b.nome || '');
-    });
-  if (!revenda.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
-    return;
-  }
-  const html = revenda.map(p => {
+  const sortRevenda = (list, ordem) => [...list].sort((a, b) => {
+    if (ordem === 'preco') return (Number(b.preco) || 0) - (Number(a.preco) || 0);
+    if (ordem === 'cmv') return revCmv(b) - revCmv(a);
+    return (a.nome || '').localeCompare(b.nome || '');
+  });
+  const buildRow = p => {
     const uc = getUltimaCompraRevenda(p);
     const qtd = Number(uc.qtdCompra) || Number(p.qtdComprada) || 0;
     const valor = Number(uc.custoCompra) || Number(p.valorCompra) || 0;
@@ -4584,8 +4598,24 @@ function renderRevendaCMV() {
         <button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))" title="Editar produto">Editar</button>
       </td>
     </tr>`;
-  }).join('');
-  tbodies.forEach(tbody => { tbody.innerHTML = html; });
+  };
+  const base = produtos.filter(p => (p.tipo || 'fabricacao') === 'revenda');
+  const emptyMsg = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
+  // Painel da aba CMV: usa a ordenação da própria aba (cmvOrdem), sem filtro de busca.
+  const cmvBody = document.getElementById('revenda-tbody');
+  if (cmvBody) {
+    const lista = sortRevenda(base, cmvOrdem);
+    cmvBody.innerHTML = lista.length ? lista.map(buildRow).join('') : emptyMsg;
+  }
+  // Painel da aba Insumos: mantém busca e ordenação próprias (revBusca / revOrdem).
+  const insBody = document.getElementById('insumos-revenda-tbody');
+  if (insBody) {
+    const lista = sortRevenda(
+      base.filter(p => !revBusca || (p.nome || '').toLowerCase().includes(revBusca)),
+      revOrdem
+    );
+    insBody.innerHTML = lista.length ? lista.map(buildRow).join('') : emptyMsg;
+  }
 }
 
 function updateRevendaCampo(prodId, campo, value) {
