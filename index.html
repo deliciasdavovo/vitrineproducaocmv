@@ -729,7 +729,7 @@ tr:hover td { background: var(--surface-soft); }
 .pedido-sub { font-size: 12px; color: rgba(255,255,255,0.78); margin-top: 2px; }
 .pedido-item {
   display: grid;
-  grid-template-columns: 1fr 60px 70px 80px 100px 120px;
+  grid-template-columns: 1fr 80px 80px 120px;
   gap: 10px;
   align-items: center;
   padding: 10px 12px;
@@ -747,7 +747,7 @@ tr:hover td { background: var(--surface-soft); }
   border-radius: 6px;
   margin-bottom: 4px;
   display: grid;
-  grid-template-columns: 1fr 60px 70px 80px 100px 120px;
+  grid-template-columns: 1fr 80px 80px 120px;
   gap: 10px;
 }
 .pedido-item:last-child { border-bottom: none; }
@@ -1843,7 +1843,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <!-- ===================== PAGE: PEDIDO ===================== -->
 <div class="page" id="page-pedido">
   <h2 class="section-title">Pedido de Produção</h2>
-  <p class="section-sub">Gerado automaticamente com base no plano semanal + vitrine planejada + cronograma, descontando sobras e somando reposição de perdas</p>
+  <p class="section-sub">Template fixo por dia da semana, ajustável antes de produzir</p>
 
   <div class="day-tabs" id="pedido-day-tabs">
     <button class="day-tab active" onclick="setPedidoDay('seg')">Seg</button>
@@ -1857,33 +1857,24 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
   <div class="pedido-header">
     <div>
-      <div class="pedido-title" id="pedido-title">Produção — Segunda-feira</div>
+      <div class="pedido-title" id="pedido-title">Segunda-feira</div>
       <div class="pedido-sub" id="pedido-unidade">Matriz</div>
     </div>
-    <div style="display:flex;gap:8px;align-items:center;">
-      <button class="btn btn-gold" onclick="salvarPedidoHoje()">Salvar pedido de hoje</button>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <button class="btn btn-ghost btn-sm" onclick="imprimirPedido()">Imprimir</button>
+      <button class="btn btn-gold" onclick="enviarPedidoParaVitrine()">Enviar para vitrine ▶</button>
     </div>
   </div>
 
   <div class="card" style="padding:12px;">
     <div class="pedido-head">
       <span>Produto</span>
-      <span>Qtd.</span>
-      <span>Sobra</span>
-      <span>+Reposição</span>
+      <span style="text-align:center;">Template</span>
+      <span style="text-align:center;">Hoje</span>
       <span>Responsável</span>
-      <span>Horário</span>
     </div>
     <div id="pedido-list"></div>
-  </div>
-
-  <div id="pedido-obs" style="margin-top:12px;"></div>
-
-  <div style="margin-top:32px;">
-    <h2 class="section-title" style="font-size:18px;">Histórico de Pedidos</h2>
-    <p class="section-sub">Pedidos salvos anteriormente para esta unidade</p>
-    <div id="pedido-historico-list"></div>
+    <button class="btn-add-row" onclick="adicionarLinhaPedido()">+ Adicionar produto</button>
   </div>
 </div>
 
@@ -2548,6 +2539,8 @@ let planoSemanal = getStorage('ddv_plano_semanal', {});
 let historicoProducao = getStorage('ddv_historico_producao', {});
 // pedidoHistorico[unit] = [{date_iso, day, items: [{prodId, nome, curva, qty, sobra, reposicao, resp, hora}]}]
 let pedidoHistorico = getStorage('ddv_pedido_historico', {});
+// pedidoCustom[unit][day][prodId] = qty override para o dia
+let pedidoCustom = getStorage('ddv_pedido_custom', {});
 
 let nextId = getStorage('ddv_nextid', 5000);
 nextId = Math.max(
@@ -2610,6 +2603,7 @@ function saveAll() {
   setStorage('ddv_plano_semanal', planoSemanal);
   setStorage('ddv_historico_producao', historicoProducao);
   setStorage('ddv_pedido_historico', pedidoHistorico);
+  setStorage('ddv_pedido_custom', pedidoCustom);
   setStorage('ddv_categorias', categorias);
   setStorage('ddv_vitrine_tipos', vitrineTipos);
   setStorage('ddv_nextid', nextId);
@@ -6186,117 +6180,52 @@ function setPedidoDay(day) {
 }
 
 function renderPedido() {
-  document.getElementById('pedido-title').textContent = `Produção — ${dayNames[currentPedidoDay]}`;
+  document.getElementById('pedido-title').textContent = dayNames[currentPedidoDay];
   document.getElementById('pedido-unidade').textContent = currentUnit === 'matriz' ? 'Matriz' : 'Vila Nova';
 
-  // Coleta dados
-  const vitrine = (vitrines[currentUnit] && vitrines[currentUnit][currentPedidoDay]) || [];
-  const crono = (cronograma[currentUnit] && cronograma[currentUnit][currentPedidoDay]) || [];
-  const sobraAnterior = {};
-  const fechamentoAnterior = (fechamentos[currentUnit] && fechamentos[currentUnit][previousDay(currentPedidoDay)]) || [];
-  fechamentoAnterior.filter(f => f.status === 'em_vitrine').forEach(f => {
-    sobraAnterior[f.prodId] = (sobraAnterior[f.prodId] || 0) + (f.leftoverQty || 0);
-  });
+  // Monta lista a partir do template (planoSemanal) + produtos com curva
+  const prodsFab = produtos.filter(p => isProdutoVitrine(p));
+  const curvaOrder = { A: 0, B: 1, C: 2 };
+  prodsFab.sort((a, b) => (curvaOrder[a.curva] ?? 3) - (curvaOrder[b.curva] ?? 3));
 
-  // Mapa de quantidades: prodId -> {qtyVitrine, qtyCrono, qtyPlano, resp, hora}
-  const mapa = {};
-  const novaEntrada = () => ({ qtyVitrine: 0, qtyCrono: 0, qtyPlano: 0, resp: null, hora: null });
-
-  vitrine.forEach(v => {
-    if (!mapa[v.prodId]) mapa[v.prodId] = novaEntrada();
-    mapa[v.prodId].qtyVitrine += v.qty;
-  });
-
-  crono.forEach(c => {
-    if (!c.prodId || !c.qty) return;
-    if (!mapa[c.prodId]) mapa[c.prodId] = novaEntrada();
-    mapa[c.prodId].qtyCrono += c.qty;
-    mapa[c.prodId].resp = c.resp;
-    mapa[c.prodId].hora = c.hora;
-  });
-
-  // Plano de produção semanal (quantidade padrão do dia da semana)
-  Object.entries(planoSemanal[currentUnit] || {}).forEach(([prodId, days]) => {
-    const qty = Number(days?.[currentPedidoDay]) || 0;
-    if (!qty) return;
-    if (!mapa[prodId]) mapa[prodId] = novaEntrada();
-    mapa[prodId].qtyPlano = qty;
-  });
-
-  // Calcular reposição baseada em perdas (últimas 4 semanas)
-  const perdasProd = {};
-  const cutoff = new Date(); cutoff.setDate(cutoff.getDate() - 28);
-  perdas.filter(p => p.unit === currentUnit && new Date(p.data) > cutoff).forEach(p => {
-    perdasProd[p.prodId] = (perdasProd[p.prodId] || 0) + p.qty;
-  });
+  // Pedido customizado para o dia (sobrepõe template)
+  if (!pedidoCustom[currentUnit]) pedidoCustom[currentUnit] = {};
+  if (!pedidoCustom[currentUnit][currentPedidoDay]) pedidoCustom[currentUnit][currentPedidoDay] = {};
+  const custom = pedidoCustom[currentUnit][currentPedidoDay];
 
   const list = document.getElementById('pedido-list');
+  _currentPedidoItems = [];
 
-  if (Object.keys(mapa).length === 0) {
-    list.innerHTML = '<div class="empty-state" style="padding:30px;"><p>Nenhum produto planejado para este dia.<br>Cadastre itens na vitrine, no cronograma ou no plano de produção semanal.</p></div>';
-    document.getElementById('pedido-obs').innerHTML = '';
+  const templateProds = prodsFab.filter(p => {
+    const t = Number((planoSemanal[currentUnit]?.[p.id])?.[currentPedidoDay]) || 0;
+    const c = custom[p.id];
+    return t > 0 || c !== undefined;
+  });
+
+  if (!templateProds.length) {
+    list.innerHTML = `<div class="empty-state" style="padding:30px;">
+      <p>Nenhum produto no template de ${dayNames[currentPedidoDay]}.<br>
+      Clique em "+ Adicionar produto" ou configure o Plano Semanal no Cronograma.</p>
+    </div>`;
     return;
   }
 
-  let html = '';
-  let totalItems = 0;
-  let obsHtml = '';
-
-  // Ordena por curva ABC
-  const curvaOrder = { A: 0, B: 1, C: 2 };
-  const entries = Object.entries(mapa).sort((a, b) => {
-    const pA = produtos.find(p => p.id == a[0]);
-    const pB = produtos.find(p => p.id == b[0]);
-    return (curvaOrder[pA?.curva] || 2) - (curvaOrder[pB?.curva] || 2);
-  });
-
-  _currentPedidoItems = [];
-
-  entries.forEach(([prodId, d]) => {
-    const prod = produtos.find(p => p.id == prodId);
-    if (!prod) return;
-
-    const qtdPlanejada = Math.max(d.qtyVitrine, d.qtyCrono, d.qtyPlano || 0);
-    const sobra = sobraAnterior[prodId] || 0;
-    const qtdBase = Math.max(0, qtdPlanejada - sobra);
-    const reposicao = Math.ceil((perdasProd[prodId] || 0) / 4); // média semanal de perdas
-    const resp = d.resp || prod.resp || '—';
-    const hora = d.hora || '—';
-    const itemIdx = _currentPedidoItems.length;
-
-    _currentPedidoItems.push({ prodId: Number(prodId), nome: prod.nome, curva: prod.curva || '', qty: qtdBase, sobra, reposicao, resp, hora });
-
-    html += `<div class="pedido-item">
+  list.innerHTML = templateProds.map((prod, idx) => {
+    const template = Number((planoSemanal[currentUnit]?.[prod.id])?.[currentPedidoDay]) || 0;
+    const hoje = custom[prod.id] !== undefined ? custom[prod.id] : template;
+    _currentPedidoItems.push({ prodId: prod.id, nome: prod.nome, qty: hoje });
+    return `<div class="pedido-item">
       <div>
-        <div class="prod-name">${prod.nome} ${prod.curva ? `<span class="badge badge-${prod.curva.toLowerCase()}">${prod.curva}</span>` : ''}</div>
-        <div class="prod-resp">${prod.categoria}</div>
+        <div class="prod-name">${prod.nome}${prod.curva ? ` <span class="badge badge-${prod.curva.toLowerCase()}">${prod.curva}</span>` : ''}</div>
+        <div class="prod-resp">${prod.resp || prod.categoria || ''}</div>
       </div>
-      <div><input type="number" min="0" class="sheet-input" style="width:64px;text-align:center;" value="${qtdBase}" onchange="_currentPedidoItems[${itemIdx}].qty=Math.max(0,parseInt(this.value)||0)"></div>
-      <div style="color:var(--text-light)">${sobra || '—'}</div>
-      <div style="color:var(--red-light)">${reposicao > 0 ? '+' + reposicao : '—'}</div>
-      <div>${resp}</div>
-      <div>${hora}</div>
+      <input type="number" min="0" class="sheet-input" style="width:64px;text-align:center;" value="${template}"
+        onchange="salvarTemplatePedido(${prod.id}, parseInt(this.value)||0)" title="Quantidade padrão para ${dayShort[currentPedidoDay]}">
+      <input type="number" min="0" class="sheet-input" style="width:64px;text-align:center;font-weight:700;" value="${hoje}"
+        onchange="salvarCustomPedido(${prod.id}, parseInt(this.value)||0, ${idx})" title="Quantidade de hoje">
+      <div style="font-size:12px;color:var(--text-light);">${prod.resp || '—'}</div>
     </div>`;
-
-    if (sobra > 0) {
-      obsHtml += `<div style="font-size:12px;color:var(--brown);margin-bottom:4px;"><strong>${prod.nome}</strong> — descontado ${sobra} un. de sobra registrada no fechamento anterior.</div>`;
-    }
-
-    if (prod.validade <= 1) {
-      obsHtml += `<div style="font-size:12px;color:var(--red);margin-bottom:4px;"><span class="badge badge-red" style="margin-right:6px;">Atenção</span><strong>${prod.nome}</strong> — validade curta (${prod.validade} dia). Produzir somente no dia.</div>`;
-    }
-    totalItems++;
-  });
-
-  list.innerHTML = html;
-
-  document.getElementById('pedido-obs').innerHTML = obsHtml ? `
-    <div class="card" style="border-left:4px solid var(--red);padding:14px 16px;">
-      <div style="font-weight:700;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;color:var(--red);margin-bottom:8px;">Ajustes da produção</div>
-      ${obsHtml}
-    </div>` : '';
-
-  renderPedidoHistorico();
+  }).join('');
 }
 
 function imprimirPedido() {
@@ -6304,53 +6233,57 @@ function imprimirPedido() {
 }
 
 // ============================================================
-// PEDIDO — salvar pedido do dia e histórico
+// PEDIDO — template, custom e envio para vitrine
 // ============================================================
 let _currentPedidoItems = [];
 
-function salvarPedidoHoje() {
-  if (!_currentPedidoItems.length) { alert('Nenhum item no pedido para salvar.'); return; }
-  const today = new Date().toISOString().slice(0, 10);
-  if (!pedidoHistorico[currentUnit]) pedidoHistorico[currentUnit] = [];
-  // Remove registro do mesmo dia se existir
-  pedidoHistorico[currentUnit] = pedidoHistorico[currentUnit].filter(r => r.date !== today);
-  pedidoHistorico[currentUnit].unshift({ date: today, day: currentPedidoDay, items: JSON.parse(JSON.stringify(_currentPedidoItems)) });
-  // Mantém apenas últimos 60 registros
-  if (pedidoHistorico[currentUnit].length > 60) pedidoHistorico[currentUnit].length = 60;
+function salvarTemplatePedido(prodId, qty) {
+  if (!planoSemanal[currentUnit]) planoSemanal[currentUnit] = {};
+  if (!planoSemanal[currentUnit][prodId]) planoSemanal[currentUnit][prodId] = {};
+  planoSemanal[currentUnit][prodId][currentPedidoDay] = qty;
   saveAll();
-  renderPedidoHistorico();
-  alert('Pedido salvo para ' + today + '!');
 }
 
-function renderPedidoHistorico() {
-  const el = document.getElementById('pedido-historico-list');
-  if (!el) return;
-  const hist = (pedidoHistorico[currentUnit] || []).slice(0, 10);
-  if (!hist.length) {
-    el.innerHTML = '<div class="empty-state" style="padding:20px;"><p>Nenhum pedido salvo ainda.</p></div>';
-    return;
-  }
-  el.innerHTML = hist.map(r => {
-    const d = new Date(r.date + 'T12:00:00');
-    const label = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
-    const rows = r.items.map(it => `
-      <div class="pedido-item" style="font-size:13px;">
-        <div>
-          <div class="prod-name">${it.nome} ${it.curva ? `<span class="badge badge-${it.curva.toLowerCase()}">${it.curva}</span>` : ''}</div>
-        </div>
-        <div><strong>${it.qty}</strong></div>
-        <div style="color:var(--text-light)">${it.sobra || '—'}</div>
-        <div style="color:var(--red-light)">${it.reposicao > 0 ? '+' + it.reposicao : '—'}</div>
-        <div>${it.resp}</div>
-        <div>${it.hora}</div>
-      </div>`).join('');
-    return `<div class="card" style="margin-bottom:16px;padding:12px;">
-      <div style="font-weight:700;font-size:13px;color:var(--brown);margin-bottom:10px;text-transform:capitalize;">${label}</div>
-      <div class="pedido-head"><span>Produto</span><span>Qtd.</span><span>Sobra</span><span>+Repos.</span><span>Resp.</span><span>Horário</span></div>
-      ${rows}
-    </div>`;
-  }).join('');
+function salvarCustomPedido(prodId, qty, idx) {
+  if (!pedidoCustom[currentUnit]) pedidoCustom[currentUnit] = {};
+  if (!pedidoCustom[currentUnit][currentPedidoDay]) pedidoCustom[currentUnit][currentPedidoDay] = {};
+  pedidoCustom[currentUnit][currentPedidoDay][prodId] = qty;
+  if (_currentPedidoItems[idx]) _currentPedidoItems[idx].qty = qty;
+  saveAll();
 }
+
+function adicionarLinhaPedido() {
+  const nome = prompt('Nome do produto:');
+  if (!nome) return;
+  const prod = produtos.find(p => p.nome.toLowerCase() === nome.toLowerCase() && isProdutoVitrine(p));
+  if (!prod) { showToast('Produto não encontrado no cadastro', 'error'); return; }
+  if (!planoSemanal[currentUnit]) planoSemanal[currentUnit] = {};
+  if (!planoSemanal[currentUnit][prod.id]) planoSemanal[currentUnit][prod.id] = {};
+  if (!planoSemanal[currentUnit][prod.id][currentPedidoDay]) {
+    planoSemanal[currentUnit][prod.id][currentPedidoDay] = 1;
+  }
+  saveAll();
+  renderPedido();
+}
+
+function enviarPedidoParaVitrine() {
+  if (!_currentPedidoItems.length) { showToast('Nenhum item no pedido', 'error'); return; }
+  let enviados = 0;
+  const diaSel = document.getElementById('apoio-dia');
+  const prodDay = diaSel ? diaSel.value : currentDay;
+  _currentPedidoItems.forEach(item => {
+    if (!item.qty) return;
+    const prod = produtos.find(p => p.id === item.prodId);
+    if (!prod) return;
+    addToVitrineAuto(prod, item.qty, prodDay);
+    enviados++;
+  });
+  saveAll();
+  renderVitrine();
+  showToast(`${enviados} produto(s) enviados para a vitrine ✓`, 'success');
+}
+
+function salvarPedidoHoje() { enviarPedidoParaVitrine(); }
 
 // ============================================================
 // HISTÓRICO DE PRODUÇÃO
@@ -6364,22 +6297,34 @@ function initHistorico() {
 function renderHistorico() {
   const date = document.getElementById('hist-date').value;
   const dayOfWeek = date ? (['dom','seg','ter','qua','qui','sex','sab'][new Date(date + 'T12:00:00').getDay()]) : null;
-  const prods = produtos.filter(p => (p.tipo || 'fabricacao') === 'fabricacao');
-  const saved = (historicoProducao[currentUnit] && historicoProducao[currentUnit][date]) || [];
-  const savedMap = {};
-  saved.forEach(s => { savedMap[s.prodId] = s; });
+
+  // Auto-popular da vitrine do dia da semana se não houver registro manual
+  const savedManual = (historicoProducao[currentUnit] && historicoProducao[currentUnit][date]) || [];
+  let itensVitrine = [];
+  if (dayOfWeek) {
+    const slots = (vitrines[currentUnit] && vitrines[currentUnit][dayOfWeek]) || [];
+    slots.forEach(s => {
+      const manual = savedManual.find(m => m.prodId === s.prodId);
+      if (!manual) itensVitrine.push({ prodId: s.prodId, qty: s.producedQty ?? s.qty, obs: '', fromVitrine: true });
+    });
+  }
+  const allItens = [...savedManual, ...itensVitrine];
 
   const tbody = document.getElementById('hist-tbody');
-  if (!prods.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>';
+  const prods = produtos.filter(p => isProdutoVitrine(p));
+  const curvaOrder = { A: 0, B: 1, C: 2 };
+  const prodComDados = prods.filter(p => allItens.some(it => it.prodId === p.id));
+  const sorted = prodComDados.sort((a, b) => (curvaOrder[a.curva] ?? 3) - (curvaOrder[b.curva] ?? 3));
+
+  if (!sorted.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma produção registrada para esta data</td></tr>';
   } else {
-    const curvaOrder = { A: 0, B: 1, C: 2 };
-    const sorted = [...prods].sort((a, b) => (curvaOrder[a.curva] ?? 3) - (curvaOrder[b.curva] ?? 3));
-    tbody.innerHTML = sorted.map((p, i) => {
+    tbody.innerHTML = sorted.map(p => {
+      const item = allItens.find(it => it.prodId === p.id) || {};
       const planejado = dayOfWeek ? (Number((planoSemanal[currentUnit]?.[p.id] || {})[dayOfWeek]) || 0) : 0;
-      const item = savedMap[p.id] || {};
+      const autoLabel = item.fromVitrine ? ' <span style="font-size:10px;color:var(--text-light);">(vitrine)</span>' : '';
       return `<tr>
-        <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span></td>
+        <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}${autoLabel}</span></td>
         <td style="text-align:center;">${p.curva ? `<span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span>` : '<span style="color:var(--text-light)">—</span>'}</td>
         <td style="text-align:center;font-family:var(--font-mono);">${planejado || '—'}</td>
         <td><input type="number" min="0" class="sheet-input hist-qty" style="width:72px;text-align:center;" data-prodid="${p.id}" value="${item.qty ?? ''}" placeholder="0"></td>
