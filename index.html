@@ -1284,7 +1284,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         <datalist id="apoio-produtos-list"></datalist>
         <table class="apoio-table">
           <thead>
-            <tr><th>Produto</th><th>Qtd.</th><th></th></tr>
+            <tr><th>Produto</th><th>Fab.</th><th>Prod.</th><th>Vitrine</th><th></th></tr>
           </thead>
           <tbody id="apoio-tbody"></tbody>
         </table>
@@ -2373,14 +2373,40 @@ function getSlotStock(item) {
 }
 
 // Ajuste rápido de quantidade direto no slot (+/-)
+// "-" = vendeu 1 unidade; quando chega a 0 remove da vitrine (vendeu tudo)
 function adjustSlotQty(slotNum, delta, e) {
   if (e) e.stopPropagation();
   const vitrine = getVitrine();
   const item = vitrine.find(v => v.slot === slotNum);
   if (!item) return;
-  item.qty = Math.max(0, (Number(item.qty) || 0) + delta);
+  const novaQty = Math.max(0, (Number(item.qty) || 0) + delta);
+  if (delta < 0 && novaQty === 0) {
+    vendeuTudo(slotNum);
+    return;
+  }
+  item.qty = novaQty;
   saveAll();
   renderVitrine();
+}
+
+function vendeuTudo(slotNum) {
+  const vitrine = getVitrine();
+  const idx = vitrine.findIndex(v => v.slot === slotNum);
+  if (idx >= 0) vitrine.splice(idx, 1);
+  saveAll();
+  renderVitrine();
+  showToast('Vendeu tudo ✓', 'success');
+}
+
+function abrirPerdaDeSlot(slotNum) {
+  const vitrine = getVitrine();
+  const item = vitrine.find(v => v.slot === slotNum);
+  if (!item) return;
+  // Adiciona linha de perda pré-preenchida com este produto
+  const hoje = new Date().toISOString().split('T')[0];
+  perdas.push({ id: ++nextId, prodId: item.prodId, qty: item.qty || 1, tipo: 'vencimento', data: hoje, obs: '', unit: currentUnit });
+  saveAll();
+  showToast('Perda registrada — acesse a página Perdas para detalhar', 'success');
 }
 
 // Layouts de vitrine por unidade
@@ -3323,16 +3349,22 @@ function renderApoioProducao() {
     return;
   }
 
-  tbody.innerHTML = entries.map(({ item, index }, pos) => {
+  tbody.innerHTML = entries.map(({ item }, pos) => {
     const prod = produtos.find(p => p.id === item.prodId);
-    const otherDay = item.prodDay && item.prodDay !== currentDay
-      ? `<span class="apoio-day-badge" title="Produzido em outro dia">${dayShort[item.prodDay] || item.prodDay}</span>`
-      : '';
+    const fabLabel = item.prodDay ? (dayShort[item.prodDay] || item.prodDay) : '—';
+    const prodQty = item.producedQty ?? item.qty;
+    const vitrineQty = item.qty;
     return `
     <tr>
-      <td><span class="sheet-row-code">${String(pos + 1).padStart(2, '0')}</span> ${prod ? prod.nome : item.prodId}${otherDay}</td>
-      <td>${item.qty}</td>
-      <td style="width:40px;text-align:right;"><button class="btn btn-ghost btn-sm" onclick="removeSlot(${item.slot}, event)" aria-label="Remover">&#215;</button></td>
+      <td><span class="sheet-row-code">${String(pos + 1).padStart(2, '0')}</span> ${prod ? prod.nome : '?'}</td>
+      <td style="text-align:center;">${fabLabel}</td>
+      <td style="text-align:center;">${prodQty}</td>
+      <td style="text-align:center;">${vitrineQty}</td>
+      <td style="text-align:right;white-space:nowrap;">
+        <button class="btn btn-ghost btn-sm" onclick="vendeuTudo(${item.slot})" title="Vendeu tudo" style="color:var(--green,#16a34a);">✓</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirPerdaDeSlot(${item.slot})" title="Registrar perda" style="color:var(--red);">!</button>
+        <button class="btn btn-ghost btn-sm" onclick="removeSlot(${item.slot}, event)" title="Remover" aria-label="Remover">&#215;</button>
+      </td>
     </tr>`;
   }).join('');
 }
