@@ -3304,7 +3304,7 @@ function addApoioRow() {
   }
 
   getApoioProducao().push({ id: ++nextId, prodId: prod.id, nome: prod.nome, qty, prodDay });
-  addToVitrineAuto(prod, qty);
+  addToVitrineAuto(prod, qty, prodDay);
   saveAll();
   produtoInput.value = '';
   qtyInput.value = '';
@@ -3313,8 +3313,11 @@ function addApoioRow() {
   produtoInput.focus();
 }
 
-function addToVitrineAuto(prod, qty) {
-  const vitrine = getVitrine();
+function addToVitrineAuto(prod, qty, prodDay) {
+  const targetDay = prodDay || currentDay;
+  if (!vitrines[currentUnit]) vitrines[currentUnit] = {};
+  if (!vitrines[currentUnit][targetDay]) vitrines[currentUnit][targetDay] = [];
+  const vitrine = vitrines[currentUnit][targetDay];
   const layout = vitrineLayouts[currentUnit];
   const prodVitrine = inferProductVitrine(prod);
   const sections = layout.sections.filter(s => prodVitrine === 'todas' || s.id === prodVitrine);
@@ -3326,7 +3329,8 @@ function addToVitrineAuto(prod, qty) {
           prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
           entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: slotNum
         });
-        showToast(`${prod.nome} adicionado ao slot ${i + 1} &#10003;`, 'success');
+        const dayLabel = targetDay !== currentDay ? ` (${dayShort[targetDay] || targetDay})` : '';
+        showToast(`${prod.nome} adicionado ao slot ${i + 1}${dayLabel} &#10003;`, 'success');
         return;
       }
     }
