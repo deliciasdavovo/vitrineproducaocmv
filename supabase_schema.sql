@@ -54,6 +54,7 @@ alter table ingredientes add column if not exists qtd_compra numeric;
 alter table ingredientes add column if not exists custo_compra numeric;
 alter table ingredientes add column if not exists fatia numeric;
 alter table ingredientes add column if not exists variacao_unidade text;
+alter table ingredientes add column if not exists classe text;
 
 -- ---------- INGREDIENTE_COMPRAS (historico de compras dos insumos) ----------
 create table if not exists ingrediente_compras (id bigint primary key);

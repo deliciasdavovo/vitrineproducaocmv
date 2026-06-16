@@ -1515,6 +1515,12 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
       <button class="btn btn-ghost btn-sm" onclick="addIngredienteRow()">+ Criar linha vazia</button>
     </div>
+    <div class="toggle-row" id="insumo-classe-filtro" style="margin-bottom:12px;flex-wrap:wrap;">
+      <button class="toggle-btn active" data-classe="todos" onclick="setInsumoClasseFiltro('todos')">Todos</button>
+      <button class="toggle-btn" data-classe="insumo" onclick="setInsumoClasseFiltro('insumo')">Ingredientes</button>
+      <button class="toggle-btn" data-classe="embalagem" onclick="setInsumoClasseFiltro('embalagem')">Embalagens</button>
+      <button class="toggle-btn" data-classe="limpeza" onclick="setInsumoClasseFiltro('limpeza')">Material de limpeza</button>
+    </div>
     <div class="sheet-card">
       <div class="table-wrap">
         <table class="sheet-table">
@@ -1528,6 +1534,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <th>Custo compra</th>
               <th>Custo base</th>
               <th>Variação</th>
+              <th>Tipo</th>
               <th>Hist.</th>
               <th></th>
             </tr>
@@ -1556,7 +1563,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
                   </label>
                 </div>
               </td>
-              <td colspan="2" style="padding:6px 8px;"><button class="btn btn-primary btn-sm" onclick="submitQuickInsumo()" style="width:100%;white-space:nowrap;">Lançar</button></td>
+              <td colspan="3" style="padding:6px 8px;"><button class="btn btn-primary btn-sm" onclick="submitQuickInsumo()" style="width:100%;white-space:nowrap;">Lançar</button></td>
             </tr>
           </tbody>
           <tbody id="ingredientes-tbody"></tbody>
@@ -2732,7 +2739,8 @@ async function syncToSupabase() {
       await runSupabase('salvar insumos', db.from('ingredientes').upsert(ingredientes.map(i => ({
         id: i.id, nome: i.nome, unidade: i.unidade,
         qtd_compra: i.qtdCompra, custo_compra: i.custoCompra,
-        fatia: i.fatia ?? null, variacao_unidade: i.variacaoUnidade ?? null
+        fatia: i.fatia ?? null, variacao_unidade: i.variacaoUnidade ?? null,
+        classe: i.classe || 'insumo'
       }))), syncErrors);
     }
     // Garante que as exclusões fiquem salvas: remove do banco os insumos que
@@ -2963,6 +2971,7 @@ async function loadFromSupabase() {
         qtdCompra: Number(ultima?.qtdCompra ?? i.qtd_compra) || 0,
         custoCompra: Number(ultima?.custoCompra ?? i.custo_compra) || 0,
         fatia: i.fatia ?? null, variacaoUnidade: i.variacao_unidade || null,
+        classe: i.classe || 'insumo',
         historico
       };
     });
@@ -4342,6 +4351,7 @@ let currentReceitaView = 'flat';
 let fabBusca = '', fabOrdem = 'nome';
 let revBusca = '', revOrdem = 'nome';
 let fichaBusca = '', fichaOrdem = 'nome';
+let insumoClasseFiltro = 'todos';
 // Ordenação da aba CMV (vale para os painéis Produção e Revenda)
 let cmvOrdem = 'cmv';
 
@@ -5074,10 +5084,34 @@ function renderCMV() {
   if (alertaCard) alertaCard.style.borderColor = alertas > 0 ? 'rgba(220,38,38,0.3)' : 'var(--border)';
 }
 
+// Classificação do insumo: ingrediente comum, embalagem ou material de limpeza.
+// Todos continuam sendo insumos e entram no CMV quando usados nas fichas técnicas.
+const INSUMO_CLASSES = [
+  { value: 'insumo', label: 'Ingrediente' },
+  { value: 'embalagem', label: 'Embalagem' },
+  { value: 'limpeza', label: 'Limpeza' },
+];
+function insumoClasseSelectHtml(ing) {
+  const cur = ing.classe || 'insumo';
+  const opts = INSUMO_CLASSES
+    .map(c => `<option value="${c.value}" ${cur === c.value ? 'selected' : ''}>${c.label}</option>`)
+    .join('');
+  return `<select class="sheet-select" style="min-width:108px;" onchange="updateIngredienteCell(${ing.id}, 'classe', this.value)" title="Classificação do insumo: ingrediente, embalagem ou material de limpeza. Todos entram no CMV quando usados nas fichas técnicas.">${opts}</select>`;
+}
+function setInsumoClasseFiltro(c) {
+  insumoClasseFiltro = c;
+  document.querySelectorAll('#insumo-classe-filtro .toggle-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.classe === c));
+  renderIngredientes();
+}
+
 function renderIngredientes() {
   const tbody = document.getElementById('ingredientes-tbody');
   renderQuickInsumoList();
-  tbody.innerHTML = ingredientes.map(ing => {
+  const lista = insumoClasseFiltro === 'todos'
+    ? ingredientes
+    : ingredientes.filter(i => (i.classe || 'insumo') === insumoClasseFiltro);
+  tbody.innerHTML = lista.map(ing => {
     const uc = getUltimaCompra(ing);
     const custoUnit = custoIngredienteUnit(ing);
     let derivados = `<span style="color:var(--text-light);font-size:12px;">${money(custoUnit)}/${ing.unidade}</span>`;
@@ -5130,13 +5164,14 @@ function renderIngredientes() {
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(uc.custoCompra)}" oninput="maskMoney(this)" onblur="updateIngredienteCompra(${ing.id},'custoCompra',this.value)" placeholder="0,00" style="min-width:80px;"></td>
       <td style="min-width:110px;">${derivados}</td>
       <td style="min-width:160px;">${variacaoCell}</td>
+      <td>${insumoClasseSelectHtml(ing)}</td>
       <td><button class="btn btn-ghost btn-sm" onclick="openHistoricoModal(${ing.id})" title="Carrinho de compras" aria-label="Carrinho de compras">${cartBtnLabel(nCompras)}</button></td>
       <td style="white-space:nowrap;">
         ${classSelectHtml(ing.nome, `reclassifyIngrediente(${ing.id}, this.value)`)}
         <button class="btn btn-ghost btn-sm" onclick="deleteIngrediente(${ing.id})" style="color:var(--red)">×</button>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum ingrediente cadastrado</td></tr>`;
+  }).join('') || `<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum insumo nesta classificação</td></tr>`;
 }
 
 function renderReceitaRow(receita) {
