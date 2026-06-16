@@ -1170,6 +1170,46 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   .pedido-item > :nth-child(4), .pedido-item > :nth-child(5), .pedido-item > :nth-child(6),
   .pedido-head > :nth-child(4), .pedido-head > :nth-child(5), .pedido-head > :nth-child(6) { display: none; }
 }
+
+/* ============================================================
+   CUSTOM AUTOCOMPLETE
+   ============================================================ */
+.ac-dropdown {
+  position: fixed;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  z-index: 9999;
+  max-height: 240px;
+  overflow-y: auto;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  min-width: 180px;
+  scrollbar-width: thin;
+}
+.ac-item {
+  padding: 9px 13px;
+  cursor: pointer;
+  color: var(--text);
+  border-bottom: 1px solid var(--border);
+  line-height: 1.4;
+  transition: background 0.07s;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.ac-item:last-child { border-bottom: none; }
+.ac-item:hover,
+.ac-item.ac-active {
+  background: #EFF6FF;
+  color: var(--blue);
+}
+.ac-item mark {
+  background: none;
+  color: var(--brown);
+  font-weight: 700;
+}
 </style>
 </head>
 <body>
@@ -1257,7 +1297,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       </div>
       <div class="apoio-card">
         <div class="apoio-entry">
-          <input type="text" id="apoio-produto" list="apoio-produtos-list" placeholder="Produto produzido" onkeydown="handleApoioKey(event, 'produto')" onpaste="handleApoioPaste(event)">
+          <input type="text" id="apoio-produto" autocomplete="off" placeholder="Produto produzido" onkeydown="handleApoioKey(event, 'produto')" onpaste="handleApoioPaste(event)">
           <input type="number" id="apoio-qty" min="1" placeholder="Qtd." onkeydown="handleApoioKey(event, 'qty')">
           <select id="apoio-dia" title="Dia em que o produto foi produzido">
             <option value="seg">Seg</option><option value="ter">Ter</option><option value="qua">Qua</option><option value="qui">Qui</option><option value="sex">Sex</option><option value="sab">Sáb</option><option value="dom">Dom</option>
@@ -1495,13 +1535,13 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   <div id="cmv-panel-ingredientes" style="display:none;">
     <datalist id="quick-insumo-list"></datalist>
     <div class="quick-sheet" aria-label="Entrada rapida de insumo">
-      <input id="quick-insumo-nome" list="quick-insumo-list" placeholder="Insumo existente ou novo" onkeydown="handleQuickInsumoKey(event)">
+      <input id="quick-insumo-nome" autocomplete="off" placeholder="Insumo existente ou novo" onkeydown="handleQuickInsumoKey(event)">
       <select id="quick-insumo-unidade" onkeydown="handleQuickInsumoKey(event)">
         <option value="g">g</option>
         <option value="ml">ml</option>
         <option value="un">un</option>
       </select>
-      <input id="quick-insumo-fornecedor" list="fornecedores-list" placeholder="Fornecedor" onkeydown="handleQuickInsumoKey(event)">
+      <input id="quick-insumo-fornecedor" autocomplete="off" placeholder="Fornecedor" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-data" type="date" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-qtd" type="number" min="0" step="0.001" placeholder="Qtd. compra" onkeydown="handleQuickInsumoKey(event)">
       <input id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)">
@@ -6354,6 +6394,105 @@ function showToast(msg, type = 'success') {
 }
 
 // ============================================================
+// CUSTOM AUTOCOMPLETE
+// ============================================================
+function initAC(inputEl, getSuggestions, { nextFocusId, onSelect } = {}) {
+  if (!inputEl) return;
+  const dropdown = document.createElement('div');
+  dropdown.className = 'ac-dropdown';
+  dropdown.style.display = 'none';
+  document.body.appendChild(dropdown);
+
+  let items = [];
+  let activeIdx = -1;
+
+  function position() {
+    const r = inputEl.getBoundingClientRect();
+    dropdown.style.top  = r.bottom + 'px';
+    dropdown.style.left = r.left   + 'px';
+    dropdown.style.width = Math.max(r.width, 220) + 'px';
+  }
+
+  function hl(text, q) {
+    if (!q) return escHtml(text);
+    const i = text.toLowerCase().indexOf(q.toLowerCase());
+    if (i < 0) return escHtml(text);
+    return escHtml(text.slice(0, i)) +
+           '<mark>' + escHtml(text.slice(i, i + q.length)) + '</mark>' +
+           escHtml(text.slice(i + q.length));
+  }
+
+  function render(suggs) {
+    items = suggs.slice(0, 14);
+    activeIdx = -1;
+    if (!items.length) { close(); return; }
+    dropdown.innerHTML = items.map((s, i) =>
+      `<div class="ac-item" data-i="${i}">${hl(s, inputEl.value)}</div>`
+    ).join('');
+    position();
+    dropdown.style.display = 'block';
+    dropdown.querySelectorAll('.ac-item').forEach(el => {
+      el.addEventListener('mousedown', e => { e.preventDefault(); pick(+el.dataset.i); });
+    });
+  }
+
+  function pick(idx) {
+    if (idx < 0 || idx >= items.length) return;
+    inputEl.value = items[idx];
+    close();
+    if (onSelect) onSelect(items[idx]);
+    const next = nextFocusId && document.getElementById(nextFocusId);
+    if (next) { next.focus(); if (next.select) next.select(); }
+  }
+
+  function close() {
+    dropdown.style.display = 'none';
+    activeIdx = -1;
+  }
+
+  function markActive() {
+    dropdown.querySelectorAll('.ac-item').forEach((el, i) => {
+      el.classList.toggle('ac-active', i === activeIdx);
+      if (i === activeIdx) el.scrollIntoView({ block: 'nearest' });
+    });
+  }
+
+  inputEl.addEventListener('input', () => {
+    const q = inputEl.value.trim();
+    render(q ? getSuggestions(q) : []);
+  });
+
+  inputEl.addEventListener('keydown', e => {
+    const isOpen = dropdown.style.display !== 'none';
+    if (e.key === 'ArrowDown') {
+      if (!isOpen) { render(getSuggestions(inputEl.value.trim())); return; }
+      e.preventDefault();
+      activeIdx = Math.min(activeIdx + 1, items.length - 1);
+      markActive();
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      activeIdx = Math.max(activeIdx - 1, 0);
+      markActive();
+    } else if (e.key === 'Enter' && isOpen && activeIdx >= 0) {
+      e.preventDefault();
+      e.stopImmediatePropagation();
+      pick(activeIdx);
+    } else if (e.key === 'Escape') {
+      close();
+    } else if (e.key === 'Tab' && isOpen && activeIdx >= 0) {
+      e.preventDefault();
+      pick(activeIdx);
+    }
+  });
+
+  inputEl.addEventListener('blur', () => setTimeout(close, 160));
+  window.addEventListener('scroll', position, { passive: true });
+  window.addEventListener('resize', position, { passive: true });
+
+  return { close, rerender: q => render(getSuggestions(q || inputEl.value.trim())) };
+}
+
+// ============================================================
 // INIT
 // ============================================================
 loadFromSupabase().then(() => {
@@ -6361,6 +6500,34 @@ loadFromSupabase().then(() => {
   renderVitrine();
   renderCMV();
   refreshFornecedoresDatalist();
+
+  // Autocomplete produto (Apoio Produção) — avança para quantidade ao selecionar
+  initAC(
+    document.getElementById('apoio-produto'),
+    q => produtos
+      .filter(p => isProdutoVitrine(p) &&
+        (currentVitrineFilter === 'todas' || productFitsSection(p, currentVitrineFilter)))
+      .map(p => p.nome)
+      .filter(n => n.toLowerCase().includes(q.toLowerCase())),
+    { nextFocusId: 'apoio-qty' }
+  );
+
+  // Autocomplete insumo — avança para unidade ao selecionar
+  initAC(
+    document.getElementById('quick-insumo-nome'),
+    q => ingredientes
+      .map(i => i.nome).filter(Boolean)
+      .filter(n => n.toLowerCase().includes(q.toLowerCase())),
+    { nextFocusId: 'quick-insumo-unidade' }
+  );
+
+  // Autocomplete fornecedor insumo — avança para data ao selecionar
+  initAC(
+    document.getElementById('quick-insumo-fornecedor'),
+    q => getFornecedoresUsados()
+      .filter(f => f.toLowerCase().includes(q.toLowerCase())),
+    { nextFocusId: 'quick-insumo-data' }
+  );
 });
 </script>
 </body>
