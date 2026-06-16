@@ -1064,31 +1064,9 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 /* CMV STATS */
 #cmv-stat-card-medio { border-bottom: 3px solid var(--border); }
 #cmv-stats-row .stat-card { padding: 14px 16px; }
-.quick-sheet {
-  display: grid;
-  grid-template-columns: 1.4fr 110px 1fr 130px 120px 120px auto;
-  gap: 1px;
-  border: 1px solid var(--border);
-  background: var(--border);
-  border-radius: var(--radius);
-  overflow: hidden;
-  box-shadow: var(--shadow-soft);
-  margin-bottom: 12px;
-}
-.quick-sheet input,
-.quick-sheet select {
-  border: 0;
-  min-width: 0;
-  background: var(--surface);
-  padding: 10px 12px;
-  font-family: var(--font-sans);
-  font-size: 13px;
-  color: var(--text);
-  outline: none;
-}
-.quick-sheet input:focus,
-.quick-sheet select:focus { background: #EFF6FF; box-shadow: inset 0 0 0 2px var(--brown); }
-.quick-sheet button { border-radius: 0; white-space: nowrap; }
+/* Linha de cadastro rápido fixa no topo da planilha de insumos */
+.sheet-table tr.quick-entry-row td { background: #FFFBEB; border-bottom: 2px solid var(--brown); }
+.sheet-table tr.quick-entry-row:hover td { background: #FFFBEB; }
 .cmv-full-cell {
   display: flex;
   flex-direction: row;
@@ -1156,7 +1134,6 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   .header-logo { font-size: 15px; }
   .nav { top: 64px; padding: 8px 12px; }
   .nav-btn { padding: 8px 12px; font-size: 12px; }
-  .quick-sheet { grid-template-columns: 1fr 84px; }
   .page { padding: 16px 16px 40px; }
   .section-title { font-size: 23px; }
   .vitrine-container { grid-template-columns: 1fr; }
@@ -1535,27 +1512,6 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   <!-- PAINEL INGREDIENTES -->
   <div id="cmv-panel-ingredientes" style="display:none;">
     <datalist id="quick-insumo-list"></datalist>
-    <div class="quick-sheet" aria-label="Entrada rapida de insumo">
-      <input id="quick-insumo-nome" autocomplete="off" placeholder="Insumo existente ou novo" onkeydown="handleQuickInsumoKey(event)">
-      <select id="quick-insumo-unidade" onkeydown="handleQuickInsumoKey(event)">
-        <option value="g">g</option>
-        <option value="ml">ml</option>
-        <option value="un">un</option>
-      </select>
-      <input id="quick-insumo-fornecedor" autocomplete="off" placeholder="Fornecedor" onkeydown="handleQuickInsumoKey(event)">
-      <input id="quick-insumo-data" type="date" onkeydown="handleQuickInsumoKey(event)">
-      <input id="quick-insumo-qtd" type="number" min="0" step="0.001" placeholder="Qtd. compra" onkeydown="handleQuickInsumoKey(event)">
-      <input id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)">
-      <button class="btn btn-primary" onclick="submitQuickInsumo()">Lancar</button>
-    </div>
-    <div class="quick-sheet-checks" style="display:flex;gap:20px;flex-wrap:wrap;align-items:center;margin:-4px 0 12px;padding:2px 2px;">
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Material de revenda — cadastra este item como produto de revenda (garrafa PET) em vez de ingrediente">
-        <input type="checkbox" id="quick-insumo-revenda" onchange="if(this.checked)document.getElementById('quick-insumo-ambos').checked=false" onkeydown="handleQuickInsumoKey(event)"> Revenda
-      </label>
-      <label style="display:flex;align-items:center;gap:6px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Insumo + revenda — cadastra nas duas listas: como insumo e como produto de revenda em garrafa PET (ex: presunto)">
-        <input type="checkbox" id="quick-insumo-ambos" onchange="if(this.checked)document.getElementById('quick-insumo-revenda').checked=false" onkeydown="handleQuickInsumoKey(event)"> Insumo + revenda
-      </label>
-    </div>
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
       <button class="btn btn-ghost btn-sm" onclick="addIngredienteRow()">+ Criar linha vazia</button>
     </div>
@@ -1576,6 +1532,33 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <th></th>
             </tr>
           </thead>
+          <tbody>
+            <tr class="quick-entry-row" aria-label="Entrada rapida de insumo">
+              <td><input class="sheet-input" id="quick-insumo-nome" autocomplete="off" placeholder="Insumo existente ou novo" onkeydown="handleQuickInsumoKey(event)" style="min-width:130px;"></td>
+              <td>
+                <select class="sheet-select" id="quick-insumo-unidade" onkeydown="handleQuickInsumoKey(event)">
+                  <option value="g">g</option>
+                  <option value="ml">ml</option>
+                  <option value="un">un</option>
+                </select>
+              </td>
+              <td><input class="sheet-input" id="quick-insumo-fornecedor" autocomplete="off" placeholder="Fornecedor" onkeydown="handleQuickInsumoKey(event)" style="min-width:110px;"></td>
+              <td><input class="sheet-input" id="quick-insumo-data" type="date" onkeydown="handleQuickInsumoKey(event)" style="min-width:120px;"></td>
+              <td><input class="sheet-input" id="quick-insumo-qtd" type="number" min="0" step="0.001" placeholder="Qtd. compra" onkeydown="handleQuickInsumoKey(event)" style="min-width:80px;"></td>
+              <td><input class="sheet-input" id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)" style="min-width:80px;"></td>
+              <td colspan="2">
+                <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:0 10px;">
+                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Material de revenda — cadastra este item como produto de revenda (garrafa PET) em vez de ingrediente">
+                    <input type="checkbox" id="quick-insumo-revenda" onchange="if(this.checked)document.getElementById('quick-insumo-ambos').checked=false" onkeydown="handleQuickInsumoKey(event)"> Revenda
+                  </label>
+                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Insumo + revenda — cadastra nas duas listas: como insumo e como produto de revenda em garrafa PET (ex: presunto)">
+                    <input type="checkbox" id="quick-insumo-ambos" onchange="if(this.checked)document.getElementById('quick-insumo-revenda').checked=false" onkeydown="handleQuickInsumoKey(event)"> Insumo + revenda
+                  </label>
+                </div>
+              </td>
+              <td colspan="2" style="padding:6px 8px;"><button class="btn btn-primary btn-sm" onclick="submitQuickInsumo()" style="width:100%;white-space:nowrap;">Lançar</button></td>
+            </tr>
+          </tbody>
           <tbody id="ingredientes-tbody"></tbody>
         </table>
         <button class="btn-add-row" onclick="addIngredienteRow()">+ Adicionar linha</button>
