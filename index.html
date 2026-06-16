@@ -2106,6 +2106,21 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   </div>
 </div>
 
+<!-- Modal: Duplicar ficha técnica para outro produto -->
+<div class="modal-overlay" id="modal-duplicar-ficha">
+  <div class="modal" style="max-width:440px;">
+    <div class="modal-title">Duplicar ficha técnica</div>
+    <p class="section-sub" style="margin-bottom:12px;">Copiar todas as linhas da ficha de <strong id="dup-ficha-source"></strong> para outro produto. As linhas serão adicionadas à ficha do produto escolhido.</p>
+    <div class="form-row full">
+      <div class="form-group"><label>Produto de destino</label><select id="dup-ficha-target"></select></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-duplicar-ficha')">Cancelar</button>
+      <button class="btn btn-primary" onclick="confirmDuplicarFicha()">Copiar ficha</button>
+    </div>
+  </div>
+</div>
+
 <!-- Modal: Fechamento da Vitrine -->
 <div class="modal-overlay" id="modal-fechamento">
   <div class="modal" style="max-width:720px;">
@@ -5095,7 +5110,11 @@ function renderReceitaRow(receita) {
     <td>${pesoCell}</td>
     <td><span class="sheet-readonly">${custoLabel}</span></td>
     ${renderCmvTd(cmv, cmvCalculavel)}
-    <td><button class="btn btn-ghost btn-sm" onclick="deleteReceita(${receita.id})" style="color:var(--red)">×</button></td>
+    <td style="white-space:nowrap;">
+      <button class="btn btn-ghost btn-sm" onclick="duplicateReceita(${receita.id})" title="Duplicar esta linha">⧉</button>
+      <button class="btn btn-ghost btn-sm" onclick="insertReceitaRowAfter(${receita.id})" title="Inserir linha abaixo">+</button>
+      <button class="btn btn-ghost btn-sm" onclick="deleteReceita(${receita.id})" style="color:var(--red)" title="Remover linha">×</button>
+    </td>
   </tr>`;
 }
 
@@ -5208,6 +5227,7 @@ function renderReceitaGrouped() {
         </div>
         <div class="sheet-actions">
           <button class="btn btn-ghost btn-sm" onclick="addReceitaRow(${prodId})">+ Adicionar linha</button>
+          <button class="btn btn-ghost btn-sm" onclick="openDuplicarFicha(${prodId})" title="Copiar esta ficha para outro produto">⧉ Duplicar ficha</button>
         </div>
       </div>`;
   }).join('');
@@ -5261,6 +5281,7 @@ function renderReceitaByCategory() {
           </div>
           <div class="sheet-actions">
             <button class="btn btn-ghost btn-sm" onclick="addReceitaRow(${prodId})">+ Adicionar linha</button>
+            <button class="btn btn-ghost btn-sm" onclick="openDuplicarFicha(${prodId})" title="Copiar esta ficha para outro produto">⧉ Duplicar ficha</button>
           </div>
         </div>`;
     }).join('');
@@ -5551,6 +5572,97 @@ function addReceitaRow(prodId = null) {
   });
   saveAll();
   renderCMV();
+}
+
+// Insere uma nova linha (vazia) logo abaixo da linha informada, no mesmo produto.
+// Permite "adicionar linha em qualquer lugar" da ficha, e não só no fim.
+function insertReceitaRowAfter(id) {
+  if (!produtos.length) return showToast('Cadastre um produto antes da receita', 'error');
+  if (!ingredientes.length) return showToast('Cadastre um ingrediente antes da receita', 'error');
+  const idx = receitas.findIndex(r => r.id === id);
+  if (idx === -1) return addReceitaRow();
+  const ref = receitas[idx];
+  receitas.splice(idx + 1, 0, {
+    id: ++nextId,
+    prodId: ref.prodId,
+    rendimento: getProdutoReceitaRendimento(ref.prodId),
+    unidade: getProdutoReceitaUnidade(ref.prodId),
+    pesoPorUnidade: getProdutoPesoPorUnidade(ref.prodId) || null,
+    itens: [{ ingId: ingredientes[0].id, qtd: 0 }]
+  });
+  saveAll();
+  renderCMV();
+}
+
+// Duplica uma linha da ficha (com o ingrediente e a quantidade), inserindo a
+// cópia logo abaixo da original, no mesmo produto.
+function duplicateReceita(id) {
+  const idx = receitas.findIndex(r => r.id === id);
+  if (idx === -1) return;
+  const src = receitas[idx];
+  receitas.splice(idx + 1, 0, {
+    id: ++nextId,
+    prodId: src.prodId,
+    rendimento: src.rendimento,
+    unidade: src.unidade,
+    pesoPorUnidade: src.pesoPorUnidade ?? null,
+    itens: (src.itens || []).map(it => ({ ...it }))
+  });
+  saveAll();
+  refreshProductCostsFromRecipes();
+  renderCMV();
+  renderProdutos();
+  showToast('Linha duplicada');
+}
+
+// Abre o seletor de produto de destino para copiar a ficha técnica inteira.
+let duplicarFichaSourceId = null;
+function openDuplicarFicha(prodId) {
+  prodId = parseInt(prodId);
+  const outros = produtos.filter(p => p.id !== prodId);
+  if (!outros.length) return showToast('Cadastre outro produto para copiar a ficha', 'error');
+  duplicarFichaSourceId = prodId;
+  const srcNome = produtos.find(p => p.id === prodId)?.nome || 'produto';
+  document.getElementById('dup-ficha-source').textContent = srcNome;
+  document.getElementById('dup-ficha-target').innerHTML = outros
+    .slice()
+    .sort((a, b) => (a.nome || '').localeCompare(b.nome || ''))
+    .map(p => `<option value="${p.id}">${escHtml(p.nome || '(sem nome)')}</option>`)
+    .join('');
+  openModal('modal-duplicar-ficha');
+}
+
+// Copia todas as linhas da ficha de origem para o produto de destino escolhido.
+function confirmDuplicarFicha() {
+  const sourceId = duplicarFichaSourceId;
+  const targetId = parseInt(document.getElementById('dup-ficha-target').value);
+  if (!targetId) return showToast('Selecione um produto de destino', 'error');
+  if (targetId === sourceId) return showToast('Escolha um produto diferente da origem', 'error');
+  const srcRows = getReceitasByProduto(sourceId);
+  if (!srcRows.length) { closeModal('modal-duplicar-ficha'); return; }
+  // Se o destino já tem ficha, mantém o rendimento dele; senão, adota o da origem.
+  const base = getReceitasByProduto(targetId).length ? targetId : sourceId;
+  const rend = getProdutoReceitaRendimento(base);
+  const unid = getProdutoReceitaUnidade(base);
+  const peso = getProdutoPesoPorUnidade(base) || null;
+  srcRows.forEach(src => {
+    receitas.push({
+      id: ++nextId,
+      prodId: targetId,
+      rendimento: rend,
+      unidade: unid,
+      pesoPorUnidade: peso,
+      itens: (src.itens || []).map(it => ({ ...it }))
+    });
+  });
+  syncProdutoReceitaRendimento(targetId, rend, unid, peso);
+  saveAll();
+  refreshProductCostsFromRecipes();
+  renderCMV();
+  renderProdutos();
+  closeModal('modal-duplicar-ficha');
+  const targetNome = produtos.find(p => p.id === targetId)?.nome || 'produto';
+  showToast('Ficha copiada para ' + targetNome);
 }
 
 function updateReceitaCell(id, field, value) {
