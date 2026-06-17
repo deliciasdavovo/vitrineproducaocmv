@@ -986,6 +986,13 @@ tr:hover td { background: var(--surface-soft); }
   z-index: 1;
   position: relative;
 }
+/* Campo travado: insumo já existe e a unidade/classe não pode ser alterada aqui */
+.locked-field, .sheet-select.locked-field:disabled, .sheet-select:disabled.locked-field {
+  background: rgba(255,176,32,0.10);
+  color: var(--text-mid);
+  cursor: not-allowed;
+  opacity: 1;
+}
 /* Alça de preenchimento estilo Excel (arrastar para copiar para baixo) */
 .fill-handle {
   position: absolute;
@@ -1532,6 +1539,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     <div style="display:flex; gap:8px; margin-bottom:12px; flex-wrap:wrap; align-items:center;">
       <button class="btn btn-ghost btn-sm" onclick="addIngredienteRow()">+ Criar linha vazia</button>
     </div>
+    <div id="quick-insumo-lock-hint" style="display:none; margin-bottom:10px; padding:7px 12px; border-radius:8px; background:rgba(255,176,32,0.12); border:1px solid rgba(255,176,32,0.4); color:var(--text-mid); font-size:12px; line-height:1.4;"></div>
     <div class="toggle-row" id="insumo-classe-filtro" style="margin-bottom:12px;flex-wrap:wrap;">
       <button class="toggle-btn active" data-classe="todos" onclick="setInsumoClasseFiltro('todos')">Todos</button>
       <button class="toggle-btn" data-classe="insumo" onclick="setInsumoClasseFiltro('insumo')">Insumos</button>
@@ -5913,15 +5921,46 @@ function clearQuickInsumoForm() {
   if (revenda) revenda.checked = false;
   const ambos = document.getElementById('quick-insumo-ambos');
   if (ambos) ambos.checked = false;
+  setQuickInsumoLocked(false);
 }
 
-// Quando o nome ja existe, puxa unidade, classe e classificacao de venda.
+// Trava (ou destrava) os campos de unidade, classe e classificação de venda do
+// formulário de entrada rápida. Quando o insumo já existe, esses campos ficam
+// bloqueados para evitar conflito de unidade de medida / reclassificação.
+function setQuickInsumoLocked(locked) {
+  const uEl = document.getElementById('quick-insumo-unidade');
+  const cEl = document.getElementById('quick-insumo-classe');
+  const rev = document.getElementById('quick-insumo-revenda');
+  const amb = document.getElementById('quick-insumo-ambos');
+  [uEl, cEl, rev, amb].forEach(el => {
+    if (!el) return;
+    el.disabled = locked;
+    el.classList.toggle('locked-field', locked);
+  });
+  const hint = document.getElementById('quick-insumo-lock-hint');
+  if (hint) {
+    if (locked) {
+      const CLASSE_LABEL = { insumo: 'Ingrediente', embalagem: 'Embalagem', limpeza: 'Limpeza' };
+      const unidade = uEl ? uEl.value : '';
+      const classe = cEl ? (CLASSE_LABEL[cEl.value] || cEl.value) : '';
+      const cls = rev && rev.checked ? 'Revenda' : (amb && amb.checked ? 'Insumo + revenda' : 'Insumo');
+      hint.innerHTML = `🔒 Este insumo já existe. Unidade (<b>${escHtml(unidade)}</b>), classe (<b>${escHtml(classe)}</b>) e tipo (<b>${escHtml(cls)}</b>) ficam travados para não gerar conflito. A compra será somada ao item existente.`;
+      hint.style.display = '';
+    } else {
+      hint.style.display = 'none';
+      hint.innerHTML = '';
+    }
+  }
+}
+
+// Quando o nome ja existe, puxa unidade, classe e classificacao de venda e
+// trava esses campos para evitar conflito. Caso seja um nome novo, destrava.
 function applyQuickInsumoExistingMeta(nome) {
   const lc = (nome || '').trim().toLowerCase();
-  if (!lc) return false;
+  if (!lc) { setQuickInsumoLocked(false); return false; }
   const ing = ingredientes.find(i => (i.nome || '').toLowerCase() === lc);
   const cls = getItemClass(nome);
-  if (!ing && cls === 'insumo') return false;
+  if (!ing && cls === 'insumo') { setQuickInsumoLocked(false); return false; }
 
   const rev = document.getElementById('quick-insumo-revenda');
   const amb = document.getElementById('quick-insumo-ambos');
@@ -5934,6 +5973,7 @@ function applyQuickInsumoExistingMeta(nome) {
     const cEl = document.getElementById('quick-insumo-classe');
     if (cEl) cEl.value = ing.classe || 'insumo';
   }
+  setQuickInsumoLocked(true);
   return true;
 }
 
@@ -6049,7 +6089,7 @@ function handleQuickInsumoKey(e) {
   e.preventDefault();
   const fields = ['quick-insumo-nome','quick-insumo-unidade','quick-insumo-fornecedor','quick-insumo-data','quick-insumo-qtd','quick-insumo-custo']
     .map(id => document.getElementById(id))
-    .filter(Boolean);
+    .filter(el => el && !el.disabled);
   const index = fields.indexOf(e.target);
   if (index >= 0 && index < fields.length - 1) {
     fields[index + 1].focus();
@@ -7390,7 +7430,7 @@ function initAC(inputEl, getSuggestions, { nextFocusId, onSelect } = {}) {
     close();
     if (onSelect) onSelect(items[idx]);
     const next = nextFocusId && document.getElementById(nextFocusId);
-    if (next) { next.focus(); if (next.select) next.select(); }
+    if (next && !next.disabled) { next.focus(); if (next.select) next.select(); }
   }
 
   function close() {
@@ -7484,7 +7524,12 @@ loadFromSupabase().then(() => {
     {
       nextFocusId: 'quick-insumo-unidade',
       onSelect: nome => {
-        applyQuickInsumoExistingMeta(nome);
+        const locked = applyQuickInsumoExistingMeta(nome);
+        // Unidade travada: pula direto para o fornecedor.
+        if (locked) {
+          const f = document.getElementById('quick-insumo-fornecedor');
+          if (f) { f.focus(); }
+        }
       }
     }
   );
