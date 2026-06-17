@@ -1516,7 +1516,9 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     </div>
     <div class="toggle-row" id="insumo-classe-filtro" style="margin-bottom:12px;flex-wrap:wrap;">
       <button class="toggle-btn active" data-classe="todos" onclick="setInsumoClasseFiltro('todos')">Todos</button>
-      <button class="toggle-btn" data-classe="insumo" onclick="setInsumoClasseFiltro('insumo')">Ingredientes</button>
+      <button class="toggle-btn" data-classe="insumo" onclick="setInsumoClasseFiltro('insumo')">Insumos</button>
+      <button class="toggle-btn" data-classe="revenda" onclick="setInsumoClasseFiltro('revenda')">Revenda</button>
+      <button class="toggle-btn" data-classe="ambos" onclick="setInsumoClasseFiltro('ambos')">Insumo + Revenda</button>
       <button class="toggle-btn" data-classe="embalagem" onclick="setInsumoClasseFiltro('embalagem')">Embalagens</button>
       <button class="toggle-btn" data-classe="limpeza" onclick="setInsumoClasseFiltro('limpeza')">Material de limpeza</button>
     </div>
@@ -1525,7 +1527,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         <table class="sheet-table">
           <thead>
             <tr>
-              <th>Ingrediente</th>
+              <th>Item</th>
               <th>Unidade</th>
               <th>Fornecedor atual</th>
               <th>Data compra</th>
@@ -5241,13 +5243,67 @@ function setInsumoClasseFiltro(c) {
   renderIngredientes();
 }
 
+function hasRevendaByNome(nome) {
+  const lc = (nome || '').toLowerCase();
+  return produtos.some(p => (p.tipo || 'fabricacao') === 'revenda' && (p.nome || '').toLowerCase() === lc);
+}
+
+function hasIngredienteByNome(nome) {
+  const lc = (nome || '').toLowerCase();
+  return ingredientes.some(i => (i.nome || '').toLowerCase() === lc);
+}
+
+function revendasSemInsumo() {
+  return produtos.filter(p =>
+    (p.tipo || 'fabricacao') === 'revenda' &&
+    !hasIngredienteByNome(p.nome)
+  );
+}
+
+function ingredienteMatchesClasse(ing) {
+  const classe = ing.classe || 'insumo';
+  const itemClass = getItemClass(ing.nome);
+  if (insumoClasseFiltro === 'todos') return true;
+  if (insumoClasseFiltro === 'ambos') return itemClass === 'ambos';
+  if (insumoClasseFiltro === 'revenda') return false;
+  return classe === insumoClasseFiltro && itemClass === 'insumo';
+}
+
+function renderRevendaAsInsumoRow(prod) {
+  const uc = getUltimaCompraRevenda(prod);
+  const custo = getRevendaCusto(prod);
+  const unidade = getPrecoUnidadeLabel(prod);
+  return `<tr>
+    <td><input class="sheet-input" value="${escHtml(prod.nome || '')}" onblur="updateProdutoCell(${prod.id},'nome',this.value)" placeholder="Nome do produto" style="min-width:130px;"></td>
+    <td><select class="sheet-select" onchange="updateProdutoCell(${prod.id},'precoUnidade',this.value)">
+      <option value="un" ${unidade === 'un' ? 'selected' : ''}>un</option>
+      <option value="kg" ${unidade === 'kg' ? 'selected' : ''}>kg</option>
+    </select></td>
+    <td><span class="sheet-readonly">${escHtml(uc.fornecedor || '-')}</span></td>
+    <td><span class="sheet-readonly">${uc.data || '-'}</span></td>
+    <td><input class="sheet-input" type="number" min="0" step="0.001" value="${uc.qtdCompra || prod.qtdComprada || ''}" onblur="updateRevendaCampo(${prod.id}, 'qtdComprada', this.value)" placeholder="ex: 12" style="min-width:80px;"></td>
+    <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(uc.custoCompra || prod.valorCompra)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${prod.id}, 'valorCompra', this.value)" placeholder="0,00" style="min-width:80px;"></td>
+    <td style="min-width:110px;"><span style="font-size:11px;color:var(--text-mid);">${custo > 0 ? money(custo) + '/' + unidade : '-'}</span></td>
+    <td style="min-width:160px;"><span class="sheet-readonly">-</span></td>
+    <td><span class="badge badge-yellow">Revenda</span></td>
+    <td><button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${prod.id})" title="Carrinho de compras" aria-label="Carrinho de compras">${cartBtnLabel((prod.historicoCompras || []).length)}</button></td>
+    <td>
+      <div style="display:flex;align-items:center;gap:6px;white-space:nowrap;">
+        ${classSelectHtml(prod.nome, `reclassifyRevenda(${prod.id}, this.value)`)}
+        <button type="button" class="btn btn-ghost btn-sm" onclick="deleteProduto(${prod.id})" title="Excluir revenda" aria-label="Excluir revenda" style="color:#fff;background:var(--red);border-color:var(--red);font-weight:700;padding:6px 10px;">Excluir</button>
+      </div>
+    </td>
+  </tr>`;
+}
+
 function renderIngredientes() {
   const tbody = document.getElementById('ingredientes-tbody');
   renderQuickInsumoList();
-  const lista = insumoClasseFiltro === 'todos'
-    ? ingredientes
-    : ingredientes.filter(i => (i.classe || 'insumo') === insumoClasseFiltro);
-  tbody.innerHTML = lista.map(ing => {
+  const lista = ingredientes.filter(ingredienteMatchesClasse);
+  const revendas = (insumoClasseFiltro === 'todos' || insumoClasseFiltro === 'revenda')
+    ? revendasSemInsumo()
+    : [];
+  const rows = lista.map(ing => {
     const uc = getUltimaCompra(ing);
     const custoUnit = custoIngredienteUnit(ing);
     let derivados = `<span style="color:var(--text-light);font-size:12px;">${money(custoUnit)}/${ing.unidade}</span>`;
@@ -5309,7 +5365,8 @@ function renderIngredientes() {
         </div>
       </td>
     </tr>`;
-  }).join('') || `<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum insumo nesta classificação</td></tr>`;
+  }).concat(revendas.map(renderRevendaAsInsumoRow));
+  tbody.innerHTML = rows.join('') || `<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum item nesta classificacao</td></tr>`;
 }
 
 function renderReceitaRow(receita) {
@@ -7172,5 +7229,4 @@ loadFromSupabase().then(() => {
 </script>
 </body>
 </html>
-
 
