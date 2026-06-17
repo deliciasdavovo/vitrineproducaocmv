@@ -4525,6 +4525,15 @@ function getReceitaCusto(receita) {
   }, 0);
 }
 
+// Custo de UM insumo dentro da ficha (a linha da planilha = 1 insumo).
+// É o custo só daquele ingrediente na quantidade usada, não o da ficha inteira.
+function getReceitaItemCusto(item) {
+  if (!item) return 0;
+  const ing = ingredientes.find(i => i.id === item.ingId);
+  if (!ing) return 0;
+  return custoIngredienteUnit(ing) * getItemQtdCompraBase(item, ing);
+}
+
 function getReceitaByProduto(prodId) {
   return receitas.find(r => r.prodId === prodId);
 }
@@ -5600,6 +5609,7 @@ function renderReceitaRow(receita) {
   const pesoG = prod ? getProdutoPesoPorUnidade(prod.id) : 0;
   const isKg = (prod?.precoUnidade || 'un') === 'kg';
   const custoLabel = isKg && pesoG > 0 ? `${money(custoNaUnidade)}/kg` : `${money(custoTotal / rendimento)}/un`;
+  const custoInsumo = getReceitaItemCusto(receita.itens?.[0]);
   const rendimentoCell = isPrincipal
     ? `<input class="sheet-input" type="number" min="1" step="1" value="${rendimento || 1}" onchange="updateReceitaCell(${receita.id}, 'rendimento', this.value)" onblur="updateReceitaCell(${receita.id}, 'rendimento', this.value)">`
     : `<span class="sheet-readonly" style="color:var(--text-light);">${rendimento}</span>`;
@@ -5617,10 +5627,11 @@ function renderReceitaRow(receita) {
     </td>
     <td>${renderReceitaIngredientesCell(receita)}</td>
     <td>${renderReceitaQtdCell(receita)}</td>
+    <td><span class="sheet-readonly" title="Custo deste insumo na quantidade usada">${custoInsumo > 0 ? money(custoInsumo) : '—'}</span></td>
     <td>${rendimentoCell}</td>
     <td>${unidadeCell}</td>
     <td>${pesoCell}</td>
-    <td><span class="sheet-readonly">${custoLabel}</span></td>
+    <td><span class="sheet-readonly" title="Custo total da ficha técnica por unidade">${custoLabel}</span></td>
     ${renderCmvTd(cmv, cmvCalculavel)}
     <td style="white-space:nowrap;">
       <button class="btn btn-ghost btn-sm" onclick="duplicateReceita(${receita.id})" title="Duplicar esta linha">⧉</button>
@@ -5668,8 +5679,8 @@ function renderReceitaFlat() {
       <div class="table-wrap">
         <table class="sheet-table">
           <thead><tr>
-            <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th>
-            <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo</th><th>CMV</th><th></th>
+            <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th><th>Custo insumo</th>
+            <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo ficha</th><th>CMV</th><th></th>
           </tr></thead>
           <tbody id="receitas-tbody">${(() => {
             const linhas = receitas.filter(fichaMatch).slice().sort((a, b) => {
@@ -5680,7 +5691,7 @@ function renderReceitaFlat() {
             });
             return linhas.length
               ? linhas.map(renderReceitaRow).join('')
-              : '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma ficha encontrada</td></tr>';
+              : '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma ficha encontrada</td></tr>';
           })()}</tbody>
         </table>
       </div>
@@ -5731,8 +5742,8 @@ function renderReceitaGrouped() {
         <div class="table-wrap">
           <table class="sheet-table">
             <thead><tr>
-              <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th>
-              <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo</th><th>CMV</th><th></th>
+              <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th><th>Custo insumo</th>
+              <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo ficha</th><th>CMV</th><th></th>
             </tr></thead>
             <tbody>${linhas.map(renderReceitaRow).join('')}</tbody>
           </table>
@@ -5785,8 +5796,8 @@ function renderReceitaByCategory() {
           <div class="table-wrap">
             <table class="sheet-table">
               <thead><tr>
-                <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th>
-                <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo</th><th>CMV</th><th></th>
+                <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th><th>Custo insumo</th>
+                <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo ficha</th><th>CMV</th><th></th>
               </tr></thead>
               <tbody>${linhas.map(renderReceitaRow).join('')}</tbody>
             </table>
@@ -6279,7 +6290,7 @@ function updateReceitaItemCell(id, field, value) {
   refreshProductCostsFromRecipes();
   renderCMV();
   renderProdutos();
-  if (field === 'ingId') renderReceitaSheet();
+  renderReceitaSheet();
 }
 
 function refreshProductCostsFromRecipes() {
