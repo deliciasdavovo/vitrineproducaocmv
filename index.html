@@ -729,7 +729,7 @@ tr:hover td { background: var(--surface-soft); }
 .pedido-sub { font-size: 12px; color: rgba(255,255,255,0.78); margin-top: 2px; }
 .pedido-item {
   display: grid;
-  grid-template-columns: 1fr 80px 80px 120px;
+  grid-template-columns: 1fr 90px 120px;
   gap: 10px;
   align-items: center;
   padding: 10px 12px;
@@ -747,7 +747,7 @@ tr:hover td { background: var(--surface-soft); }
   border-radius: 6px;
   margin-bottom: 4px;
   display: grid;
-  grid-template-columns: 1fr 80px 80px 120px;
+  grid-template-columns: 1fr 90px 120px;
   gap: 10px;
 }
 .pedido-item:last-child { border-bottom: none; }
@@ -1143,9 +1143,8 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   .form-row { grid-template-columns: 1fr; }
   .form-row.three { grid-template-columns: 1fr; }
   .receita-item-row { grid-template-columns: 1fr; }
-  .pedido-item, .pedido-head { grid-template-columns: 1fr 50px 55px; }
-  .pedido-item > :nth-child(4), .pedido-item > :nth-child(5), .pedido-item > :nth-child(6),
-  .pedido-head > :nth-child(4), .pedido-head > :nth-child(5), .pedido-head > :nth-child(6) { display: none; }
+  .pedido-item, .pedido-head { grid-template-columns: 1fr 64px; }
+  .pedido-item > :nth-child(3), .pedido-head > :nth-child(3) { display: none; }
 }
 
 /* ============================================================
@@ -1857,7 +1856,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <!-- ===================== PAGE: PEDIDO ===================== -->
 <div class="page" id="page-pedido">
   <h2 class="section-title">Pedido de Produção</h2>
-  <p class="section-sub">Template fixo por dia da semana, ajustável antes de produzir</p>
+  <p class="section-sub">Espelha a vitrine do dia — os produtos e quantidades são exatamente os que estão na vitrine</p>
 
   <div class="day-tabs" id="pedido-day-tabs">
     <button class="day-tab active" onclick="setPedidoDay('seg')">Seg</button>
@@ -1876,15 +1875,13 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
       <button class="btn btn-ghost btn-sm" onclick="imprimirPedido()">Imprimir</button>
-      <button class="btn btn-gold" onclick="enviarPedidoParaVitrine()">Enviar para vitrine ▶</button>
     </div>
   </div>
 
   <div class="card" style="padding:12px;">
     <div class="pedido-head">
       <span>Produto</span>
-      <span style="text-align:center;">Template</span>
-      <span style="text-align:center;">Hoje</span>
+      <span style="text-align:center;">Qtd</span>
       <span>Responsável</span>
     </div>
     <div id="pedido-list"></div>
@@ -1895,7 +1892,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <!-- ===================== PAGE: HISTÓRICO DE PRODUÇÃO ===================== -->
 <div class="page" id="page-historico">
   <h2 class="section-title">Histórico de Produção</h2>
-  <p class="section-sub">Registro diário do que foi produzido — somente produtos de fabricação, com curva ABC</p>
+  <p class="section-sub">Reflete a vitrine do dia selecionado — os produtos e quantidades produzidas vêm direto da vitrine</p>
 
   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">
     <div class="form-group" style="margin:0;min-width:160px;">
@@ -6316,53 +6313,81 @@ function setPedidoDay(day) {
   renderPedido();
 }
 
+// Agrega a produção de um dia a partir da vitrine (fonte da verdade).
+// Varre todos os dias da vitrine e soma, por produto, os itens cujo dia de
+// produção (prodDay, ou o próprio balde) corresponde ao dia pedido.
+function producaoPorDia(day, unit = currentUnit) {
+  const buckets = vitrines[unit] || {};
+  const byProd = {};
+  Object.keys(buckets).forEach(bucketDay => {
+    (buckets[bucketDay] || []).forEach(slot => {
+      const d = slot.prodDay || bucketDay;
+      if (d !== day) return;
+      const produced = Number(slot.producedQty ?? slot.qty) || 0;
+      if (!byProd[slot.prodId]) byProd[slot.prodId] = { prodId: slot.prodId, produced: 0, slots: [] };
+      byProd[slot.prodId].produced += produced;
+      byProd[slot.prodId].slots.push({ slot, bucketDay });
+    });
+  });
+  return byProd;
+}
+
+// Adiciona um produto à vitrine de um dia específico (balde por dia da semana),
+// ocupando o primeiro slot livre da seção correspondente.
+function addProdToVitrineDay(prod, qty, day) {
+  if (!vitrines[currentUnit]) vitrines[currentUnit] = {};
+  if (!vitrines[currentUnit][day]) vitrines[currentUnit][day] = [];
+  const vitrine = vitrines[currentUnit][day];
+  const layout = vitrineLayouts[currentUnit];
+  const prodVitrine = inferProductVitrine(prod);
+  const sections = layout.sections.filter(s => prodVitrine === 'todas' || s.id === prodVitrine);
+  for (const section of sections) {
+    for (let i = 0; i < section.count; i++) {
+      const slotNum = section.start + i;
+      if (!vitrine.some(v => v.slot === slotNum)) {
+        vitrine.push({
+          prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
+          entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: slotNum,
+          prodDay: day
+        });
+        return true;
+      }
+    }
+  }
+  showToast(`Vitrine cheia para ${prod.nome}`, 'error');
+  return false;
+}
+
 function renderPedido() {
   document.getElementById('pedido-title').textContent = dayNames[currentPedidoDay];
   document.getElementById('pedido-unidade').textContent = currentUnit === 'matriz' ? 'Matriz' : 'Vila Nova';
 
-  // Monta lista a partir do template (planoSemanal) + produtos com curva
-  const prodsFab = produtos.filter(p => isProdutoVitrine(p));
+  // Fonte da verdade: a própria vitrine do dia selecionado
+  const byProd = producaoPorDia(currentPedidoDay);
   const curvaOrder = { A: 0, B: 1, C: 2 };
-  prodsFab.sort((a, b) => (curvaOrder[a.curva] ?? 3) - (curvaOrder[b.curva] ?? 3));
-
-  // Pedido customizado para o dia (sobrepõe template)
-  if (!pedidoCustom[currentUnit]) pedidoCustom[currentUnit] = {};
-  if (!pedidoCustom[currentUnit][currentPedidoDay]) pedidoCustom[currentUnit][currentPedidoDay] = {};
-  const custom = pedidoCustom[currentUnit][currentPedidoDay];
+  const rows = Object.values(byProd)
+    .map(entry => ({ entry, p: produtos.find(p => p.id === entry.prodId) }))
+    .filter(x => x.p)
+    .sort((a, b) => (curvaOrder[a.p.curva] ?? 3) - (curvaOrder[b.p.curva] ?? 3) || a.p.nome.localeCompare(b.p.nome));
 
   const list = document.getElementById('pedido-list');
-  _currentPedidoItems = [];
-
-  const templateProds = prodsFab.filter(p => {
-    const t = Number((planoSemanal[currentUnit]?.[p.id])?.[currentPedidoDay]) || 0;
-    const c = custom[p.id];
-    return t > 0 || c !== undefined;
-  });
-
-  if (!templateProds.length) {
+  if (!rows.length) {
     list.innerHTML = `<div class="empty-state" style="padding:30px;">
-      <p>Nenhum produto no template de ${dayNames[currentPedidoDay]}.<br>
-      Clique em "+ Adicionar produto" ou configure o Plano Semanal no Cronograma.</p>
+      <p>Nenhum produto na vitrine de ${dayNames[currentPedidoDay]}.<br>
+      Adicione produtos na aba Vitrine ou clique em "+ Adicionar produto".</p>
     </div>`;
     return;
   }
 
-  list.innerHTML = templateProds.map((prod, idx) => {
-    const template = Number((planoSemanal[currentUnit]?.[prod.id])?.[currentPedidoDay]) || 0;
-    const hoje = custom[prod.id] !== undefined ? custom[prod.id] : template;
-    _currentPedidoItems.push({ prodId: prod.id, nome: prod.nome, qty: hoje });
-    return `<div class="pedido-item">
-      <div>
-        <div class="prod-name">${prod.nome}${prod.curva ? ` <span class="badge badge-${prod.curva.toLowerCase()}">${prod.curva}</span>` : ''}</div>
-        <div class="prod-resp">${prod.resp || prod.categoria || ''}</div>
-      </div>
-      <input type="number" min="0" class="sheet-input" style="width:64px;text-align:center;" value="${template}"
-        onchange="salvarTemplatePedido(${prod.id}, parseInt(this.value)||0)" title="Quantidade padrão para ${dayShort[currentPedidoDay]}">
-      <input type="number" min="0" class="sheet-input" style="width:64px;text-align:center;font-weight:700;" value="${hoje}"
-        onchange="salvarCustomPedido(${prod.id}, parseInt(this.value)||0, ${idx})" title="Quantidade de hoje">
-      <div style="font-size:12px;color:var(--text-light);">${prod.resp || '—'}</div>
-    </div>`;
-  }).join('');
+  list.innerHTML = rows.map(({ entry, p }) => `<div class="pedido-item">
+    <div>
+      <div class="prod-name">${p.nome}${p.curva ? ` <span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span>` : ''}</div>
+      <div class="prod-resp">${p.resp || p.categoria || ''}</div>
+    </div>
+    <input type="number" min="0" class="sheet-input" style="width:72px;text-align:center;font-weight:700;" value="${entry.produced}"
+      onchange="setPedidoQty(${p.id}, parseInt(this.value)||0)" title="Quantidade a produzir (vitrine)">
+    <div style="font-size:12px;color:var(--text-light);">${p.resp || '—'}</div>
+  </div>`).join('');
 }
 
 function imprimirPedido() {
@@ -6370,23 +6395,34 @@ function imprimirPedido() {
 }
 
 // ============================================================
-// PEDIDO — template, custom e envio para vitrine
+// PEDIDO — escreve direto na vitrine (fonte única da verdade)
 // ============================================================
-let _currentPedidoItems = [];
 
-function salvarTemplatePedido(prodId, qty) {
-  if (!planoSemanal[currentUnit]) planoSemanal[currentUnit] = {};
-  if (!planoSemanal[currentUnit][prodId]) planoSemanal[currentUnit][prodId] = {};
-  planoSemanal[currentUnit][prodId][currentPedidoDay] = qty;
+// Ajusta a quantidade produzida de um produto no dia, escrevendo na vitrine.
+function setPedidoQty(prodId, value) {
+  const day = currentPedidoDay;
+  if (!vitrines[currentUnit]) vitrines[currentUnit] = {};
+  const buckets = vitrines[currentUnit];
+  const slots = [];
+  Object.keys(buckets).forEach(bucketDay => {
+    (buckets[bucketDay] || []).forEach(slot => {
+      if (slot.prodId === prodId && (slot.prodDay || bucketDay) === day) slots.push(slot);
+    });
+  });
+  if (!slots.length) {
+    const prod = produtos.find(p => p.id === prodId);
+    if (prod && value > 0) addProdToVitrineDay(prod, value, day);
+  } else {
+    const total = slots.reduce((s, x) => s + (Number(x.producedQty ?? x.qty) || 0), 0);
+    const delta = value - total;
+    const first = slots[0];
+    const curProduced = Number(first.producedQty ?? first.qty) || 0;
+    const curQty = Number(first.qty) || 0;
+    first.producedQty = Math.max(0, curProduced + delta);
+    first.qty = Math.max(0, curQty + delta);
+  }
   saveAll();
-}
-
-function salvarCustomPedido(prodId, qty, idx) {
-  if (!pedidoCustom[currentUnit]) pedidoCustom[currentUnit] = {};
-  if (!pedidoCustom[currentUnit][currentPedidoDay]) pedidoCustom[currentUnit][currentPedidoDay] = {};
-  pedidoCustom[currentUnit][currentPedidoDay][prodId] = qty;
-  if (_currentPedidoItems[idx]) _currentPedidoItems[idx].qty = qty;
-  saveAll();
+  renderPedido();
 }
 
 function adicionarLinhaPedido() {
@@ -6394,33 +6430,10 @@ function adicionarLinhaPedido() {
   if (!nome) return;
   const prod = produtos.find(p => p.nome.toLowerCase() === nome.toLowerCase() && isProdutoVitrine(p));
   if (!prod) { showToast('Produto não encontrado no cadastro', 'error'); return; }
-  if (!planoSemanal[currentUnit]) planoSemanal[currentUnit] = {};
-  if (!planoSemanal[currentUnit][prod.id]) planoSemanal[currentUnit][prod.id] = {};
-  if (!planoSemanal[currentUnit][prod.id][currentPedidoDay]) {
-    planoSemanal[currentUnit][prod.id][currentPedidoDay] = 1;
-  }
+  addProdToVitrineDay(prod, 1, currentPedidoDay);
   saveAll();
   renderPedido();
 }
-
-function enviarPedidoParaVitrine() {
-  if (!_currentPedidoItems.length) { showToast('Nenhum item no pedido', 'error'); return; }
-  let enviados = 0;
-  const diaSel = document.getElementById('apoio-dia');
-  const prodDay = diaSel ? diaSel.value : currentDay;
-  _currentPedidoItems.forEach(item => {
-    if (!item.qty) return;
-    const prod = produtos.find(p => p.id === item.prodId);
-    if (!prod) return;
-    addToVitrineAuto(prod, item.qty, prodDay);
-    enviados++;
-  });
-  saveAll();
-  renderVitrine();
-  showToast(`${enviados} produto(s) enviados para a vitrine ✓`, 'success');
-}
-
-function salvarPedidoHoje() { enviarPedidoParaVitrine(); }
 
 // ============================================================
 // HISTÓRICO DE PRODUÇÃO
@@ -6435,37 +6448,32 @@ function renderHistorico() {
   const date = document.getElementById('hist-date').value;
   const dayOfWeek = date ? (['dom','seg','ter','qua','qui','sex','sab'][new Date(date + 'T12:00:00').getDay()]) : null;
 
-  // Auto-popular da vitrine do dia da semana se não houver registro manual
-  const savedManual = (historicoProducao[currentUnit] && historicoProducao[currentUnit][date]) || [];
-  let itensVitrine = [];
-  if (dayOfWeek) {
-    const slots = (vitrines[currentUnit] && vitrines[currentUnit][dayOfWeek]) || [];
-    slots.forEach(s => {
-      const manual = savedManual.find(m => m.prodId === s.prodId);
-      if (!manual) itensVitrine.push({ prodId: s.prodId, qty: s.producedQty ?? s.qty, obs: '', fromVitrine: true });
-    });
-  }
-  const allItens = [...savedManual, ...itensVitrine];
+  // Observações salvas por data (único campo manual; as quantidades vêm da vitrine)
+  const savedObs = {};
+  ((historicoProducao[currentUnit] && historicoProducao[currentUnit][date]) || []).forEach(it => {
+    if (it.obs) savedObs[it.prodId] = it.obs;
+  });
+
+  // Fonte da verdade: produção do dia direto da vitrine
+  const byProd = dayOfWeek ? producaoPorDia(dayOfWeek) : {};
+  const curvaOrder = { A: 0, B: 1, C: 2 };
+  const rows = Object.values(byProd)
+    .map(entry => ({ entry, p: produtos.find(p => p.id === entry.prodId) }))
+    .filter(x => x.p)
+    .sort((a, b) => (curvaOrder[a.p.curva] ?? 3) - (curvaOrder[b.p.curva] ?? 3) || a.p.nome.localeCompare(b.p.nome));
 
   const tbody = document.getElementById('hist-tbody');
-  const prods = produtos.filter(p => isProdutoVitrine(p));
-  const curvaOrder = { A: 0, B: 1, C: 2 };
-  const prodComDados = prods.filter(p => allItens.some(it => it.prodId === p.id));
-  const sorted = prodComDados.sort((a, b) => (curvaOrder[a.curva] ?? 3) - (curvaOrder[b.curva] ?? 3));
-
-  if (!sorted.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma produção registrada para esta data</td></tr>';
+  if (!rows.length) {
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto na vitrine para esta data</td></tr>';
   } else {
-    tbody.innerHTML = sorted.map(p => {
-      const item = allItens.find(it => it.prodId === p.id) || {};
+    tbody.innerHTML = rows.map(({ entry, p }) => {
       const planejado = dayOfWeek ? (Number((planoSemanal[currentUnit]?.[p.id] || {})[dayOfWeek]) || 0) : 0;
-      const autoLabel = item.fromVitrine ? ' <span style="font-size:10px;color:var(--text-light);">(vitrine)</span>' : '';
       return `<tr>
-        <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}${autoLabel}</span></td>
+        <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span></td>
         <td style="text-align:center;">${p.curva ? `<span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span>` : '<span style="color:var(--text-light)">—</span>'}</td>
         <td style="text-align:center;font-family:var(--font-mono);">${planejado || '—'}</td>
-        <td><input type="number" min="0" class="sheet-input hist-qty" style="width:72px;text-align:center;" data-prodid="${p.id}" value="${item.qty ?? ''}" placeholder="0"></td>
-        <td><input type="text" class="sheet-input hist-obs" style="min-width:180px;" data-prodid="${p.id}" value="${escHtml(item.obs || '')}" placeholder="obs..."></td>
+        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;">${entry.produced}</td>
+        <td><input type="text" class="sheet-input hist-obs" style="min-width:180px;" data-prodid="${p.id}" value="${escHtml(savedObs[p.id] || '')}" placeholder="obs..."></td>
       </tr>`;
     }).join('');
   }
@@ -6478,19 +6486,17 @@ function salvarHistorico() {
   if (!date) { alert('Selecione uma data.'); return; }
   const itens = [];
   document.querySelectorAll('#hist-tbody tr').forEach(tr => {
-    const qtyEl = tr.querySelector('.hist-qty');
     const obsEl = tr.querySelector('.hist-obs');
-    if (!qtyEl) return;
-    const prodId = Number(qtyEl.dataset.prodid);
-    const qty = parseInt(qtyEl.value) || 0;
-    const obs = obsEl ? obsEl.value.trim() : '';
-    if (qty > 0 || obs) itens.push({ prodId, qty, obs });
+    if (!obsEl) return;
+    const prodId = Number(obsEl.dataset.prodid);
+    const obs = obsEl.value.trim();
+    if (obs) itens.push({ prodId, obs });
   });
   if (!historicoProducao[currentUnit]) historicoProducao[currentUnit] = {};
   historicoProducao[currentUnit][date] = itens;
   saveAll();
   renderHistoricoAnteriores();
-  alert('Histórico salvo para ' + date + '!');
+  alert('Observações salvas para ' + date + '! (as quantidades vêm da vitrine)');
 }
 
 function renderHistoricoAnteriores() {
@@ -6499,24 +6505,27 @@ function renderHistoricoAnteriores() {
   const unit = historicoProducao[currentUnit] || {};
   const dates = Object.keys(unit).sort((a, b) => b.localeCompare(a)).slice(0, 14);
   if (!dates.length) {
-    el.innerHTML = '<div class="empty-state" style="padding:20px;"><p>Nenhum registro anterior.</p></div>';
+    el.innerHTML = '<div class="empty-state" style="padding:20px;"><p>Nenhuma observação salva ainda. As quantidades produzidas estão sempre na vitrine de cada dia.</p></div>';
     return;
   }
+  const curvaOrder = { A: 0, B: 1, C: 2 };
   el.innerHTML = dates.map(date => {
-    const itens = unit[date] || [];
+    const obsMap = {};
+    (unit[date] || []).forEach(it => { if (it.obs) obsMap[it.prodId] = it.obs; });
     const d = new Date(date + 'T12:00:00');
+    const dayOfWeek = ['dom','seg','ter','qua','qui','sex','sab'][d.getDay()];
     const label = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
-    if (!itens.length) return '';
-    const rows = itens.map(it => {
-      const prod = produtos.find(p => p.id === it.prodId);
-      if (!prod) return '';
-      return `<tr>
-        <td>${prod.nome}</td>
-        <td style="text-align:center;">${prod.curva ? `<span class="badge badge-${prod.curva.toLowerCase()}">${prod.curva}</span>` : '—'}</td>
-        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;">${it.qty}</td>
-        <td style="color:var(--text-light);font-size:12px;">${it.obs || ''}</td>
-      </tr>`;
-    }).filter(Boolean).join('');
+    const byProd = producaoPorDia(dayOfWeek);
+    const items = Object.values(byProd)
+      .map(entry => ({ entry, p: produtos.find(p => p.id === entry.prodId) }))
+      .filter(x => x.p)
+      .sort((a, b) => (curvaOrder[a.p.curva] ?? 3) - (curvaOrder[b.p.curva] ?? 3) || a.p.nome.localeCompare(b.p.nome));
+    const rows = items.map(({ entry, p }) => `<tr>
+        <td>${p.nome}</td>
+        <td style="text-align:center;">${p.curva ? `<span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span>` : '—'}</td>
+        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;">${entry.produced}</td>
+        <td style="color:var(--text-light);font-size:12px;">${escHtml(obsMap[p.id] || '')}</td>
+      </tr>`).join('');
     if (!rows) return '';
     return `<div class="sheet-card" style="margin-bottom:16px;">
       <div style="font-weight:700;font-size:13px;color:var(--brown);padding:12px 16px 0;text-transform:capitalize;">${label}</div>
