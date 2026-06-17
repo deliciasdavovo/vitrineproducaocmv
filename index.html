@@ -257,6 +257,24 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .btn-ghost { background: var(--surface); border: 1px solid var(--border); color: var(--text-mid); }
 .btn-ghost:hover { border-color: var(--brown); color: var(--brown); background: var(--warm); }
 .btn-sm { padding: 5px 12px; font-size: 12px; }
+.btn-icon-delete {
+  width: 26px;
+  height: 26px;
+  min-width: 26px;
+  padding: 0;
+  justify-content: center;
+  border-color: transparent;
+  background: transparent;
+  color: var(--text-light);
+  font-size: 17px;
+  line-height: 1;
+}
+.btn-icon-delete:hover {
+  background: #FEE2E2;
+  border-color: #FCA5A5;
+  color: var(--red);
+  box-shadow: none;
+}
 
 /* BADGE */
 .badge {
@@ -1657,9 +1675,11 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
             <tr>
               <th>Produto</th>
               <th>Qtd. comprada</th>
+              <th>Un. compra</th>
               <th>Valor da compra (R$)</th>
               <th>Custo un.</th>
               <th>Preço venda (R$)</th>
+              <th>Vende por</th>
               <th>Margem R$</th>
               <th>Margem %</th>
               <th>CMV %</th>
@@ -1670,7 +1690,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         </table>
       </div>
       <div class="sheet-actions">
-        <button class="btn btn-ghost btn-sm" onclick="addRevendaProduto()">+ Novo produto de revenda</button>
+        <button class="btn btn-ghost btn-sm" onclick="addRevendaRow()">+ Adicionar linha</button>
       </div>
     </div>
   </div>
@@ -1751,9 +1771,11 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
             <tr>
               <th>Produto</th>
               <th>Qtd. comprada</th>
+              <th>Un. compra</th>
               <th>Valor da compra (R$)</th>
               <th>Custo un.</th>
               <th>Preço venda (R$)</th>
+              <th>Vende por</th>
               <th>Margem R$</th>
               <th>Margem %</th>
               <th>CMV %</th>
@@ -1764,7 +1786,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         </table>
       </div>
       <div class="sheet-actions">
-        <button class="btn btn-ghost btn-sm" onclick="addRevendaProduto()">+ Novo produto de revenda</button>
+        <button class="btn btn-ghost btn-sm" onclick="addRevendaRow()">+ Adicionar linha</button>
       </div>
     </div>
   </div>
@@ -2003,6 +2025,15 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     </div>
     <div class="form-row">
       <div class="form-group"><label>Quantidade comprada</label><input type="number" id="revhist-qtd" min="0.001" step="0.001" placeholder="ex: 12"></div>
+      <div class="form-group"><label>Unidade da compra</label>
+        <select id="revhist-compra-unidade">
+          <option value="un">un</option>
+          <option value="kg">kg</option>
+          <option value="g">g</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-row full">
       <div class="form-group"><label>Custo total (R$)</label><input type="text" inputmode="decimal" id="revhist-custo" oninput="maskMoney(this)" placeholder="ex: 18,90"></div>
     </div>
     <input type="hidden" id="revhist-prod-id">
@@ -2557,7 +2588,8 @@ function getVitrineLabel(id) {
 }
 
 function getPrecoUnidadeLabel(prod) {
-  return (prod?.precoUnidade || 'un') === 'kg' ? 'kg' : 'un';
+  const unidade = prod?.precoUnidade || 'un';
+  return ['kg', 'g', 'un'].includes(unidade) ? unidade : 'un';
 }
 
 let produtos = getStorage('ddv_produtos', []);
@@ -2599,6 +2631,7 @@ produtos = produtos.map(p => {
     tipo: p.tipo || 'fabricacao',
     unidade: 'ambas',
     precoUnidade: p.precoUnidade || 'un',
+    compraUnidade: p.compraUnidade || p.compra_unidade || p.precoUnidade || 'un',
     encomenda: Boolean(p.encomenda)
   };
   if (produto.tipo === 'revenda') produto.vitrine = '';
@@ -2607,6 +2640,7 @@ produtos = produtos.map(p => {
       id: ++nextId,
       qtdCompra: Number(produto.qtdComprada) || 0,
       custoCompra: Number(produto.valorCompra) || 0,
+      compraUnidade: produto.compraUnidade || produto.precoUnidade || 'un',
       fornecedor: '',
       data: ''
     }];
@@ -2764,10 +2798,25 @@ async function syncToSupabase() {
           fornecedor: h.fornecedor || '',
           data: h.data || null,
           qtd_compra: Number(h.qtdCompra) || 0,
-          custo_compra: Number(h.custoCompra) || 0
+          custo_compra: Number(h.custoCompra) || 0,
+          compra_unidade: h.compraUnidade || p.compraUnidade || p.precoUnidade || 'un'
         })))
         .filter(h => h.prod_id && h.qtd_compra > 0 && h.custo_compra > 0);
-      if (compras.length) await db.from('produto_compras').insert(compras);
+      if (compras.length) {
+        const insertCompras = await db.from('produto_compras').insert(compras);
+        const missingCompraUnidade =
+          insertCompras?.error &&
+          (String(insertCompras.error.message || '').includes('compra_unidade') ||
+           String(insertCompras.error.details || '').includes('compra_unidade') ||
+           String(insertCompras.error.hint || '').includes('compra_unidade'));
+        if (missingCompraUnidade) {
+          const comprasSemUnidade = compras.map(({ compra_unidade, ...rest }) => rest);
+          await runSupabase('salvar compras de revenda', db.from('produto_compras').insert(comprasSemUnidade), syncErrors);
+        } else if (insertCompras?.error) {
+          syncErrors.push({ label: 'salvar compras de revenda', error: insertCompras.error });
+          console.error('Supabase: salvar compras de revenda', insertCompras.error);
+        }
+      }
     }
     // Garante que as exclusões de produtos fiquem salvas: remove do banco os
     // produtos que não existem mais localmente (mesma lógica usada nos insumos),
@@ -2979,6 +3028,7 @@ async function loadFromSupabase() {
         id: c.id,
         qtdCompra: Number(c.qtd_compra) || 0,
         custoCompra: Number(c.custo_compra) || 0,
+        compraUnidade: c.compra_unidade || '',
         fornecedor: c.fornecedor || '',
         data: c.data || ''
       });
@@ -2989,6 +3039,7 @@ async function loadFromSupabase() {
       const ultimaCompra = historicoOrdenado(historicoCompras)[0];
       const qtdComprada = Number(ultimaCompra?.qtdCompra ?? p.qtd_comprada) || 0;
       const valorCompra = Number(ultimaCompra?.custoCompra ?? p.valor_compra) || 0;
+      const compraUnidade = ultimaCompra?.compraUnidade || p.compra_unidade || p.preco_unidade || 'un';
       return {
         id: p.id, nome: p.nome, curva: p.curva, validade: p.validade,
         categoria: p.categoria, vitrine: tipo === 'revenda' ? '' : p.vitrine, custo: Number(p.custo),
@@ -2998,6 +3049,7 @@ async function loadFromSupabase() {
         valorCompra,
         historicoCompras,
         precoUnidade: p.preco_unidade || 'un',
+        compraUnidade,
         encomenda: Boolean(p.encomenda)
       };
     });
@@ -4113,7 +4165,7 @@ function escHtml(s) {
 
 function addProdutoRow() {
   const tipo = currentProdutosTipo;
-  produtos.push({ id: ++nextId, nome: '', tipo, curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: tipo === 'revenda' ? '' : (vitrineTipos[0]?.id || 'salgada'), custo: 0, preco: 0, precoUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', qtdComprada: 0, valorCompra: 0, historicoCompras: [] });
+  produtos.push({ id: ++nextId, nome: '', tipo, curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: tipo === 'revenda' ? '' : (vitrineTipos[0]?.id || 'salgada'), custo: 0, preco: 0, precoUnidade: 'un', compraUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', qtdComprada: 0, valorCompra: 0, historicoCompras: [] });
   saveAll();
   renderProdutos();
   setTimeout(() => {
@@ -4132,7 +4184,7 @@ function updateProdutoCell(id, field, value) {
     : (numFields.includes(field) ? parseFloat(value) || 0 : value);
   if (field === 'tipo' && p.tipo === 'revenda') p.vitrine = '';
   if (p.tipo === 'revenda' && p.qtdComprada > 0 && p.valorCompra > 0) {
-    p.custo = p.valorCompra / p.qtdComprada;
+    p.custo = getRevendaCusto(p);
     syncRevendaUltimaCompra(p);
   }
   saveAll();
@@ -4175,6 +4227,41 @@ function addRevendaProduto() {
   toggleProdutoTipoFields();
 }
 
+function addRevendaRow() {
+  const novo = {
+    id: ++nextId,
+    nome: '',
+    tipo: 'revenda',
+    curva: 'A',
+    validade: 1,
+    categoria: categorias[0] || 'Bolo',
+    vitrine: '',
+    custo: 0,
+    preco: 0,
+    precoUnidade: 'un',
+    compraUnidade: 'un',
+    encomenda: false,
+    resp: '',
+    unidade: 'ambas',
+    obs: '',
+    qtdComprada: 0,
+    valorCompra: 0,
+    historicoCompras: []
+  };
+  produtos.unshift(novo);
+  revNewIds.add(novo.id);
+  saveAll();
+  renderCMV();
+  renderProdutos();
+  setTimeout(() => {
+    const row = document.querySelector(`#insumos-revenda-tbody tr[data-id="${novo.id}"], #revenda-tbody tr[data-id="${novo.id}"], #ingredientes-tbody tr[data-id="${novo.id}"]`);
+    if (!row) return;
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    const first = row.querySelector('.sheet-input');
+    if (first) first.focus();
+  }, 50);
+}
+
 function editProduto(id) {
   const prod = produtos.find(p => p.id === id);
   if (prod) openProdModal(prod);
@@ -4182,6 +4269,7 @@ function editProduto(id) {
 
 function deleteProduto(id) {
   if (!confirm('Remover este produto?')) return;
+  revNewIds.delete(id);
   produtos = produtos.filter(p => p.id !== id);
   receitas = receitas.filter(r => r.prodId !== id);
   Object.values(planoSemanal).forEach(porUnidade => { delete porUnidade[id]; });
@@ -4189,6 +4277,7 @@ function deleteProduto(id) {
   renderProdutos();
   renderCMV();
   renderFabricacaoSheet();
+  renderIngredientes();
   showToast('Produto removido', 'error');
   dbDelete('remover produto', db.from('produtos').delete().eq('id', id));
 }
@@ -4207,6 +4296,7 @@ function saveProduto() {
     custo: parseMoney(document.getElementById('p-custo').value),
     preco: parseMoney(document.getElementById('p-preco').value),
     precoUnidade: document.getElementById('p-preco-unidade').value,
+    compraUnidade: id ? (produtos.find(p => p.id == id)?.compraUnidade || document.getElementById('p-preco-unidade').value) : document.getElementById('p-preco-unidade').value,
     resp: document.getElementById('p-resp').value,
     unidade: 'ambas',
     obs: document.getElementById('p-obs').value,
@@ -4220,11 +4310,11 @@ function saveProduto() {
     data.resp = '';
     data.vitrine = '';
     if (data.qtdComprada > 0 && data.valorCompra > 0) {
-      data.custo = data.valorCompra / data.qtdComprada;
+      data.custo = data.valorCompra / converterQtdRevenda(data.qtdComprada, data.compraUnidade, data.precoUnidade);
     }
     data.historicoCompras = (id ? produtos.find(p => p.id == id)?.historicoCompras : []) || [];
     if (data.qtdComprada > 0 && data.valorCompra > 0 && !data.historicoCompras.length) {
-      data.historicoCompras.push({ id: ++nextId, qtdCompra: data.qtdComprada, custoCompra: data.valorCompra, fornecedor: '', data: '' });
+      data.historicoCompras.push({ id: ++nextId, qtdCompra: data.qtdComprada, custoCompra: data.valorCompra, compraUnidade: data.compraUnidade, fornecedor: '', data: '' });
     }
   }
 
@@ -4474,6 +4564,7 @@ function renderInsumos() {
 let fabRenderOrder = [];
 // IDs de produtos recém-criados nesta sessão (ficam fixos no topo + realçados)
 let fabNewIds = new Set();
+let revNewIds = new Set();
 
 function renderFabricacaoSheet(resort = true) {
   const tbody = document.getElementById('insumos-fabricacao-tbody');
@@ -4567,7 +4658,7 @@ function updateFabricacaoCell(id, field, value) {
 }
 
 function addFabricacaoProduto() {
-  const novo = { id: ++nextId, nome: '', tipo: 'fabricacao', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: vitrineTipos[0]?.id || 'salgada', custo: 0, preco: 0, precoUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', historicoCompras: [] };
+  const novo = { id: ++nextId, nome: '', tipo: 'fabricacao', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: vitrineTipos[0]?.id || 'salgada', custo: 0, preco: 0, precoUnidade: 'un', compraUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', historicoCompras: [] };
   produtos.push(novo);
   saveAll();
   // Fixa a nova linha no topo, realçada, e não reordena — para o usuário
@@ -4591,24 +4682,43 @@ function getRevendaCusto(p) {
   const uc = getUltimaCompraRevenda(p);
   const qtd = Number(uc.qtdCompra ?? p.qtdComprada) || 0;
   const valor = Number(uc.custoCompra ?? p.valorCompra) || 0;
-  if (qtd > 0 && valor > 0) return valor / qtd;
+  const compraUnidade = uc.compraUnidade || p.compraUnidade || p.precoUnidade || 'un';
+  const vendaUnidade = p.precoUnidade || 'un';
+  const qtdNaUnidadeVenda = converterQtdRevenda(qtd, compraUnidade, vendaUnidade);
+  if (qtdNaUnidadeVenda > 0 && valor > 0) return valor / qtdNaUnidadeVenda;
   return Number(p.custo) || 0;
 }
 
 function getUltimaCompraRevenda(p) {
   const hist = p.historicoCompras || [];
   if (hist.length) return historicoOrdenado(hist)[0];
-  return { qtdCompra: p.qtdComprada || 0, custoCompra: p.valorCompra || 0, fornecedor: '', data: '' };
+  return { qtdCompra: p.qtdComprada || 0, custoCompra: p.valorCompra || 0, compraUnidade: p.compraUnidade || p.precoUnidade || 'un', fornecedor: '', data: '' };
+}
+
+function converterQtdRevenda(qtd, origem, destino) {
+  const n = Number(qtd) || 0;
+  const from = origem || 'un';
+  const to = destino || 'un';
+  if (!n || from === to) return n;
+  if (from === 'g' && to === 'kg') return n / 1000;
+  if (from === 'kg' && to === 'g') return n * 1000;
+  return n;
+}
+
+function revendaUnidadeOptions(selected = 'un') {
+  const atual = selected || 'un';
+  return ['un', 'kg', 'g'].map(u => `<option value="${u}" ${u === atual ? 'selected' : ''}>${u}</option>`).join('');
 }
 
 function syncRevendaUltimaCompra(p) {
   if (!p.historicoCompras) p.historicoCompras = [];
   if (!p.historicoCompras.length) {
-    p.historicoCompras.push({ id: ++nextId, qtdCompra: 0, custoCompra: 0, fornecedor: '', data: '' });
+    p.historicoCompras.push({ id: ++nextId, qtdCompra: 0, custoCompra: 0, compraUnidade: p.compraUnidade || p.precoUnidade || 'un', fornecedor: '', data: '' });
   }
   const atual = historicoOrdenado(p.historicoCompras)[0] || p.historicoCompras[p.historicoCompras.length - 1];
   atual.qtdCompra = Number(p.qtdComprada) || 0;
   atual.custoCompra = Number(p.valorCompra) || 0;
+  atual.compraUnidade = p.compraUnidade || atual.compraUnidade || p.precoUnidade || 'un';
 }
 
 function renderProducaoCMV() {
@@ -4675,6 +4785,8 @@ function renderRevendaCMV() {
     return preco > 0 && custo > 0 ? (custo / preco) * 100 : 0;
   };
   const sortRevenda = (list, ordem) => [...list].sort((a, b) => {
+    const novo = (revNewIds.has(b.id) ? 1 : 0) - (revNewIds.has(a.id) ? 1 : 0);
+    if (novo) return novo;
     if (ordem === 'preco') return (Number(b.preco) || 0) - (Number(a.preco) || 0);
     if (ordem === 'cmv') return revCmv(b) - revCmv(a);
     return (a.nome || '').localeCompare(b.nome || '');
@@ -4683,32 +4795,37 @@ function renderRevendaCMV() {
     const uc = getUltimaCompraRevenda(p);
     const qtd = Number(uc.qtdCompra) || Number(p.qtdComprada) || 0;
     const valor = Number(uc.custoCompra) || Number(p.valorCompra) || 0;
+    const compraUnidade = uc.compraUnidade || p.compraUnidade || p.precoUnidade || 'un';
+    const vendaUnidade = p.precoUnidade || 'un';
     const custo = getRevendaCusto(p);
     const preco = Number(p.preco) || 0;
     const margem = preco - custo;
     const margemPct = preco > 0 ? (margem / preco) * 100 : 0;
     const cmv = preco > 0 && custo > 0 ? (custo / preco) * 100 : 0;
     const calculavel = preco > 0 && custo > 0;
-    return `<tr>
+    return `<tr data-id="${p.id}"${revNewIds.has(p.id) ? ' class="sheet-row-new"' : ''}>
       <td>
-        <span class="sheet-readonly" style="font-weight:600;">${p.nome}</span>
+        <input class="sheet-input" value="${escHtml(p.nome || '')}" onblur="updateProdutoCell(${p.id},'nome',this.value)" placeholder="Nome do produto" style="min-width:140px;font-weight:600;">
         <button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Carrinho de compras" aria-label="Carrinho de compras" style="margin-top:4px;">${cartBtnLabel((p.historicoCompras || []).length)}</button>
       </td>
-      <td><input class="sheet-input" type="number" min="0" step="1" value="${qtd || ''}" onblur="updateRevendaCampo(${p.id}, 'qtdComprada', this.value)" placeholder="ex: 12"></td>
+      <td><input class="sheet-input" type="number" min="0" step="0.001" value="${qtd || ''}" onblur="updateRevendaCampo(${p.id}, 'qtdComprada', this.value)" placeholder="ex: 7"></td>
+      <td><select class="sheet-select" onchange="updateRevendaCampo(${p.id}, 'compraUnidade', this.value)">${revendaUnidadeOptions(compraUnidade)}</select></td>
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(valor)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'valorCompra', this.value)" placeholder="ex: 18,43"></td>
-      <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${custo > 0 ? money(custo) + '/' + getPrecoUnidadeLabel(p) : '—'}</span></td>
-      <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'preco', this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
+      <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${custo > 0 ? money(custo) + '/' + vendaUnidade : '—'}</span></td>
+      <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'preco', this.value)" placeholder="0,00"></td>
+      <td><select class="sheet-select" onchange="updateRevendaCampo(${p.id}, 'precoUnidade', this.value)">${revendaUnidadeOptions(vendaUnidade)}</select></td>
       <td><span class="sheet-readonly">${calculavel ? money(margem) : '—'}</span></td>
       <td><span class="sheet-readonly">${calculavel ? margemPct.toFixed(1) + '%' : '—'}</span></td>
       ${renderCmvTd(cmv, calculavel)}
       <td style="white-space:nowrap;">
         ${classSelectHtml(p.nome, `reclassifyRevenda(${p.id}, this.value)`)}
         <button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))" title="Editar produto">Editar</button>
+        <button class="btn btn-ghost btn-icon-delete" onclick="deleteProduto(${p.id})" title="Excluir revenda" aria-label="Excluir revenda">&times;</button>
       </td>
     </tr>`;
   };
   const base = produtos.filter(p => (p.tipo || 'fabricacao') === 'revenda');
-  const emptyMsg = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
+  const emptyMsg = '<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
   // Painel da aba CMV: usa a ordenação da própria aba (cmvOrdem), sem filtro de busca.
   const cmvBody = document.getElementById('revenda-tbody');
   if (cmvBody) {
@@ -4729,10 +4846,12 @@ function renderRevendaCMV() {
 function updateRevendaCampo(prodId, campo, value) {
   const p = produtos.find(pr => pr.id === prodId);
   if (!p) return;
-  p[campo] = campo === 'qtdComprada' ? (parseFloat(value) || 0) : parseMoney(value);
+  if (campo === 'qtdComprada') p[campo] = parseFloat(value) || 0;
+  else if (campo === 'compraUnidade' || campo === 'precoUnidade') p[campo] = value || 'un';
+  else p[campo] = parseMoney(value);
   // Mantém o custo unitário sincronizado com a última compra
   if (p.qtdComprada > 0 && p.valorCompra > 0) {
-    p.custo = p.valorCompra / p.qtdComprada;
+    p.custo = getRevendaCusto(p);
     syncRevendaUltimaCompra(p);
   }
   saveAll();
@@ -4748,6 +4867,7 @@ function openRevendaHistoricoModal(prodId) {
   document.getElementById('revhist-data').value = '';
   document.getElementById('revhist-qtd').value = '';
   document.getElementById('revhist-custo').value = '';
+  document.getElementById('revhist-compra-unidade').value = prod.compraUnidade || prod.precoUnidade || 'un';
   document.getElementById('modal-revenda-historico-title').textContent = `Historico - ${prod.nome}`;
 
   const hist = historicoOrdenado(prod.historicoCompras);
@@ -4760,13 +4880,17 @@ function openRevendaHistoricoModal(prodId) {
     const tdStyle = 'padding:6px 8px;border-bottom:1px solid var(--border);';
     const tdRightStyle = tdStyle + 'text-align:right;font-family:var(--font-mono);';
     const rows = hist.map((h, rIdx) => {
-      const cuUn = (Number(h.custoCompra) || 0) / (Number(h.qtdCompra) || 1);
+      const compraUnidade = h.compraUnidade || prod.compraUnidade || prod.precoUnidade || 'un';
+      const qtdNaUnidadeVenda = converterQtdRevenda(Number(h.qtdCompra) || 0, compraUnidade, prod.precoUnidade || 'un');
+      const cuUn = (Number(h.custoCompra) || 0) / (qtdNaUnidadeVenda || 1);
       const isLatest = rIdx === 0;
       const atualLabel = isLatest ? '<span style="font-size:10px;color:var(--green);font-weight:700;">ATUAL</span>' : '';
       const prev = hist[rIdx + 1];
       let varUnit = null, varPct = null;
       if (prev) {
-        const cuPrev = (Number(prev.custoCompra) || 0) / (Number(prev.qtdCompra) || 1);
+        const prevUnidade = prev.compraUnidade || prod.compraUnidade || prod.precoUnidade || 'un';
+        const prevQtdNaUnidadeVenda = converterQtdRevenda(Number(prev.qtdCompra) || 0, prevUnidade, prod.precoUnidade || 'un');
+        const cuPrev = (Number(prev.custoCompra) || 0) / (prevQtdNaUnidadeVenda || 1);
         if (cuUn > 0 && cuPrev > 0) { varUnit = cuUn - cuPrev; varPct = (varUnit / cuPrev) * 100; }
       }
       const deleteBtn = !isLatest
@@ -4776,9 +4900,10 @@ function openRevendaHistoricoModal(prodId) {
         '<td style="' + tdStyle + '"><input class="sheet-input" type="date" value="' + (h.data || '') + '" onchange="updateRevendaHistoricoEntry(' + prodId + ',' + h.id + ',\'data\',this.value)" style="min-width:120px;"></td>' +
         '<td style="' + tdStyle + '"><input class="sheet-input" list="fornecedores-list" value="' + escHtml(h.fornecedor || '') + '" onblur="updateRevendaHistoricoEntry(' + prodId + ',' + h.id + ',\'fornecedor\',this.value)" placeholder="Fornecedor" style="min-width:120px;"> ' + atualLabel + '</td>' +
         '<td style="' + tdRightStyle + '"><input class="sheet-input" type="number" min="0.001" step="0.001" value="' + (h.qtdCompra || '') + '" onblur="updateRevendaHistoricoEntry(' + prodId + ',' + h.id + ',\'qtdCompra\',this.value)" style="min-width:78px;text-align:right;"></td>' +
+        '<td style="' + tdStyle + '"><select class="sheet-select" onchange="updateRevendaHistoricoEntry(' + prodId + ',' + h.id + ',\'compraUnidade\',this.value)" style="min-width:64px;">' + revendaUnidadeOptions(compraUnidade) + '</select></td>' +
         '<td style="' + tdRightStyle + '"><input class="sheet-input" type="text" inputmode="decimal" value="' + moneyInputVal(h.custoCompra) + '" oninput="maskMoney(this)" onblur="updateRevendaHistoricoEntry(' + prodId + ',' + h.id + ',\'custoCompra\',this.value)" style="min-width:84px;text-align:right;"></td>' +
-        '<td style="' + tdRightStyle + '">' + money(cuUn) + '/un</td>' +
-        '<td style="' + tdRightStyle + '">' + variacaoBadge(varUnit, varPct, 'un') + '</td>' +
+        '<td style="' + tdRightStyle + '">' + money(cuUn) + '/' + (prod.precoUnidade || 'un') + '</td>' +
+        '<td style="' + tdRightStyle + '">' + variacaoBadge(varUnit, varPct, prod.precoUnidade || 'un') + '</td>' +
         '<td style="' + tdStyle + 'text-align:center;">' + deleteBtn + '</td>' +
       '</tr>';
     }).join('');
@@ -4788,8 +4913,9 @@ function openRevendaHistoricoModal(prodId) {
           '<th style="' + thStyle + '">Data</th>' +
           '<th style="' + thStyle + '">Fornecedor</th>' +
           '<th style="' + thRightStyle + '">Qtd.</th>' +
+          '<th style="' + thStyle + '">Un.</th>' +
           '<th style="' + thRightStyle + '">Custo pago</th>' +
-          '<th style="' + thRightStyle + '">/un</th>' +
+          '<th style="' + thRightStyle + '">/' + (prod.precoUnidade || 'un') + '</th>' +
           '<th style="' + thRightStyle + '">Variação</th>' +
           '<th style="padding:6px 8px;background:var(--surface-soft);border-bottom:1px solid var(--border);"></th>' +
         '</tr></thead><tbody>' + rows + '</tbody></table>';
@@ -4804,12 +4930,13 @@ function saveRevendaHistoricoCompra() {
   if (!prod) return;
   const qtdCompra = parseFloat(document.getElementById('revhist-qtd').value) || 0;
   const custoCompra = parseMoney(document.getElementById('revhist-custo').value);
+  const compraUnidade = document.getElementById('revhist-compra-unidade').value || prod.compraUnidade || prod.precoUnidade || 'un';
   const fornecedor = document.getElementById('revhist-fornecedor').value.trim();
   const dataCompra = document.getElementById('revhist-data').value;
   if (!qtdCompra || !custoCompra) return showToast('Preencha quantidade e custo', 'error');
 
   if (!prod.historicoCompras) prod.historicoCompras = [];
-  prod.historicoCompras.push({ id: ++nextId, qtdCompra, custoCompra, fornecedor, data: dataCompra });
+  prod.historicoCompras.push({ id: ++nextId, qtdCompra, custoCompra, compraUnidade, fornecedor, data: dataCompra });
   syncRevendaFromHistorico(prod);
   saveAll();
   renderCMV();
@@ -4835,6 +4962,7 @@ function updateRevendaHistoricoEntry(prodId, entryId, field, value) {
   if (!prod || !entry) return;
   if (field === 'qtdCompra') entry.qtdCompra = parseFloat(value) || 0;
   else if (field === 'custoCompra') entry.custoCompra = parseMoney(value);
+  else if (field === 'compraUnidade') entry.compraUnidade = value || 'un';
   else entry[field] = value;
   syncRevendaFromHistorico(prod);
   saveAll();
@@ -4847,7 +4975,8 @@ function syncRevendaFromHistorico(prod) {
   const uc = getUltimaCompraRevenda(prod);
   prod.qtdComprada = Number(uc.qtdCompra) || 0;
   prod.valorCompra = Number(uc.custoCompra) || 0;
-  prod.custo = prod.qtdComprada > 0 ? prod.valorCompra / prod.qtdComprada : 0;
+  prod.compraUnidade = uc.compraUnidade || prod.compraUnidade || prod.precoUnidade || 'un';
+  prod.custo = prod.qtdComprada > 0 ? getRevendaCusto(prod) : 0;
 }
 
 // ============================================================
@@ -4921,7 +5050,7 @@ function coletarCompras() {
     });
   };
   produtos.forEach(p => (p.historicoCompras || []).forEach(h =>
-    push('p' + p.id, p.nome, p.tipo === 'revenda' ? 'Revenda' : 'Produto', p.precoUnidade, h)));
+    push('p' + p.id, p.nome, p.tipo === 'revenda' ? 'Revenda' : 'Produto', h.compraUnidade || p.compraUnidade || p.precoUnidade, h)));
   ingredientes.forEach(i => (i.historico || []).forEach(h =>
     push('i' + i.id, i.nome, 'Insumo', i.unidade, h)));
   compras.forEach(c => { c.custoUnit = c.qtdCompra > 0 ? c.custoCompra / c.qtdCompra : 0; });
@@ -5272,8 +5401,9 @@ function ingredienteMatchesClasse(ing) {
 function renderRevendaAsInsumoRow(prod) {
   const uc = getUltimaCompraRevenda(prod);
   const custo = getRevendaCusto(prod);
-  const unidade = getPrecoUnidadeLabel(prod);
-  return `<tr>
+  const unidade = prod.precoUnidade || 'un';
+  const compraUnidade = uc.compraUnidade || prod.compraUnidade || unidade;
+  return `<tr data-id="${prod.id}"${revNewIds.has(prod.id) ? ' class="sheet-row-new"' : ''}>
     <td><input class="sheet-input" value="${escHtml(prod.nome || '')}" onblur="updateProdutoCell(${prod.id},'nome',this.value)" placeholder="Nome do produto" style="min-width:130px;"></td>
     <td><select class="sheet-select" onchange="updateProdutoCell(${prod.id},'precoUnidade',this.value)">
       <option value="un" ${unidade === 'un' ? 'selected' : ''}>un</option>
@@ -5284,13 +5414,13 @@ function renderRevendaAsInsumoRow(prod) {
     <td><input class="sheet-input" type="number" min="0" step="0.001" value="${uc.qtdCompra || prod.qtdComprada || ''}" onblur="updateRevendaCampo(${prod.id}, 'qtdComprada', this.value)" placeholder="ex: 12" style="min-width:80px;"></td>
     <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(uc.custoCompra || prod.valorCompra)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${prod.id}, 'valorCompra', this.value)" placeholder="0,00" style="min-width:80px;"></td>
     <td style="min-width:110px;"><span style="font-size:11px;color:var(--text-mid);">${custo > 0 ? money(custo) + '/' + unidade : '-'}</span></td>
-    <td style="min-width:160px;"><span class="sheet-readonly">-</span></td>
+    <td style="min-width:160px;"><select class="sheet-select" onchange="updateRevendaCampo(${prod.id}, 'compraUnidade', this.value)" title="Unidade da compra">${revendaUnidadeOptions(compraUnidade)}</select></td>
     <td><span class="badge badge-yellow">Revenda</span></td>
     <td><button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${prod.id})" title="Carrinho de compras" aria-label="Carrinho de compras">${cartBtnLabel((prod.historicoCompras || []).length)}</button></td>
     <td>
       <div style="display:flex;align-items:center;gap:6px;white-space:nowrap;">
         ${classSelectHtml(prod.nome, `reclassifyRevenda(${prod.id}, this.value)`)}
-        <button type="button" class="btn btn-ghost btn-sm" onclick="deleteProduto(${prod.id})" title="Excluir revenda" aria-label="Excluir revenda" style="color:#fff;background:var(--red);border-color:var(--red);font-weight:700;padding:6px 10px;">Excluir</button>
+        <button type="button" class="btn btn-ghost btn-icon-delete" onclick="deleteProduto(${prod.id})" title="Excluir revenda" aria-label="Excluir revenda">&times;</button>
       </div>
     </td>
   </tr>`;
@@ -5361,7 +5491,7 @@ function renderIngredientes() {
       <td>
         <div style="display:flex;align-items:center;gap:6px;white-space:nowrap;">
           ${classSelectHtml(ing.nome, `reclassifyIngrediente(${ing.id}, this.value)`)}
-          <button type="button" class="btn btn-ghost btn-sm" onclick="deleteIngrediente(${ing.id})" title="Excluir insumo" aria-label="Excluir insumo" style="color:#fff;background:var(--red);border-color:var(--red);font-weight:700;padding:6px 10px;">Excluir</button>
+          <button type="button" class="btn btn-ghost btn-icon-delete" onclick="deleteIngrediente(${ing.id})" title="Excluir insumo" aria-label="Excluir insumo">&times;</button>
         </div>
       </td>
     </tr>`;
@@ -5657,20 +5787,43 @@ function clearQuickInsumoForm() {
   if (ambos) ambos.checked = false;
 }
 
-// Cria (ou lança nova compra em) um produto de revenda. Retorna true se já existia.
-function upsertQuickRevenda(nome, { fornecedor, data, qtdCompra, custoCompra }) {
+// Quando o nome ja existe, puxa unidade, classe e classificacao de venda.
+function applyQuickInsumoExistingMeta(nome) {
+  const lc = (nome || '').trim().toLowerCase();
+  if (!lc) return false;
+  const ing = ingredientes.find(i => (i.nome || '').toLowerCase() === lc);
+  const cls = getItemClass(nome);
+  if (!ing && cls === 'insumo') return false;
+
+  const rev = document.getElementById('quick-insumo-revenda');
+  const amb = document.getElementById('quick-insumo-ambos');
+  if (rev) rev.checked = cls === 'revenda';
+  if (amb) amb.checked = cls === 'ambos';
+
+  if (ing) {
+    const uEl = document.getElementById('quick-insumo-unidade');
+    if (uEl && ing.unidade) uEl.value = ing.unidade;
+    const cEl = document.getElementById('quick-insumo-classe');
+    if (cEl) cEl.value = ing.classe || 'insumo';
+  }
+  return true;
+}
+
+function upsertQuickRevenda(nome, { fornecedor, data, qtdCompra, custoCompra, compraUnidade }) {
   let prod = produtos.find(p => (p.tipo || 'fabricacao') === 'revenda' && (p.nome || '').toLowerCase() === nome.toLowerCase());
   const existed = !!prod;
   if (!prod) {
-    prod = { id: ++nextId, nome, tipo: 'revenda', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: '', custo: 0, preco: 0, precoUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', qtdComprada: 0, valorCompra: 0, historicoCompras: [] };
+    prod = { id: ++nextId, nome, tipo: 'revenda', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: '', custo: 0, preco: 0, precoUnidade: 'un', compraUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', qtdComprada: 0, valorCompra: 0, historicoCompras: [] };
     produtos.push(prod);
   }
   if (!prod.historicoCompras) prod.historicoCompras = [];
   if (qtdCompra > 0 || custoCompra > 0 || fornecedor || data) {
-    prod.historicoCompras.push({ id: ++nextId, qtdCompra, custoCompra, fornecedor, data });
+    const unidadeCompra = compraUnidade || prod.compraUnidade || prod.precoUnidade || 'un';
+    prod.historicoCompras.push({ id: ++nextId, qtdCompra, custoCompra, compraUnidade: unidadeCompra, fornecedor, data });
     prod.qtdComprada = qtdCompra;
     prod.valorCompra = custoCompra;
-    if (qtdCompra > 0 && custoCompra > 0) prod.custo = custoCompra / qtdCompra;
+    prod.compraUnidade = unidadeCompra;
+    if (qtdCompra > 0 && custoCompra > 0) prod.custo = getRevendaCusto(prod);
   }
   return existed;
 }
@@ -5718,11 +5871,12 @@ function setItemClassByName(nome, target) {
     ingredientes.push(ing);
   }
   if (wantRev && !rev) {
-    rev = { id: ++nextId, nome, tipo: 'revenda', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: '', custo: 0, preco: 0, precoUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', qtdComprada: 0, valorCompra: 0, historicoCompras: [] };
+    rev = { id: ++nextId, nome, tipo: 'revenda', curva: 'A', validade: 1, categoria: categorias[0] || 'Bolo', vitrine: '', custo: 0, preco: 0, precoUnidade: 'un', compraUnidade: 'un', encomenda: false, resp: 'Alexandre', unidade: 'ambas', obs: '', qtdComprada: 0, valorCompra: 0, historicoCompras: [] };
     if (ing) {
-      rev.historicoCompras = (ing.historico || []).map(h => ({ id: ++nextId, fornecedor: h.fornecedor || '', data: h.data || '', qtdCompra: Number(h.qtdCompra) || 0, custoCompra: Number(h.custoCompra) || 0 }));
+      rev.compraUnidade = ing.unidade || 'un';
+      rev.historicoCompras = (ing.historico || []).map(h => ({ id: ++nextId, fornecedor: h.fornecedor || '', data: h.data || '', qtdCompra: Number(h.qtdCompra) || 0, custoCompra: Number(h.custoCompra) || 0, compraUnidade: ing.unidade || 'un' }));
       const last = rev.historicoCompras[rev.historicoCompras.length - 1];
-      if (last) { rev.qtdComprada = last.qtdCompra; rev.valorCompra = last.custoCompra; if (last.qtdCompra > 0 && last.custoCompra > 0) rev.custo = last.custoCompra / last.qtdCompra; }
+      if (last) { rev.qtdComprada = last.qtdCompra; rev.valorCompra = last.custoCompra; if (last.qtdCompra > 0 && last.custoCompra > 0) rev.custo = getRevendaCusto(rev); }
     }
     produtos.push(rev);
   }
@@ -5793,7 +5947,8 @@ function submitQuickInsumo() {
     fornecedor: fornecedorEl?.value || '',
     data: dataEl?.value || '',
     qtdCompra: parseFloat(qtdEl?.value) || 0,
-    custoCompra: parseMoney(custoEl?.value)
+    custoCompra: parseMoney(custoEl?.value),
+    compraUnidade: unidadeEl?.value || 'g'
   };
   const unidade = unidadeEl?.value || 'g';
   const classe = classeEl?.value || 'insumo';
@@ -6728,8 +6883,8 @@ const sheetRowAdders = {
   'produtos-tbody': () => addProdutoRow(),
   'ingredientes-tbody': () => addIngredienteRow(),
   'receitas-tbody': () => addReceitaRow(),
-  'revenda-tbody': () => addRevendaProduto(),
-  'insumos-revenda-tbody': () => addRevendaProduto(),
+  'revenda-tbody': () => addRevendaRow(),
+  'insumos-revenda-tbody': () => addRevendaRow(),
   'insumos-fabricacao-tbody': () => addFabricacaoProduto(),
   'categorias-tbody': () => addCategoriaRow(),
   'vitrines-tbody': () => addVitrineTipoRow(),
@@ -7201,24 +7356,19 @@ loadFromSupabase().then(() => {
     {
       nextFocusId: 'quick-insumo-unidade',
       onSelect: nome => {
-        const lc = (nome || '').toLowerCase();
-        const cls = getItemClass(nome); // 'insumo' | 'revenda' | 'ambos'
-        const rev = document.getElementById('quick-insumo-revenda');
-        const amb = document.getElementById('quick-insumo-ambos');
-        if (rev) rev.checked = cls === 'revenda';
-        if (amb) amb.checked = cls === 'ambos';
-        const ing = ingredientes.find(i => (i.nome || '').toLowerCase() === lc);
-        if (ing) {
-          const uEl = document.getElementById('quick-insumo-unidade');
-          if (uEl && ing.unidade) uEl.value = ing.unidade;
-          const cEl = document.getElementById('quick-insumo-classe');
-          if (cEl) cEl.value = ing.classe || 'insumo';
-        }
+        applyQuickInsumoExistingMeta(nome);
       }
     }
   );
 
-  // Autocomplete fornecedor insumo — avança para data ao selecionar
+  // Atualiza os campos quando o nome digitado ja existe.
+  const quickInsumoNome = document.getElementById('quick-insumo-nome');
+  if (quickInsumoNome) {
+    quickInsumoNome.addEventListener('input', () => applyQuickInsumoExistingMeta(quickInsumoNome.value));
+    quickInsumoNome.addEventListener('change', () => applyQuickInsumoExistingMeta(quickInsumoNome.value));
+    quickInsumoNome.addEventListener('blur', () => applyQuickInsumoExistingMeta(quickInsumoNome.value));
+  }
+
   initAC(
     document.getElementById('quick-insumo-fornecedor'),
     q => getFornecedoresUsados()
