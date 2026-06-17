@@ -2652,7 +2652,26 @@ function dedupeIngredientesByName() {
   return true;
 }
 
-let produtos = getStorage('ddv_produtos', []);
+// Remove itens DUPLICADOS dentro de uma mesma ficha técnica.
+// Sintoma do bug: a tela mostra só uma linha do insumo (usa itens[0]), mas o
+// custo somava o mesmo insumo mais de uma vez (ex.: café 1,60 aparecia 3,20).
+// A duplicata é exata (mesmo insumo, quantidade e unidade) e vinha de gravações
+// antigas que reinseriam os itens sem apagar os anteriores.
+function dedupeReceitaItens() {
+  let changed = false;
+  (receitas || []).forEach(r => {
+    if (!Array.isArray(r.itens) || r.itens.length < 2) return;
+    const seen = new Set();
+    const unique = r.itens.filter(item => {
+      const key = `${item.ingId}|${item.qtd}|${item.usoUnidade || ''}`;
+      if (seen.has(key)) { changed = true; return false; }
+      seen.add(key);
+      return true;
+    });
+    if (unique.length !== r.itens.length) r.itens = unique;
+  });
+  return changed;
+}
 let ingredientes = getStorage('ddv_ingredientes', []);
 let receitas = getStorage('ddv_receitas', []);
 
@@ -2723,9 +2742,11 @@ ingredientes = ingredientes.map(ing => {
   return ing;
 });
 dedupeIngredientesByName();
+dedupeReceitaItens();
 
 function saveAll() {
   dedupeIngredientesByName();
+  dedupeReceitaItens();
   setStorage('ddv_produtos', produtos);
   setStorage('ddv_ingredientes', ingredientes);
   setStorage('ddv_receitas', receitas);
@@ -3196,6 +3217,9 @@ async function loadFromSupabase() {
       itens: itensPorReceita[r.id] || itensLocaisPorReceita[r.id] || []
     }));
     dedupeIngredientesByName();
+    if (dedupeReceitaItens()) {
+      console.warn('Itens de ficha duplicados removidos (custo estava sendo somado em dobro).');
+    }
     vitrines = {};
     (slotData || []).forEach(s => {
       if (!vitrines[s.unit]) vitrines[s.unit] = {};
