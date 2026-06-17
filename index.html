@@ -1900,7 +1900,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <!-- ===================== PAGE: HISTÓRICO DE PRODUÇÃO ===================== -->
 <div class="page" id="page-historico">
   <h2 class="section-title">Histórico de Produção</h2>
-  <p class="section-sub">Reflete a vitrine do dia selecionado — os produtos e quantidades produzidas vêm direto da vitrine</p>
+  <p class="section-sub">Registro por data — tudo que você adiciona na vitrine entra aqui automaticamente e fica salvo, mesmo depois de vender</p>
 
   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">
     <div class="form-group" style="margin:0;min-width:160px;">
@@ -2320,6 +2320,26 @@ function nowLocalInputValue() {
   return d.toISOString().slice(0, 16);
 }
 
+// Data (AAAA-MM-DD) local de hoje
+function todayISO() {
+  const d = new Date();
+  d.setMinutes(d.getMinutes() - d.getTimezoneOffset());
+  return d.toISOString().slice(0, 10);
+}
+
+// Data de fabricação de um item da vitrine (cai para a data de entrada em
+// dados antigos que ainda não têm fabDate)
+function itemFabDate(item) {
+  return item.fabDate || (item.entryAt ? String(item.entryAt).slice(0, 10) : '');
+}
+
+function formatFabDate(iso) {
+  if (!iso) return '—';
+  const d = new Date(iso + 'T12:00:00');
+  if (Number.isNaN(d.getTime())) return '—';
+  return d.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
+}
+
 function formatDateTimeShort(value) {
   if (!value) return '—';
   const d = new Date(value);
@@ -2402,7 +2422,7 @@ function adjustSlotQty(slotNum, delta, e) {
 function vendeuTudo(slotNum) {
   const vitrine = getVitrine();
   const idx = vitrine.findIndex(v => v.slot === slotNum);
-  if (idx >= 0) vitrine.splice(idx, 1);
+  if (idx >= 0) { ensureLogged(vitrine[idx]); vitrine.splice(idx, 1); }
   saveAll();
   renderVitrine();
   showToast('Vendeu tudo ✓', 'success');
@@ -3366,7 +3386,7 @@ function renderApoioProducao() {
 
   tbody.innerHTML = entries.map(({ item }, pos) => {
     const prod = produtos.find(p => p.id === item.prodId);
-    const fabLabel = item.prodDay ? (dayShort[item.prodDay] || item.prodDay) : '—';
+    const fabLabel = formatFabDate(itemFabDate(item));
     const prodQty = item.producedQty ?? item.qty;
     const vitrineQty = item.qty;
     return `
@@ -3431,11 +3451,13 @@ function addToVitrineAuto(prod, qty, prodDay) {
     for (let i = 0; i < section.count; i++) {
       const slotNum = section.start + i;
       if (!vitrine.some(v => v.slot === slotNum)) {
+        const fabDate = todayISO();
         vitrine.push({
           prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
           entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: slotNum,
-          prodDay: prodDay || currentDay
+          prodDay: prodDay || currentDay, fabDate
         });
+        logProducao(prod.id, qty, fabDate);
         showToast(`${prod.nome} adicionado ao slot ${i + 1} &#10003;`, 'success');
         return;
       }
@@ -3546,6 +3568,12 @@ function saveSlot() {
 
   const vitrine = getVitrine();
 
+  // Guarda a produção anterior do item sendo editado, para ajustar o histórico
+  const editing = editIdx !== '' ? vitrine[Number(editIdx)] : null;
+  const oldProduced = editing ? (Number(editing.producedQty ?? editing.qty) || 0) : 0;
+  const oldFab = editing ? itemFabDate(editing) : '';
+  const oldProdId = editing ? editing.prodId : null;
+
   if (editIdx !== '') {
     vitrine.splice(Number(editIdx), 1);
   }
@@ -3557,7 +3585,12 @@ function saveSlot() {
   }
 
   const diaSel = document.getElementById('apoio-dia');
-  vitrine.push({ prodId, qty, producedQty, minQty, unidadeMedida, entryAt, status: 'em_vitrine', slot: pos, prodDay: diaSel ? diaSel.value : currentDay });
+  const fabDate = String(entryAt).slice(0, 10) || todayISO();
+  vitrine.push({ prodId, qty, producedQty, minQty, unidadeMedida, entryAt, status: 'em_vitrine', slot: pos, prodDay: diaSel ? diaSel.value : currentDay, fabDate });
+
+  // Atualiza o histórico de produção: tira a produção antiga e soma a nova
+  if (editing && oldFab) logProducao(oldProdId, -oldProduced, oldFab);
+  logProducao(prodId, producedQty, fabDate);
 
   saveAll();
   closeModal('modal-slot');
@@ -3569,7 +3602,7 @@ function removeSlot(slotNum, e) {
   if (e) e.stopPropagation();
   const vitrine = getVitrine();
   const idx = vitrine.findIndex(v => v.slot === slotNum);
-  if (idx >= 0) vitrine.splice(idx, 1);
+  if (idx >= 0) { ensureLogged(vitrine[idx]); vitrine.splice(idx, 1); }
   saveAll();
   renderVitrine();
 }
@@ -6358,11 +6391,13 @@ function addProdToVitrineDay(prod, qty, day) {
     for (let i = 0; i < section.count; i++) {
       const slotNum = section.start + i;
       if (!vitrine.some(v => v.slot === slotNum)) {
+        const fabDate = todayISO();
         vitrine.push({
           prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
           entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: slotNum,
-          prodDay: day
+          prodDay: day, fabDate
         });
+        logProducao(prod.id, qty, fabDate);
         return true;
       }
     }
@@ -6433,6 +6468,8 @@ function setPedidoQty(prodId, value) {
     const curQty = Number(first.qty) || 0;
     first.producedQty = Math.max(0, curProduced + delta);
     first.qty = Math.max(0, curQty + delta);
+    // Reflete a mudança de produção no histórico da data do item
+    logProducao(prodId, delta, itemFabDate(first));
   }
   saveAll();
   renderPedido();
@@ -6451,6 +6488,51 @@ function adicionarLinhaPedido() {
 // ============================================================
 // HISTÓRICO DE PRODUÇÃO
 // ============================================================
+// Registra (acumula) produção no histórico persistido por DATA real.
+// Mantém o registro mesmo depois que o item sai da vitrine (venda/perda).
+// delta pode ser negativo (redução da quantidade produzida).
+function logProducao(prodId, delta, date) {
+  if (!prodId || !date || !delta) return;
+  if (!historicoProducao[currentUnit]) historicoProducao[currentUnit] = {};
+  if (!historicoProducao[currentUnit][date]) historicoProducao[currentUnit][date] = [];
+  const arr = historicoProducao[currentUnit][date];
+  const ex = arr.find(it => it.prodId === prodId);
+  if (ex) {
+    ex.qty = Math.max(0, (Number(ex.qty) || 0) + delta);
+  } else if (delta > 0) {
+    arr.push({ prodId, qty: delta, obs: '' });
+  }
+}
+
+// Garante que a produção de um item esteja gravada no histórico antes de ele
+// sair da vitrine (cobre itens antigos que ainda não foram logados). Não duplica:
+// só grava se ainda não existe registro do produto naquela data.
+function ensureLogged(item) {
+  if (!item) return;
+  const date = itemFabDate(item);
+  if (!date) return;
+  const arr = (historicoProducao[currentUnit] && historicoProducao[currentUnit][date]) || [];
+  if (!arr.some(it => it.prodId === item.prodId)) {
+    logProducao(item.prodId, Number(item.producedQty ?? item.qty) || 0, date);
+  }
+}
+
+// Produção de uma DATA: usa o log persistido (precedência) e completa com os
+// itens da vitrine cuja data de fabricação é essa e que ainda não foram logados
+// (cobre dados antigos sem prejudicar a contagem dos novos).
+function producaoRegistradaPorData(date) {
+  const logArr = (historicoProducao[currentUnit] && historicoProducao[currentUnit][date]) || [];
+  const logged = new Set(logArr.map(it => it.prodId));
+  const byProd = {};
+  logArr.forEach(it => { byProd[it.prodId] = { qty: Number(it.qty) || 0, obs: it.obs || '' }; });
+  Object.values(vitrines[currentUnit] || {}).forEach(arr => (arr || []).forEach(slot => {
+    if (itemFabDate(slot) !== date || logged.has(slot.prodId)) return;
+    if (!byProd[slot.prodId]) byProd[slot.prodId] = { qty: 0, obs: '' };
+    byProd[slot.prodId].qty += Number(slot.producedQty ?? slot.qty) || 0;
+  }));
+  return byProd;
+}
+
 function initHistorico() {
   const inp = document.getElementById('hist-date');
   if (!inp.value) inp.value = new Date().toISOString().slice(0, 10);
@@ -6461,32 +6543,26 @@ function renderHistorico() {
   const date = document.getElementById('hist-date').value;
   const dayOfWeek = date ? (['dom','seg','ter','qua','qui','sex','sab'][new Date(date + 'T12:00:00').getDay()]) : null;
 
-  // Observações salvas por data (único campo manual; as quantidades vêm da vitrine)
-  const savedObs = {};
-  ((historicoProducao[currentUnit] && historicoProducao[currentUnit][date]) || []).forEach(it => {
-    if (it.obs) savedObs[it.prodId] = it.obs;
-  });
-
-  // Fonte da verdade: produção do dia direto da vitrine
-  const byProd = dayOfWeek ? producaoPorDia(dayOfWeek) : {};
+  // Produção registrada da DATA (log persistido + itens da vitrine daquela data)
+  const byProd = date ? producaoRegistradaPorData(date) : {};
   const curvaOrder = { A: 0, B: 1, C: 2 };
-  const rows = Object.values(byProd)
-    .map(entry => ({ entry, p: produtos.find(p => p.id === entry.prodId) }))
-    .filter(x => x.p)
+  const rows = Object.keys(byProd)
+    .map(pid => ({ data: byProd[pid], p: produtos.find(p => p.id === Number(pid)) }))
+    .filter(x => x.p && (x.data.qty > 0 || x.data.obs))
     .sort((a, b) => (curvaOrder[a.p.curva] ?? 3) - (curvaOrder[b.p.curva] ?? 3) || a.p.nome.localeCompare(b.p.nome));
 
   const tbody = document.getElementById('hist-tbody');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto na vitrine para esta data</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma produção registrada para esta data</td></tr>';
   } else {
-    tbody.innerHTML = rows.map(({ entry, p }) => {
+    tbody.innerHTML = rows.map(({ data, p }) => {
       const planejado = dayOfWeek ? (Number((planoSemanal[currentUnit]?.[p.id] || {})[dayOfWeek]) || 0) : 0;
       return `<tr>
         <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span></td>
         <td style="text-align:center;">${p.curva ? `<span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span>` : '<span style="color:var(--text-light)">—</span>'}</td>
         <td style="text-align:center;font-family:var(--font-mono);">${planejado || '—'}</td>
-        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;">${entry.produced}</td>
-        <td><input type="text" class="sheet-input hist-obs" style="min-width:180px;" data-prodid="${p.id}" value="${escHtml(savedObs[p.id] || '')}" placeholder="obs..."></td>
+        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;">${data.qty}</td>
+        <td><input type="text" class="sheet-input hist-obs" style="min-width:180px;" data-prodid="${p.id}" value="${escHtml(data.obs || '')}" placeholder="obs..."></td>
       </tr>`;
     }).join('');
   }
@@ -6497,47 +6573,55 @@ function renderHistorico() {
 function salvarHistorico() {
   const date = document.getElementById('hist-date').value;
   if (!date) { alert('Selecione uma data.'); return; }
-  const itens = [];
-  document.querySelectorAll('#hist-tbody tr').forEach(tr => {
-    const obsEl = tr.querySelector('.hist-obs');
-    if (!obsEl) return;
-    const prodId = Number(obsEl.dataset.prodid);
-    const obs = obsEl.value.trim();
-    if (obs) itens.push({ prodId, obs });
-  });
+  const byProd = producaoRegistradaPorData(date);
   if (!historicoProducao[currentUnit]) historicoProducao[currentUnit] = {};
-  historicoProducao[currentUnit][date] = itens;
+  const arr = historicoProducao[currentUnit][date] || [];
+  const obsInputs = {};
+  document.querySelectorAll('#hist-tbody .hist-obs').forEach(el => {
+    obsInputs[Number(el.dataset.prodid)] = el.value.trim();
+  });
+  // Mantém a quantidade produzida e grava as observações
+  Object.keys(byProd).forEach(pid => {
+    const prodId = Number(pid);
+    const obs = obsInputs[prodId] || '';
+    const ex = arr.find(it => it.prodId === prodId);
+    if (ex) { ex.obs = obs; }
+    else if (byProd[pid].qty > 0 || obs) { arr.push({ prodId, qty: byProd[pid].qty, obs }); }
+  });
+  historicoProducao[currentUnit][date] = arr;
   saveAll();
-  renderHistoricoAnteriores();
-  alert('Observações salvas para ' + date + '! (as quantidades vêm da vitrine)');
+  renderHistorico();
+  alert('Registro salvo para ' + date + '!');
 }
 
 function renderHistoricoAnteriores() {
   const el = document.getElementById('hist-anteriores');
   if (!el) return;
-  const unit = historicoProducao[currentUnit] || {};
-  const dates = Object.keys(unit).sort((a, b) => b.localeCompare(a)).slice(0, 14);
+  // Datas: união das datas logadas e das datas de fabricação presentes na vitrine
+  const dateSet = new Set(Object.keys(historicoProducao[currentUnit] || {}));
+  Object.values(vitrines[currentUnit] || {}).forEach(arr => (arr || []).forEach(slot => {
+    const fd = itemFabDate(slot);
+    if (fd) dateSet.add(fd);
+  }));
+  const dates = Array.from(dateSet).sort((a, b) => b.localeCompare(a)).slice(0, 14);
   if (!dates.length) {
-    el.innerHTML = '<div class="empty-state" style="padding:20px;"><p>Nenhuma observação salva ainda. As quantidades produzidas estão sempre na vitrine de cada dia.</p></div>';
+    el.innerHTML = '<div class="empty-state" style="padding:20px;"><p>Nenhum registro de produção ainda.</p></div>';
     return;
   }
   const curvaOrder = { A: 0, B: 1, C: 2 };
   el.innerHTML = dates.map(date => {
-    const obsMap = {};
-    (unit[date] || []).forEach(it => { if (it.obs) obsMap[it.prodId] = it.obs; });
+    const byProd = producaoRegistradaPorData(date);
     const d = new Date(date + 'T12:00:00');
-    const dayOfWeek = ['dom','seg','ter','qua','qui','sex','sab'][d.getDay()];
     const label = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
-    const byProd = producaoPorDia(dayOfWeek);
-    const items = Object.values(byProd)
-      .map(entry => ({ entry, p: produtos.find(p => p.id === entry.prodId) }))
-      .filter(x => x.p)
+    const items = Object.keys(byProd)
+      .map(pid => ({ data: byProd[pid], p: produtos.find(p => p.id === Number(pid)) }))
+      .filter(x => x.p && (x.data.qty > 0 || x.data.obs))
       .sort((a, b) => (curvaOrder[a.p.curva] ?? 3) - (curvaOrder[b.p.curva] ?? 3) || a.p.nome.localeCompare(b.p.nome));
-    const rows = items.map(({ entry, p }) => `<tr>
+    const rows = items.map(({ data, p }) => `<tr>
         <td>${p.nome}</td>
         <td style="text-align:center;">${p.curva ? `<span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span>` : '—'}</td>
-        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;">${entry.produced}</td>
-        <td style="color:var(--text-light);font-size:12px;">${escHtml(obsMap[p.id] || '')}</td>
+        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;">${data.qty}</td>
+        <td style="color:var(--text-light);font-size:12px;">${escHtml(data.obs || '')}</td>
       </tr>`).join('');
     if (!rows) return '';
     return `<div class="sheet-card" style="margin-bottom:16px;">
