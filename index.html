@@ -2672,6 +2672,7 @@ function dedupeReceitaItens() {
   });
   return changed;
 }
+let produtos = getStorage('ddv_produtos', []);
 let ingredientes = getStorage('ddv_ingredientes', []);
 let receitas = getStorage('ddv_receitas', []);
 
