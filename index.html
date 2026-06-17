@@ -1555,6 +1555,14 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <td><input class="sheet-input" id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)" style="min-width:80px;"></td>
               <td colspan="2">
                 <div style="display:flex;gap:14px;flex-wrap:wrap;align-items:center;padding:0 10px;">
+                  <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;color:var(--text-mid);" title="Classificação: ingrediente, embalagem ou material de limpeza. Todos entram no CMV quando usados nas fichas técnicas.">
+                    Classe
+                    <select class="sheet-select" id="quick-insumo-classe" onkeydown="handleQuickInsumoKey(event)" style="min-width:104px;">
+                      <option value="insumo">Ingrediente</option>
+                      <option value="embalagem">Embalagem</option>
+                      <option value="limpeza">Limpeza</option>
+                    </select>
+                  </label>
                   <label style="display:flex;align-items:center;gap:5px;font-size:12px;white-space:nowrap;cursor:pointer;color:var(--text-mid);" title="Material de revenda — cadastra este item como produto de revenda (garrafa PET) em vez de ingrediente">
                     <input type="checkbox" id="quick-insumo-revenda" onchange="if(this.checked)document.getElementById('quick-insumo-ambos').checked=false" onkeydown="handleQuickInsumoKey(event)"> Revenda
                   </label>
@@ -5527,6 +5535,8 @@ function clearQuickInsumoForm() {
   });
   const unidade = document.getElementById('quick-insumo-unidade');
   if (unidade) unidade.value = 'g';
+  const classe = document.getElementById('quick-insumo-classe');
+  if (classe) classe.value = 'insumo';
   const revenda = document.getElementById('quick-insumo-revenda');
   if (revenda) revenda.checked = false;
   const ambos = document.getElementById('quick-insumo-ambos');
@@ -5661,6 +5671,7 @@ function submitQuickInsumo() {
   const custoEl = document.getElementById('quick-insumo-custo');
   const revendaEl = document.getElementById('quick-insumo-revenda');
   const ambosEl = document.getElementById('quick-insumo-ambos');
+  const classeEl = document.getElementById('quick-insumo-classe');
   const nome = (nomeEl?.value || '').trim();
   if (!nome) return showToast('Informe o nome do insumo', 'error');
 
@@ -5671,13 +5682,14 @@ function submitQuickInsumo() {
     custoCompra: parseMoney(custoEl?.value)
   };
   const unidade = unidadeEl?.value || 'g';
+  const classe = classeEl?.value || 'insumo';
 
   const comoInsumo = ambosEl?.checked || !revendaEl?.checked;
   const comoRevenda = ambosEl?.checked || revendaEl?.checked;
 
   let msg;
   if (comoInsumo && comoRevenda) {
-    upsertQuickInsumo(nome, unidade, compra);
+    upsertQuickInsumo(nome, unidade, compra, classe);
     upsertQuickRevenda(nome, compra);
     msg = 'Cadastrado como insumo e material de revenda';
   } else if (comoRevenda) {
@@ -5685,7 +5697,7 @@ function submitQuickInsumo() {
       ? 'Compra lancada no material de revenda existente'
       : 'Material de revenda criado na lista de revenda';
   } else {
-    msg = upsertQuickInsumo(nome, unidade, compra)
+    msg = upsertQuickInsumo(nome, unidade, compra, classe)
       ? 'Compra lancada no insumo existente'
       : 'Insumo criado na planilha';
   }
@@ -5700,15 +5712,16 @@ function submitQuickInsumo() {
 }
 
 // Cria (ou lança nova compra em) um ingrediente. Retorna true se já existia.
-function upsertQuickInsumo(nome, unidade, compra) {
+function upsertQuickInsumo(nome, unidade, compra, classe) {
   let ing = ingredientes.find(i => (i.nome || '').toLowerCase() === nome.toLowerCase());
   const existed = !!ing;
   if (!ing) {
-    ing = { id: ++nextId, nome, unidade: unidade || 'g', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] };
+    ing = { id: ++nextId, nome, unidade: unidade || 'g', classe: classe || 'insumo', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] };
     // Insere no topo para o insumo recém-criado aparecer na primeira linha.
     ingredientes.unshift(ing);
-  } else if (unidade) {
-    ing.unidade = unidade;
+  } else {
+    if (unidade) ing.unidade = unidade;
+    if (classe) ing.classe = classe;
   }
   if (!ing.historico) ing.historico = [];
   if (compra.qtdCompra > 0 || compra.custoCompra > 0 || compra.fornecedor || compra.data) {
@@ -6987,13 +7000,45 @@ loadFromSupabase().then(() => {
     { nextFocusId: 'apoio-qty' }
   );
 
-  // Autocomplete insumo — avança para unidade ao selecionar
+  // Autocomplete insumo — sugere insumos E produtos de revenda já cadastrados,
+  // para o item não ser recriado quando já existe na revenda. Ao selecionar,
+  // marca a classificação certa (revenda / insumo + revenda) e avança para unidade.
   initAC(
     document.getElementById('quick-insumo-nome'),
-    q => ingredientes
-      .map(i => i.nome).filter(Boolean)
-      .filter(n => n.toLowerCase().includes(q.toLowerCase())),
-    { nextFocusId: 'quick-insumo-unidade' }
+    q => {
+      const query = (q || '').toLowerCase();
+      const seen = new Set();
+      const out = [];
+      const add = nome => {
+        const n = (nome || '').trim();
+        if (!n) return;
+        const lc = n.toLowerCase();
+        if (seen.has(lc) || !lc.includes(query)) return;
+        seen.add(lc);
+        out.push(n);
+      };
+      ingredientes.forEach(i => add(i.nome));
+      produtos.filter(p => (p.tipo || 'fabricacao') === 'revenda').forEach(p => add(p.nome));
+      return out;
+    },
+    {
+      nextFocusId: 'quick-insumo-unidade',
+      onSelect: nome => {
+        const lc = (nome || '').toLowerCase();
+        const cls = getItemClass(nome); // 'insumo' | 'revenda' | 'ambos'
+        const rev = document.getElementById('quick-insumo-revenda');
+        const amb = document.getElementById('quick-insumo-ambos');
+        if (rev) rev.checked = cls === 'revenda';
+        if (amb) amb.checked = cls === 'ambos';
+        const ing = ingredientes.find(i => (i.nome || '').toLowerCase() === lc);
+        if (ing) {
+          const uEl = document.getElementById('quick-insumo-unidade');
+          if (uEl && ing.unidade) uEl.value = ing.unidade;
+          const cEl = document.getElementById('quick-insumo-classe');
+          if (cEl) cEl.value = ing.classe || 'insumo';
+        }
+      }
+    }
   );
 
   // Autocomplete fornecedor insumo — avança para data ao selecionar
