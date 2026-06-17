@@ -2592,6 +2592,66 @@ function getPrecoUnidadeLabel(prod) {
   return ['kg', 'g', 'un'].includes(unidade) ? unidade : 'un';
 }
 
+function normalizeLookupName(value) {
+  return String(value || '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+}
+
+function mergeIngredienteRecord(target, source) {
+  if (!target || !source) return;
+  if (!target.unidade && source.unidade) target.unidade = source.unidade;
+  if (!target.fatia && source.fatia) target.fatia = source.fatia;
+  if (!target.variacaoUnidade && source.variacaoUnidade) target.variacaoUnidade = source.variacaoUnidade;
+  if ((!target.classe || target.classe === 'insumo') && source.classe && source.classe !== 'insumo') target.classe = source.classe;
+  const historico = [...(target.historico || []), ...(source.historico || [])];
+  const seen = new Set();
+  target.historico = historico.filter(h => {
+    const key = h.id || `${h.fornecedor || ''}|${h.data || ''}|${h.qtdCompra || 0}|${h.custoCompra || 0}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
+  const ultimo = historicoOrdenado(target.historico)[0];
+  if (ultimo) {
+    target.qtdCompra = ultimo.qtdCompra;
+    target.custoCompra = ultimo.custoCompra;
+  }
+}
+
+function dedupeIngredientesByName() {
+  const byName = new Map();
+  const idMap = new Map();
+  const unique = [];
+  (ingredientes || []).forEach(ing => {
+    const key = normalizeLookupName(ing.nome);
+    if (!key) {
+      unique.push(ing);
+      return;
+    }
+    const existing = byName.get(key);
+    if (!existing) {
+      byName.set(key, ing);
+      unique.push(ing);
+      return;
+    }
+    idMap.set(ing.id, existing.id);
+    mergeIngredienteRecord(existing, ing);
+  });
+  if (!idMap.size) return false;
+  ingredientes = unique;
+  receitas = (receitas || []).map(r => ({
+    ...r,
+    itens: (r.itens || []).map(item => ({
+      ...item,
+      ingId: idMap.get(item.ingId) || item.ingId
+    }))
+  }));
+  return true;
+}
+
 let produtos = getStorage('ddv_produtos', []);
 let ingredientes = getStorage('ddv_ingredientes', []);
 let receitas = getStorage('ddv_receitas', []);
@@ -2662,8 +2722,10 @@ ingredientes = ingredientes.map(ing => {
   if (ultimo) { ing.qtdCompra = ultimo.qtdCompra; ing.custoCompra = ultimo.custoCompra; }
   return ing;
 });
+dedupeIngredientesByName();
 
 function saveAll() {
+  dedupeIngredientesByName();
   setStorage('ddv_produtos', produtos);
   setStorage('ddv_ingredientes', ingredientes);
   setStorage('ddv_receitas', receitas);
@@ -2738,6 +2800,19 @@ function dbDelete(label, query) {
   );
 }
 
+async function deleteIngredienteFromSupabase(id) {
+  const errors = [];
+  await runSupabase('remover itens de ficha do insumo', db.from('receita_itens').delete().eq('ing_id', id), errors);
+  await runSupabase('remover compras do insumo', db.from('ingrediente_compras').delete().eq('ing_id', id), errors);
+  await runSupabase('remover insumo', db.from('ingredientes').delete().eq('id', id), errors);
+}
+
+async function deleteReceitaFromSupabase(id) {
+  const errors = [];
+  await runSupabase('remover itens da ficha técnica', db.from('receita_itens').delete().eq('receita_id', id), errors);
+  await runSupabase('remover ficha técnica', db.from('receitas').delete().eq('id', id), errors);
+}
+
 async function salvarReceitaItens(receita, syncErrors) {
   await db.from('receita_itens').delete().eq('receita_id', receita.id);
   if (!receita.itens?.length) return;
@@ -2774,6 +2849,7 @@ async function salvarReceitaItens(receita, syncErrors) {
 async function syncToSupabase() {
   const syncErrors = [];
   try {
+    dedupeIngredientesByName();
     // Produtos (upsert por id inteiro)
     if (produtos.length) {
       await runSupabase('salvar produtos', db.from('produtos').upsert(produtos.map(p => ({
@@ -2850,6 +2926,13 @@ async function syncToSupabase() {
     // "ressuscitariam" ao reabrir a página).
     const ingredienteIds = ingredientes.map(i => i.id).filter(Boolean);
     if (ingredienteIds.length) {
+      await runSupabase('remover itens de fichas de insumos excluídos', db.from('receita_itens').delete().not('ing_id', 'in', `(${ingredienteIds.join(',')})`), syncErrors);
+      await runSupabase('remover compras de insumos excluídos', db.from('ingrediente_compras').delete().not('ing_id', 'in', `(${ingredienteIds.join(',')})`), syncErrors);
+    } else {
+      await runSupabase('remover itens de fichas de insumos excluídos', db.from('receita_itens').delete().neq('ing_id', -1), syncErrors);
+      await runSupabase('remover compras de insumos excluídos', db.from('ingrediente_compras').delete().neq('ing_id', -1), syncErrors);
+    }
+    if (ingredienteIds.length) {
       await runSupabase('remover insumos excluídos', db.from('ingredientes').delete().not('id', 'in', `(${ingredienteIds.join(',')})`), syncErrors);
     } else {
       await runSupabase('remover insumos excluídos', db.from('ingredientes').delete().neq('id', -1), syncErrors);
@@ -2879,6 +2962,11 @@ async function syncToSupabase() {
     // Garante que as exclusões de fichas técnicas fiquem salvas: remove do banco
     // as receitas que não existem mais localmente (cascata apaga os itens delas).
     const receitaIds = receitas.map(r => r.id).filter(Boolean);
+    if (receitaIds.length) {
+      await runSupabase('remover itens de fichas excluídas', db.from('receita_itens').delete().not('receita_id', 'in', `(${receitaIds.join(',')})`), syncErrors);
+    } else {
+      await runSupabase('remover itens de fichas excluídas', db.from('receita_itens').delete().neq('receita_id', -1), syncErrors);
+    }
     if (receitaIds.length) {
       await runSupabase('remover fichas excluídas', db.from('receitas').delete().not('id', 'in', `(${receitaIds.join(',')})`), syncErrors);
     } else {
@@ -3107,6 +3195,7 @@ async function loadFromSupabase() {
       pesoPorUnidade: r.peso_por_unidade ? Number(r.peso_por_unidade) : null,
       itens: itensPorReceita[r.id] || itensLocaisPorReceita[r.id] || []
     }));
+    dedupeIngredientesByName();
     vitrines = {};
     (slotData || []).forEach(s => {
       if (!vitrines[s.unit]) vitrines[s.unit] = {};
@@ -5750,6 +5839,10 @@ function updateIngredienteCompra(id, field, value) {
   refreshProductCostsFromRecipes();
   renderCMV();
   renderProdutos();
+  if (field === 'nome') {
+    renderIngredientes();
+    renderReceitaSheet();
+  }
 }
 
 function renderQuickInsumoList() {
@@ -5884,7 +5977,7 @@ function setItemClassByName(nome, target) {
   if (!wantIng && ing) {
     ingredientes = ingredientes.filter(i => i.id !== ing.id);
     receitas = receitas.map(r => ({ ...r, itens: (r.itens || []).filter(it => it.ingId !== ing.id) }));
-    dbDelete('remover insumo', db.from('ingredientes').delete().eq('id', ing.id));
+    deleteIngredienteFromSupabase(ing.id);
   }
   if (!wantRev && rev) {
     produtos = produtos.filter(p => p.id !== rev.id);
@@ -6396,7 +6489,7 @@ function deleteIngrediente(id) {
   saveAll();
   renderCMV();
   showToast('Ingrediente removido', 'error');
-  dbDelete('remover insumo', db.from('ingredientes').delete().eq('id', id));
+  deleteIngredienteFromSupabase(id);
 }
 
 function openReceitaModal(receita = null) {
@@ -6496,7 +6589,7 @@ function deleteReceita(id) {
   saveAll();
   renderCMV();
   showToast('Receita removida', 'error');
-  dbDelete('remover ficha técnica', db.from('receitas').delete().eq('id', id)); // cascata para receita_itens
+  deleteReceitaFromSupabase(id);
 }
 
 // ============================================================
