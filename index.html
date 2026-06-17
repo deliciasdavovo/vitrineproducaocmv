@@ -5839,6 +5839,11 @@ function confirmDuplicarFicha() {
     });
   });
   syncProdutoReceitaRendimento(targetId, rend, unid, peso);
+  // Limpa a busca para garantir que o produto de destino apareça na lista
+  // (senão o filtro ativo esconde a ficha recém-copiada e parece que nada aconteceu).
+  fichaBusca = '';
+  const buscaInput = document.querySelector('input[oninput^="setFichaBusca"]');
+  if (buscaInput) buscaInput.value = '';
   saveAll();
   refreshProductCostsFromRecipes();
   renderCMV();
@@ -5846,6 +5851,18 @@ function confirmDuplicarFicha() {
   closeModal('modal-duplicar-ficha');
   const targetNome = produtos.find(p => p.id === targetId)?.nome || 'produto';
   showToast('Ficha copiada para ' + targetNome);
+  // Rola até o produto de destino e destaca o card para o usuário ver o resultado.
+  requestAnimationFrame(() => {
+    const btn = [...document.querySelectorAll('button')]
+      .find(b => (b.getAttribute('onclick') || '').includes('openDuplicarFicha(' + targetId + ')'));
+    const card = btn?.closest('.sheet-card') || btn?.closest('div');
+    if (card) {
+      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.style.transition = 'box-shadow 0.3s';
+      card.style.boxShadow = '0 0 0 3px var(--gold, #c8a24a)';
+      setTimeout(() => { card.style.boxShadow = ''; }, 1800);
+    }
+  });
 }
 
 function updateReceitaCell(id, field, value) {
