@@ -2671,6 +2671,17 @@ async function runSupabase(label, query, errors = []) {
   return result?.data;
 }
 
+// Dispara uma exclusão imediatamente. IMPORTANTE: o query builder do
+// supabase-js v2 é "lazy" — sem await/.then() a requisição NUNCA é enviada.
+// Antes, vários `db.from(...).delete()` soltos não chegavam ao servidor e os
+// registros "ressuscitavam" ao recarregar a página.
+function dbDelete(label, query) {
+  return query.then(
+    ({ error }) => { if (error) console.error(`Supabase: ${label}`, error); },
+    err => console.error(`Supabase: ${label}`, err)
+  );
+}
+
 async function salvarReceitaItens(receita, syncErrors) {
   await db.from('receita_itens').delete().eq('receita_id', receita.id);
   if (!receita.itens?.length) return;
@@ -2736,6 +2747,14 @@ async function syncToSupabase() {
         .filter(h => h.prod_id && h.qtd_compra > 0 && h.custo_compra > 0);
       if (compras.length) await db.from('produto_compras').insert(compras);
     }
+    // Garante que as exclusões de produtos fiquem salvas: remove do banco os
+    // produtos que não existem mais localmente (mesma lógica usada nos insumos),
+    // senão o upsert nunca os apagaria e eles "ressuscitariam" ao recarregar.
+    if (produtoIds.length) {
+      await runSupabase('remover produtos excluídos', db.from('produtos').delete().not('id', 'in', `(${produtoIds.join(',')})`), syncErrors);
+    } else {
+      await runSupabase('remover produtos excluídos', db.from('produtos').delete().neq('id', -1), syncErrors);
+    }
     const categoriasUnicas = [...new Set(categorias.map(c => String(c || '').trim()).filter(Boolean))];
     await db.from('categorias').delete().neq('nome', '__ddv_keep__');
     if (categoriasUnicas.length) await db.from('categorias').insert(categoriasUnicas.map(nome => ({ nome })));
@@ -2785,6 +2804,14 @@ async function syncToSupabase() {
     for (const r of receitas) {
       await runSupabase('salvar ficha tecnica', db.from('receitas').upsert({ id: r.id, prod_id: r.prodId, rendimento: r.rendimento, unidade: r.unidade, peso_por_unidade: r.pesoPorUnidade ?? null }), syncErrors);
       await salvarReceitaItens(r, syncErrors);
+    }
+    // Garante que as exclusões de fichas técnicas fiquem salvas: remove do banco
+    // as receitas que não existem mais localmente (cascata apaga os itens delas).
+    const receitaIds = receitas.map(r => r.id).filter(Boolean);
+    if (receitaIds.length) {
+      await runSupabase('remover fichas excluídas', db.from('receitas').delete().not('id', 'in', `(${receitaIds.join(',')})`), syncErrors);
+    } else {
+      await runSupabase('remover fichas excluídas', db.from('receitas').delete().neq('id', -1), syncErrors);
     }
     // Perdas (upsert por id inteiro)
     const perdasValidas = perdas.filter(p => p.id);
@@ -3753,7 +3780,7 @@ function saveFechamento() {
 function syncValidadePerdasFromFechamento() {
   const source = `fechamento-${currentUnit}-${currentDay}`;
   // Remove perdas antigas com esta source do Supabase
-  db.from('perdas').delete().eq('source', source);
+  dbDelete('remover perdas do fechamento', db.from('perdas').delete().eq('source', source));
   perdas = perdas.filter(p => p.source !== source);
   const fechamento = getFechamento();
   fechamento
@@ -4128,7 +4155,7 @@ function deleteProduto(id) {
   renderCMV();
   renderFabricacaoSheet();
   showToast('Produto removido', 'error');
-  db.from('produtos').delete().eq('id', id);
+  dbDelete('remover produto', db.from('produtos').delete().eq('id', id));
 }
 
 function saveProduto() {
@@ -5613,12 +5640,12 @@ function setItemClassByName(nome, target) {
   if (!wantIng && ing) {
     ingredientes = ingredientes.filter(i => i.id !== ing.id);
     receitas = receitas.map(r => ({ ...r, itens: (r.itens || []).filter(it => it.ingId !== ing.id) }));
-    db.from('ingredientes').delete().eq('id', ing.id);
+    dbDelete('remover insumo', db.from('ingredientes').delete().eq('id', ing.id));
   }
   if (!wantRev && rev) {
     produtos = produtos.filter(p => p.id !== rev.id);
     receitas = receitas.filter(r => r.prodId !== rev.id);
-    db.from('produtos').delete().eq('id', rev.id);
+    dbDelete('remover produto', db.from('produtos').delete().eq('id', rev.id));
   }
   saveAll();
   refreshProductCostsFromRecipes();
@@ -6124,7 +6151,7 @@ function deleteIngrediente(id) {
   saveAll();
   renderCMV();
   showToast('Ingrediente removido', 'error');
-  db.from('ingredientes').delete().eq('id', id);
+  dbDelete('remover insumo', db.from('ingredientes').delete().eq('id', id));
 }
 
 function openReceitaModal(receita = null) {
@@ -6224,7 +6251,7 @@ function deleteReceita(id) {
   saveAll();
   renderCMV();
   showToast('Receita removida', 'error');
-  db.from('receitas').delete().eq('id', id); // cascata para receita_itens
+  dbDelete('remover ficha técnica', db.from('receitas').delete().eq('id', id)); // cascata para receita_itens
 }
 
 // ============================================================
@@ -6313,7 +6340,7 @@ function removePerda(idx) {
   perdas.splice(idx, 1);
   saveAll();
   renderPerdas();
-  if (perda?.id) db.from('perdas').delete().eq('id', perda.id);
+  if (perda?.id) dbDelete('remover perda', db.from('perdas').delete().eq('id', perda.id));
 }
 
 // ============================================================
