@@ -4921,7 +4921,7 @@ function renderRevendaCMV() {
     if (ordem === 'cmv') return revCmv(b) - revCmv(a);
     return (a.nome || '').localeCompare(b.nome || '');
   });
-  const buildRow = p => {
+  const buildRow = (p, locked = false) => {
     const uc = getUltimaCompraRevenda(p);
     const qtd = Number(uc.qtdCompra) || Number(p.qtdComprada) || 0;
     const valor = Number(uc.custoCompra) || Number(p.valorCompra) || 0;
@@ -4933,6 +4933,30 @@ function renderRevendaCMV() {
     const margemPct = preco > 0 ? (margem / preco) * 100 : 0;
     const cmv = preco > 0 && custo > 0 ? (custo / preco) * 100 : 0;
     const calculavel = preco > 0 && custo > 0;
+    // Aba Insumos → Revenda: colunas de compra ficam travadas (somente leitura).
+    // A compra é editada pelo carrinho; só Preço de venda e Vende por são editáveis.
+    if (locked) {
+      return `<tr data-id="${p.id}"${revNewIds.has(p.id) ? ' class="sheet-row-new"' : ''}>
+        <td>
+          <span class="sheet-readonly" style="min-width:140px;font-weight:600;">${escHtml(p.nome || '') || '—'}</span>
+          <button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Editar compras (carrinho)" aria-label="Editar compras" style="margin-top:4px;">${cartBtnLabel((p.historicoCompras || []).length)}</button>
+        </td>
+        <td><span class="sheet-readonly">${qtd ? qtd : '—'}</span></td>
+        <td><span class="sheet-readonly">${qtd ? compraUnidade : '—'}</span></td>
+        <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${valor > 0 ? money(valor) : '—'}</span></td>
+        <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${custo > 0 ? money(custo) + '/' + vendaUnidade : '—'}</span></td>
+        <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'preco', this.value)" placeholder="0,00"></td>
+        <td><select class="sheet-select" onchange="updateRevendaCampo(${p.id}, 'precoUnidade', this.value)">${revendaUnidadeOptions(vendaUnidade)}</select></td>
+        <td><span class="sheet-readonly">${calculavel ? money(margem) : '—'}</span></td>
+        <td><span class="sheet-readonly">${calculavel ? margemPct.toFixed(1) + '%' : '—'}</span></td>
+        ${renderCmvTd(cmv, calculavel)}
+        <td style="white-space:nowrap;">
+          ${classSelectHtml(p.nome, `reclassifyRevenda(${p.id}, this.value)`)}
+          <button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))" title="Editar produto">Editar</button>
+          <button class="btn btn-ghost btn-icon-delete" onclick="deleteProduto(${p.id})" title="Excluir revenda" aria-label="Excluir revenda">&times;</button>
+        </td>
+      </tr>`;
+    }
     return `<tr data-id="${p.id}"${revNewIds.has(p.id) ? ' class="sheet-row-new"' : ''}>
       <td>
         <input class="sheet-input" value="${escHtml(p.nome || '')}" onblur="updateProdutoCell(${p.id},'nome',this.value)" placeholder="Nome do produto" style="min-width:140px;font-weight:600;">
@@ -4969,7 +4993,7 @@ function renderRevendaCMV() {
       base.filter(p => !revBusca || (p.nome || '').toLowerCase().includes(revBusca)),
       revOrdem
     );
-    insBody.innerHTML = lista.length ? lista.map(buildRow).join('') : emptyMsg;
+    insBody.innerHTML = lista.length ? lista.map(p => buildRow(p, true)).join('') : emptyMsg;
   }
 }
 
