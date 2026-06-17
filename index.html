@@ -1563,7 +1563,14 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
                   </label>
                 </div>
               </td>
-              <td colspan="3" style="padding:6px 8px;"><button class="btn btn-primary btn-sm" onclick="submitQuickInsumo()" style="width:100%;white-space:nowrap;">Lançar</button></td>
+              <td>
+                <select class="sheet-select" id="quick-insumo-classe" onkeydown="handleQuickInsumoKey(event)" style="min-width:108px;" title="Classificação do insumo: ingrediente, embalagem ou material de limpeza. Todos entram no CMV quando usados nas fichas técnicas.">
+                  <option value="insumo">Ingrediente</option>
+                  <option value="embalagem">Embalagem</option>
+                  <option value="limpeza">Limpeza</option>
+                </select>
+              </td>
+              <td colspan="2" style="padding:6px 8px;"><button class="btn btn-primary btn-sm" onclick="submitQuickInsumo()" style="width:100%;white-space:nowrap;">Lançar</button></td>
             </tr>
           </tbody>
           <tbody id="ingredientes-tbody"></tbody>
@@ -5531,6 +5538,8 @@ function clearQuickInsumoForm() {
   if (revenda) revenda.checked = false;
   const ambos = document.getElementById('quick-insumo-ambos');
   if (ambos) ambos.checked = false;
+  const classe = document.getElementById('quick-insumo-classe');
+  if (classe) classe.value = 'insumo';
 }
 
 // Cria (ou lança nova compra em) um produto de revenda. Retorna true se já existia.
@@ -5641,7 +5650,7 @@ function classSelectHtml(nome, onchangeCall) {
 function handleQuickInsumoKey(e) {
   if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
   e.preventDefault();
-  const fields = ['quick-insumo-nome','quick-insumo-unidade','quick-insumo-fornecedor','quick-insumo-data','quick-insumo-qtd','quick-insumo-custo']
+  const fields = ['quick-insumo-nome','quick-insumo-unidade','quick-insumo-fornecedor','quick-insumo-data','quick-insumo-qtd','quick-insumo-custo','quick-insumo-classe']
     .map(id => document.getElementById(id))
     .filter(Boolean);
   const index = fields.indexOf(e.target);
@@ -5661,6 +5670,7 @@ function submitQuickInsumo() {
   const custoEl = document.getElementById('quick-insumo-custo');
   const revendaEl = document.getElementById('quick-insumo-revenda');
   const ambosEl = document.getElementById('quick-insumo-ambos');
+  const classeEl = document.getElementById('quick-insumo-classe');
   const nome = (nomeEl?.value || '').trim();
   if (!nome) return showToast('Informe o nome do insumo', 'error');
 
@@ -5671,13 +5681,14 @@ function submitQuickInsumo() {
     custoCompra: parseMoney(custoEl?.value)
   };
   const unidade = unidadeEl?.value || 'g';
+  const classe = classeEl?.value || 'insumo';
 
   const comoInsumo = ambosEl?.checked || !revendaEl?.checked;
   const comoRevenda = ambosEl?.checked || revendaEl?.checked;
 
   let msg;
   if (comoInsumo && comoRevenda) {
-    upsertQuickInsumo(nome, unidade, compra);
+    upsertQuickInsumo(nome, unidade, compra, classe);
     upsertQuickRevenda(nome, compra);
     msg = 'Cadastrado como insumo e material de revenda';
   } else if (comoRevenda) {
@@ -5685,7 +5696,7 @@ function submitQuickInsumo() {
       ? 'Compra lancada no material de revenda existente'
       : 'Material de revenda criado na lista de revenda';
   } else {
-    msg = upsertQuickInsumo(nome, unidade, compra)
+    msg = upsertQuickInsumo(nome, unidade, compra, classe)
       ? 'Compra lancada no insumo existente'
       : 'Insumo criado na planilha';
   }
@@ -5700,15 +5711,16 @@ function submitQuickInsumo() {
 }
 
 // Cria (ou lança nova compra em) um ingrediente. Retorna true se já existia.
-function upsertQuickInsumo(nome, unidade, compra) {
+function upsertQuickInsumo(nome, unidade, compra, classe) {
   let ing = ingredientes.find(i => (i.nome || '').toLowerCase() === nome.toLowerCase());
   const existed = !!ing;
   if (!ing) {
-    ing = { id: ++nextId, nome, unidade: unidade || 'g', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] };
+    ing = { id: ++nextId, nome, unidade: unidade || 'g', classe: classe || 'insumo', qtdCompra: 0, custoCompra: 0, fatia: null, variacaoUnidade: null, historico: [] };
     // Insere no topo para o insumo recém-criado aparecer na primeira linha.
     ingredientes.unshift(ing);
-  } else if (unidade) {
-    ing.unidade = unidade;
+  } else {
+    if (unidade) ing.unidade = unidade;
+    if (classe) ing.classe = classe;
   }
   if (!ing.historico) ing.historico = [];
   if (compra.qtdCompra > 0 || compra.custoCompra > 0 || compra.fornecedor || compra.data) {
