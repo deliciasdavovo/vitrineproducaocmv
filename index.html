@@ -5586,41 +5586,107 @@ function analisarVariacoes(janela) {
     const item = ord[0];
 
     // Última variação registrada do item (compra mais recente que tem variação).
-    let varUnit = null, varPct = null, varData = '';
+    let varUnit = null, varPct = null, varData = '', precoAnterior = null, precoAtual = null;
     for (let i = ord.length - 1; i >= 0; i--) {
-      if (ord[i].variacaoPct != null) { varUnit = ord[i].variacaoUnit; varPct = ord[i].variacaoPct; varData = ord[i].data; break; }
+      if (ord[i].variacaoPct != null) {
+        varUnit = ord[i].variacaoUnit; varPct = ord[i].variacaoPct; varData = ord[i].data;
+        precoAtual = ord[i].custoUnit; precoAnterior = ord[i].custoUnit - ord[i].variacaoUnit;
+        break;
+      }
     }
 
-    // Comparação entre fornecedores (preço médio por unidade-base).
+    // Comparação entre fornecedores: preço médio, última data e nº de compras.
     const porForn = {};
-    ord.forEach(c => { if (c.custoUnit > 0) (porForn[c.fornecedor] = porForn[c.fornecedor] || []).push(c.custoUnit); });
-    const fornAvg = Object.keys(porForn)
-      .map(f => ({ f, avg: porForn[f].reduce((s, v) => s + v, 0) / porForn[f].length }))
-      .sort((a, b) => a.avg - b.avg);
+    ord.forEach(c => {
+      if (!(c.custoUnit > 0)) return;
+      const g = porForn[c.fornecedor] = porForn[c.fornecedor] || { vals: [], ultima: '', nCompras: 0, ultimoUnit: 0 };
+      g.vals.push(c.custoUnit); g.nCompras++;
+      if ((c.data || '') >= g.ultima) { g.ultima = c.data || ''; g.ultimoUnit = c.custoUnit; }
+    });
+    const fornAvg = Object.keys(porForn).map(f => {
+      const g = porForn[f];
+      return { f, avg: g.vals.reduce((s, v) => s + v, 0) / g.vals.length, ultima: g.ultima, nCompras: g.nCompras, ultimoUnit: g.ultimoUnit };
+    }).sort((a, b) => a.avg - b.avg);
     const melhor = fornAvg[0] || null;
     const pior = fornAvg[fornAvg.length - 1] || null;
     const nForn = fornAvg.length;
     const economiaUnit = nForn > 1 ? pior.avg - melhor.avg : 0;
     const economiaPct = nForn > 1 && pior.avg > 0 ? (economiaUnit / pior.avg) * 100 : 0;
 
-    return { item, nForn, varUnit, varPct, varData, melhor, pior, economiaUnit, economiaPct };
+    return { item, nForn, varUnit, varPct, varData, precoAnterior, precoAtual, fornAvg, melhor, pior, economiaUnit, economiaPct };
   });
 }
 
-function resumoLinhaItem(conteudoDireita, itemObj) {
-  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:9px;margin-bottom:7px;background:var(--surface);">' +
-    '<div style="min-width:0;">' +
-      '<div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(itemObj.item) + ' ' + tipoBadge(itemObj.tipo) + '</div>' +
-    '</div>' +
-    '<div style="text-align:right;white-space:nowrap;font-family:var(--font-mono);font-size:13px;">' + conteudoDireita + '</div>' +
+// Título de seção, discreto e profissional.
+function resumoSecao(titulo, sub, conteudo, vazioMsg) {
+  return '<div style="margin-bottom:22px;">' +
+    '<div style="font-family:var(--font-sans);font-weight:700;font-size:13px;letter-spacing:.02em;text-transform:uppercase;color:var(--text);margin-bottom:2px;">' + titulo + '</div>' +
+    '<div style="font-size:12px;color:var(--text-light);margin-bottom:11px;">' + sub + '</div>' +
+    (conteudo || '<div style="font-size:12px;color:var(--text-light);font-style:italic;">' + vazioMsg + '</div>') +
   '</div>';
 }
 
-function resumoSecao(titulo, sub, htmlLista, vazioMsg) {
-  return '<div style="margin-bottom:18px;">' +
-    '<div style="font-family:var(--font-sans);font-weight:700;font-size:14px;margin-bottom:2px;">' + titulo + '</div>' +
-    '<div style="font-size:12px;color:var(--text-light);margin-bottom:9px;">' + sub + '</div>' +
-    (htmlLista || '<div style="font-size:12px;color:var(--text-light);font-style:italic;">' + vazioMsg + '</div>') +
+// Tabela de variações de preço: preço anterior → atual, Δ% e data.
+function resumoTabelaVariacoes(linhas) {
+  if (!linhas.length) return '';
+  const th = 'text-align:left;font-family:var(--font-sans);font-size:11px;font-weight:700;color:var(--text-light);text-transform:uppercase;letter-spacing:.03em;padding:6px 10px;border-bottom:1px solid var(--border);';
+  const thR = th + 'text-align:right;';
+  const rows = linhas.map(d => {
+    const subiu = d.varPct > 0;
+    const cor = subiu ? 'var(--red)' : 'var(--green)';
+    const seta = subiu ? '▲' : '▼';
+    const td = 'padding:8px 10px;border-bottom:1px solid var(--border);font-size:13px;';
+    const tdR = td + 'text-align:right;font-family:var(--font-mono);';
+    return '<tr>' +
+      '<td style="' + td + '">' + escHtml(d.item.item) + ' ' + tipoBadge(d.item.tipo) + '</td>' +
+      '<td style="' + tdR + 'color:var(--text-light);">' + fmtPrecoGrande(d.precoAnterior, d.item.unidade) + '</td>' +
+      '<td style="' + tdR + 'font-weight:700;">' + fmtPrecoGrande(d.precoAtual, d.item.unidade) + '</td>' +
+      '<td style="' + tdR + 'color:' + cor + ';font-weight:700;">' + seta + ' ' + (subiu ? '+' : '') + d.varPct.toFixed(1) + '%</td>' +
+      '<td style="' + tdR + 'color:var(--text-light);">' + fmtDataCompra(d.varData) + '</td>' +
+    '</tr>';
+  }).join('');
+  return '<div style="overflow-x:auto;"><table style="width:100%;border-collapse:collapse;">' +
+    '<thead><tr>' +
+      '<th style="' + th + '">Item</th>' +
+      '<th style="' + thR + '">Anterior</th>' +
+      '<th style="' + thR + '">Atual</th>' +
+      '<th style="' + thR + '">Variação</th>' +
+      '<th style="' + thR + '">Data</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table></div>';
+}
+
+// Card comparativo de fornecedores de um item, com barras proporcionais ao preço.
+function resumoCardFornecedores(d) {
+  const u = d.item.unidade;
+  const maxAvg = d.pior.avg || 1;
+  const barras = d.fornAvg.map((g, idx) => {
+    const isMelhor = idx === 0;
+    const isPior = idx === d.fornAvg.length - 1 && d.fornAvg.length > 1;
+    const cor = isMelhor ? 'var(--green)' : (isPior ? 'var(--red)' : '#9CA3AF');
+    const w = Math.max(6, (g.avg / maxAvg) * 100);
+    const meta = 'últ. ' + fmtDataCompra(g.ultima) + ' · ' + g.nCompras + (g.nCompras > 1 ? ' compras' : ' compra');
+    return '<div style="margin-bottom:9px;">' +
+      '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:3px;">' +
+        '<span style="font-size:12px;font-weight:600;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' +
+          escHtml(g.f) + (isMelhor ? ' <span style="font-size:10px;font-weight:700;color:var(--green);">MAIS BARATO</span>' : '') + '</span>' +
+        '<span style="font-size:12px;font-family:var(--font-mono);font-weight:700;white-space:nowrap;">' + fmtPrecoGrande(g.avg, u) + '</span>' +
+      '</div>' +
+      '<div style="background:var(--surface-soft);border-radius:4px;height:8px;overflow:hidden;">' +
+        '<div style="width:' + w.toFixed(1) + '%;height:100%;background:' + cor + ';border-radius:4px;"></div>' +
+      '</div>' +
+      '<div style="font-size:10.5px;color:var(--text-light);margin-top:2px;">' + meta + '</div>' +
+    '</div>';
+  }).join('');
+
+  const economiaTag = d.economiaPct > 1
+    ? '<span style="font-size:11px;font-weight:700;color:var(--green);white-space:nowrap;">economia de ' + d.economiaPct.toFixed(0) + '%</span>'
+    : '';
+
+  return '<div style="border:1px solid var(--border);border-radius:10px;padding:13px 14px;margin-bottom:10px;background:var(--surface);">' +
+    '<div style="display:flex;justify-content:space-between;align-items:baseline;gap:8px;margin-bottom:10px;">' +
+      '<span style="font-weight:700;font-size:13.5px;">' + escHtml(d.item.item) + ' ' + tipoBadge(d.item.tipo) + '</span>' +
+      economiaTag +
+    '</div>' + barras +
   '</div>';
 }
 
@@ -5641,36 +5707,31 @@ function renderResumoVariacoes() {
   }
 
   const comVar = dados.filter(d => d.varPct != null);
-  const altas = comVar.filter(d => d.varPct > 0.5).sort((a, b) => b.varPct - a.varPct).slice(0, 6);
-  const quedas = comVar.filter(d => d.varPct < -0.5).sort((a, b) => a.varPct - b.varPct).slice(0, 6);
-  const trocas = dados.filter(d => d.nForn > 1 && d.economiaPct > 1).sort((a, b) => b.economiaPct - a.economiaPct).slice(0, 6);
-
-  // Cabeçalho com placar geral.
   const nSubiu = comVar.filter(d => d.varPct > 0.5).length;
   const nCaiu = comVar.filter(d => d.varPct < -0.5).length;
-  const placar =
-    '<div class="stats-row" style="margin-bottom:18px;">' +
-      '<div class="stat-card"><div class="stat-value" style="color:var(--red);">' + nSubiu + '</div><div class="stat-label">Itens que subiram</div></div>' +
-      '<div class="stat-card"><div class="stat-value" style="color:var(--green);">' + nCaiu + '</div><div class="stat-label">Itens que caíram</div></div>' +
-      '<div class="stat-card"><div class="stat-value">' + trocas.length + '</div><div class="stat-label">Trocas vantajosas</div></div>' +
-    '</div>';
 
-  const htmlAltas = altas.map(d => resumoLinhaItem(variacaoBadge(d.varUnit, d.varPct, d.item.unidade), d.item)).join('');
-  const htmlQuedas = quedas.map(d => resumoLinhaItem(variacaoBadge(d.varUnit, d.varPct, d.item.unidade), d.item)).join('');
-  const htmlTrocas = trocas.map(d => {
-    const direita =
-      '<span style="color:var(--green);font-weight:700;">economize ' + d.economiaPct.toFixed(0) + '%</span><br>' +
-      '<span style="font-size:11px;color:var(--text-light);">★ ' + escHtml(d.melhor.f) + ' (' + fmtPrecoGrande(d.melhor.avg, d.item.unidade) + ')' +
-      ' vs ' + escHtml(d.pior.f) + ' (' + fmtPrecoGrande(d.pior.avg, d.item.unidade) + ')</span>';
-    return resumoLinhaItem(direita, d.item);
-  }).join('');
+  // Variações mais relevantes (qualquer direção), ordenadas pela magnitude.
+  const variacoes = comVar.filter(d => Math.abs(d.varPct) > 0.5)
+    .sort((a, b) => Math.abs(b.varPct) - Math.abs(a.varPct)).slice(0, 8);
+  // Comparativos de fornecedores, dos maiores potenciais de economia.
+  const comparativos = dados.filter(d => d.nForn > 1)
+    .sort((a, b) => b.economiaPct - a.economiaPct).slice(0, 8);
+
+  const placar =
+    '<div class="stats-row" style="margin-bottom:22px;">' +
+      '<div class="stat-card"><div class="stat-value">' + dados.length + '</div><div class="stat-label">Itens no período</div></div>' +
+      '<div class="stat-card"><div class="stat-value" style="color:var(--red);">' + nSubiu + '</div><div class="stat-label">Subiram de preço</div></div>' +
+      '<div class="stat-card"><div class="stat-value" style="color:var(--green);">' + nCaiu + '</div><div class="stat-label">Caíram de preço</div></div>' +
+      '<div class="stat-card"><div class="stat-value">' + comparativos.length + '</div><div class="stat-label">Com +1 fornecedor</div></div>' +
+    '</div>';
 
   body.innerHTML =
     resumoControles() +
     placar +
-    resumoSecao('📈 Maiores altas de preço', 'Itens que ficaram mais caros no período (vs. a compra anterior).', htmlAltas, 'Nenhuma alta neste período.') +
-    resumoSecao('📉 Maiores quedas de preço', 'Itens que ficaram mais baratos no período (vs. a compra anterior).', htmlQuedas, 'Nenhuma queda neste período.') +
-    resumoSecao('💰 Troque de fornecedor e economize', 'Itens comprados de mais de um fornecedor no período, com diferença de preço.', htmlTrocas, 'Sem comparação entre fornecedores neste período.');
+    resumoSecao('Variações de preço', 'Comparação do preço por unidade da última compra com a anterior.',
+      resumoTabelaVariacoes(variacoes), 'Sem variações de preço neste período.') +
+    resumoSecao('Comparativo de fornecedores', 'Preço médio por unidade de cada fornecedor, com data da última compra.',
+      comparativos.map(resumoCardFornecedores).join(''), 'Nenhum item com mais de um fornecedor neste período.');
 }
 
 function closeResumoVariacoes() {
