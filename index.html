@@ -926,6 +926,19 @@ tr:hover td { background: var(--surface-soft); }
   background: var(--surface);
 }
 .sheet-table tr:hover td { background: var(--surface); }
+/* Mantém a última coluna (ações / botão X) sempre visível, mesmo com rolagem
+   horizontal da planilha — fica "grudada" na borda direita. */
+.sheet-table.sticky-last td:last-child,
+.sheet-table.sticky-last th:last-child {
+  position: sticky;
+  right: 0;
+  z-index: 3;
+  box-shadow: -3px 0 6px rgba(0,0,0,0.06);
+}
+.sheet-table.sticky-last td:last-child { background: var(--surface); }
+.sheet-table.sticky-last tr:hover td:last-child { background: var(--surface); }
+.sheet-table.sticky-last tr.quick-entry-row td:last-child { background: #FFFBEB; }
+.sheet-table.sticky-last th:last-child { background: #F3F4F6; }
 /* Divisória de categoria nas planilhas (cabeçalho de grupo) */
 .sheet-group-row td {
   background: linear-gradient(180deg, #EEF2F7 0%, #E3E9F1 100%);
@@ -1550,7 +1563,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     </div>
     <div class="sheet-card">
       <div class="table-wrap">
-        <table class="sheet-table">
+        <table class="sheet-table sticky-last">
           <thead>
             <tr>
               <th>Item</th>
@@ -1678,7 +1691,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     </div>
     <div class="sheet-card">
       <div class="table-wrap">
-        <table class="sheet-table">
+        <table class="sheet-table sticky-last">
           <thead>
             <tr>
               <th>Produto</th>
@@ -5923,6 +5936,7 @@ function clearQuickInsumoForm() {
   const ambos = document.getElementById('quick-insumo-ambos');
   if (ambos) ambos.checked = false;
   setQuickInsumoLocked(false);
+  clearQuickInsumoGhosts();
 }
 
 // Trava (ou destrava) os campos de unidade, classe e classificação de venda do
@@ -5956,12 +5970,61 @@ function setQuickInsumoLocked(locked) {
 
 // Quando o nome ja existe, puxa unidade, classe e classificacao de venda e
 // trava esses campos para evitar conflito. Caso seja um nome novo, destrava.
+// Placeholders originais dos campos de compra da entrada rápida de insumo.
+const QUICK_INSUMO_PLACEHOLDERS = {
+  'quick-insumo-fornecedor': 'Fornecedor',
+  'quick-insumo-qtd': 'Qtd. compra',
+  'quick-insumo-custo': 'Custo compra'
+};
+
+// Aplica (ou remove) a sugestão "fantasma" em cinza de um campo. Quando há um
+// valor sugerido, ele fica guardado em data-ghost e aparece como placeholder;
+// basta apertar Enter no campo vazio para confirmá-lo (ver handleQuickInsumoKey).
+function applyQuickGhost(id, ghostVal, displayVal) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (ghostVal) {
+    el.dataset.ghost = ghostVal;
+    el.placeholder = displayVal + ' ↵';
+  } else {
+    delete el.dataset.ghost;
+    el.placeholder = QUICK_INSUMO_PLACEHOLDERS[id] || '';
+  }
+}
+
+function clearQuickInsumoGhosts() {
+  Object.keys(QUICK_INSUMO_PLACEHOLDERS).forEach(id => applyQuickGhost(id, '', ''));
+}
+
+// Última compra de um item (insumo ou revenda) pelo nome.
+function ultimaCompraPorNome(nome) {
+  const lc = (nome || '').trim().toLowerCase();
+  if (!lc) return null;
+  const ing = ingredientes.find(i => (i.nome || '').toLowerCase() === lc);
+  if (ing && (ing.historico || []).length) return getUltimaCompra(ing);
+  const rev = produtos.find(p => (p.tipo || 'fabricacao') === 'revenda' && (p.nome || '').toLowerCase() === lc);
+  if (rev && (rev.historicoCompras || []).length) return getUltimaCompraRevenda(rev);
+  if (ing) return getUltimaCompra(ing);
+  return null;
+}
+
+// Preenche os fantasmas de fornecedor, quantidade e custo com a última compra.
+function setQuickInsumoGhosts(nome) {
+  const uc = ultimaCompraPorNome(nome);
+  if (!uc) { clearQuickInsumoGhosts(); return; }
+  applyQuickGhost('quick-insumo-fornecedor', uc.fornecedor || '', uc.fornecedor || '');
+  const qtd = Number(uc.qtdCompra) > 0 ? String(uc.qtdCompra) : '';
+  applyQuickGhost('quick-insumo-qtd', qtd, qtd);
+  const custo = Number(uc.custoCompra) > 0 ? moneyInputVal(uc.custoCompra) : '';
+  applyQuickGhost('quick-insumo-custo', custo, custo ? 'R$ ' + custo : '');
+}
+
 function applyQuickInsumoExistingMeta(nome) {
   const lc = (nome || '').trim().toLowerCase();
-  if (!lc) { setQuickInsumoLocked(false); return false; }
+  if (!lc) { setQuickInsumoLocked(false); clearQuickInsumoGhosts(); return false; }
   const ing = ingredientes.find(i => (i.nome || '').toLowerCase() === lc);
   const cls = getItemClass(nome);
-  if (!ing && cls === 'insumo') { setQuickInsumoLocked(false); return false; }
+  if (!ing && cls === 'insumo') { setQuickInsumoLocked(false); clearQuickInsumoGhosts(); return false; }
 
   const rev = document.getElementById('quick-insumo-revenda');
   const amb = document.getElementById('quick-insumo-ambos');
@@ -5975,6 +6038,7 @@ function applyQuickInsumoExistingMeta(nome) {
     if (cEl) cEl.value = ing.classe || 'insumo';
   }
   setQuickInsumoLocked(true);
+  setQuickInsumoGhosts(nome);
   return true;
 }
 
@@ -6088,6 +6152,13 @@ function classSelectHtml(nome, onchangeCall) {
 function handleQuickInsumoKey(e) {
   if (e.key !== 'Enter' || e.shiftKey || e.ctrlKey || e.metaKey || e.altKey) return;
   e.preventDefault();
+  // Confirma o valor sugerido em cinza (última compra) quando o campo está vazio.
+  const t = e.target;
+  if (t && t.dataset && t.dataset.ghost != null && t.dataset.ghost !== '' && !t.value) {
+    t.value = t.dataset.ghost;
+    delete t.dataset.ghost;
+    if (t.id === 'quick-insumo-custo') maskMoney(t);
+  }
   const fields = ['quick-insumo-nome','quick-insumo-unidade','quick-insumo-fornecedor','quick-insumo-data','quick-insumo-qtd','quick-insumo-custo']
     .map(id => document.getElementById(id))
     .filter(el => el && !el.disabled);
@@ -7462,10 +7533,12 @@ function initAC(inputEl, getSuggestions, { nextFocusId, onSelect } = {}) {
       e.preventDefault();
       activeIdx = Math.max(activeIdx - 1, 0);
       markActive();
-    } else if (e.key === 'Enter' && isOpen && activeIdx >= 0) {
+    } else if (e.key === 'Enter' && isOpen && items.length) {
+      // Enter seleciona o item destacado; se nenhum foi destacado com as setas,
+      // seleciona o primeiro da lista (melhor correspondência).
       e.preventDefault();
       e.stopImmediatePropagation();
-      pick(activeIdx);
+      pick(activeIdx >= 0 ? activeIdx : 0);
     } else if (e.key === 'Escape') {
       close();
     } else if (e.key === 'Tab' && isOpen && activeIdx >= 0) {
