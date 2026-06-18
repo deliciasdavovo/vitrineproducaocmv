@@ -5507,10 +5507,76 @@ function renderFornecedorPorCompra(compras, sort, limit) {
 
 // ===================== RESUMO DE VARIAÇÕES =====================
 // Painel visual com as principais altas/quedas de preço e onde dá para
-// economizar trocando de fornecedor. Respeita o filtro de tipo (chips).
-function analisarVariacoes() {
+// economizar trocando de fornecedor. Respeita o filtro de tipo (chips)
+// e tem filtro de período navegável (presets + setas ‹ ›).
+
+// Estado do filtro de período: janela em meses (null = tudo) e deslocamento
+// (0 = período atual, 1 = período anterior, …).
+let resumoPeriodo = { meses: 3, offset: 0 };
+const RESUMO_PRESETS = [
+  { meses: 1, label: '1 mês' },
+  { meses: 3, label: '3 meses' },
+  { meses: 12, label: '12 meses' },
+  { meses: null, label: 'Tudo' },
+];
+
+function resumoIso(d) {
+  return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+// Calcula a janela de datas atual (ou null quando "Tudo").
+function resumoJanela() {
+  if (resumoPeriodo.meses == null) return null;
+  const N = resumoPeriodo.meses, k = resumoPeriodo.offset;
+  const end = new Date(); end.setHours(0, 0, 0, 0);
+  end.setMonth(end.getMonth() - k * N);
+  const start = new Date(end); start.setMonth(start.getMonth() - N);
+  return {
+    start: resumoIso(start),
+    end: resumoIso(end),
+    label: start.toLocaleDateString('pt-BR') + ' – ' + end.toLocaleDateString('pt-BR'),
+  };
+}
+
+function resumoSetPreset(meses) {
+  resumoPeriodo.meses = (meses === 'null' ? null : Number(meses));
+  resumoPeriodo.offset = 0;
+  renderResumoVariacoes();
+}
+
+function resumoNav(delta) {
+  const o = resumoPeriodo.offset + delta;
+  if (o < 0) return;
+  resumoPeriodo.offset = o;
+  renderResumoVariacoes();
+}
+
+// Barra de controles do período (chips + navegação por setas).
+function resumoControles() {
+  const chips = RESUMO_PRESETS.map(p => {
+    const val = p.meses == null ? 'null' : p.meses;
+    const active = (resumoPeriodo.meses == null && p.meses == null) || resumoPeriodo.meses === p.meses;
+    return '<button class="toggle-btn' + (active ? ' active' : '') + '" onclick="resumoSetPreset(\'' + val + '\')">' + p.label + '</button>';
+  }).join('');
+  const janela = resumoJanela();
+  const nav = janela
+    ? '<div style="display:flex;align-items:center;gap:8px;margin-top:8px;">' +
+        '<button class="btn" style="padding:4px 12px;" onclick="resumoNav(1)">‹ anterior</button>' +
+        '<span style="font-size:12px;color:var(--text-light);flex:1;text-align:center;font-family:var(--font-mono);">' + janela.label + '</span>' +
+        '<button class="btn" style="padding:4px 12px;' + (resumoPeriodo.offset === 0 ? 'opacity:.4;pointer-events:none;' : '') + '" onclick="resumoNav(-1)">próximo ›</button>' +
+      '</div>'
+    : '<div style="font-size:12px;color:var(--text-light);margin-top:8px;">Todas as compras registradas.</div>';
+  return '<div style="margin-bottom:16px;">' +
+    '<div class="toggle-row" style="flex-wrap:wrap;margin:0;">' + chips + '</div>' + nav +
+  '</div>';
+}
+
+function analisarVariacoes(janela) {
   const todas = coletarCompras();
-  const compras = fornTipoFiltro === 'todos' ? todas : todas.filter(c => c.tipo === fornTipoFiltro);
+  let compras = fornTipoFiltro === 'todos' ? todas : todas.filter(c => c.tipo === fornTipoFiltro);
+  // Mantém a variação calculada sobre o histórico completo (vs. compra anterior),
+  // mas restringe a seleção/médias às compras dentro da janela escolhida.
+  if (janela) compras = compras.filter(c => c.data && c.data > janela.start && c.data <= janela.end);
 
   const porItem = {};
   compras.forEach(c => { (porItem[c.itemId] = porItem[c.itemId] || []).push(c); });
@@ -5559,12 +5625,18 @@ function resumoSecao(titulo, sub, htmlLista, vazioMsg) {
 }
 
 function openResumoVariacoes() {
-  const dados = analisarVariacoes();
+  document.getElementById('modal-resumo-variacoes').classList.add('open');
+  renderResumoVariacoes();
+}
+
+function renderResumoVariacoes() {
   const body = document.getElementById('resumo-variacoes-body');
+  const janela = resumoJanela();
+  const dados = analisarVariacoes(janela);
 
   if (!dados.length) {
-    body.innerHTML = '<p class="section-sub">Nenhuma compra registrada ainda para analisar.</p>';
-    document.getElementById('modal-resumo-variacoes').classList.add('open');
+    body.innerHTML = resumoControles() +
+      '<p class="section-sub">Nenhuma compra registrada neste período para analisar.</p>';
     return;
   }
 
@@ -5594,12 +5666,11 @@ function openResumoVariacoes() {
   }).join('');
 
   body.innerHTML =
+    resumoControles() +
     placar +
-    resumoSecao('📈 Maiores altas de preço', 'Itens que ficaram mais caros na última compra.', htmlAltas, 'Nenhuma alta registrada.') +
-    resumoSecao('📉 Maiores quedas de preço', 'Itens que ficaram mais baratos na última compra.', htmlQuedas, 'Nenhuma queda registrada.') +
-    resumoSecao('💰 Troque de fornecedor e economize', 'Itens comprados de mais de um fornecedor com diferença de preço.', htmlTrocas, 'Sem comparação entre fornecedores ainda.');
-
-  document.getElementById('modal-resumo-variacoes').classList.add('open');
+    resumoSecao('📈 Maiores altas de preço', 'Itens que ficaram mais caros no período (vs. a compra anterior).', htmlAltas, 'Nenhuma alta neste período.') +
+    resumoSecao('📉 Maiores quedas de preço', 'Itens que ficaram mais baratos no período (vs. a compra anterior).', htmlQuedas, 'Nenhuma queda neste período.') +
+    resumoSecao('💰 Troque de fornecedor e economize', 'Itens comprados de mais de um fornecedor no período, com diferença de preço.', htmlTrocas, 'Sem comparação entre fornecedores neste período.');
 }
 
 function closeResumoVariacoes() {
