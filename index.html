@@ -1841,10 +1841,13 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     <div class="stat-card"><div class="stat-value" id="forn-stat-itens">0</div><div class="stat-label">Itens diferentes</div></div>
   </div>
 
-  <div class="toggle-row" id="forn-tabs" style="margin-bottom:16px;flex-wrap:wrap;">
-    <button class="toggle-btn active" id="forn-tab-forn" onclick="setFornecedorView('fornecedor')">Por fornecedor</button>
-    <button class="toggle-btn" id="forn-tab-item" onclick="setFornecedorView('item')">Por produto / insumo</button>
-    <button class="toggle-btn" id="forn-tab-compra" onclick="setFornecedorView('compra')">Por compra</button>
+  <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:16px;">
+    <div class="toggle-row" id="forn-tabs" style="flex-wrap:wrap;margin:0;">
+      <button class="toggle-btn active" id="forn-tab-forn" onclick="setFornecedorView('fornecedor')">Por fornecedor</button>
+      <button class="toggle-btn" id="forn-tab-item" onclick="setFornecedorView('item')">Por produto / insumo</button>
+      <button class="toggle-btn" id="forn-tab-compra" onclick="setFornecedorView('compra')">Por compra</button>
+    </div>
+    <button class="btn btn-primary" id="btn-resumo-variacoes" onclick="openResumoVariacoes()" style="white-space:nowrap;">📊 Resumo de variações</button>
   </div>
 
   <!-- Barra de filtros e ordenação -->
@@ -1995,6 +1998,17 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 </div>
 
 <!-- ===================== MODALS ===================== -->
+
+<!-- Modal: Resumo de variações de preço / fornecedor -->
+<div class="modal-overlay" id="modal-resumo-variacoes">
+  <div class="modal" style="max-width:680px;">
+    <div class="modal-title">📊 Resumo de variações</div>
+    <div id="resumo-variacoes-body"></div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeResumoVariacoes()">Fechar</button>
+    </div>
+  </div>
+</div>
 
 <!-- Modal: Produto -->
 <div class="modal-overlay" id="modal-produto">
@@ -5489,6 +5503,107 @@ function renderFornecedorPorCompra(compras, sort, limit) {
       '<th>Data</th><th>Item</th><th>Fornecedor</th><th style="text-align:right;">Qtd.</th><th style="text-align:right;">Valor pago</th><th style="text-align:right;">Preço/un</th><th style="text-align:right;">Variação</th>' +
     '</tr></thead><tbody>' + rows + rodape + '</tbody></table>' +
   '</div></div>';
+}
+
+// ===================== RESUMO DE VARIAÇÕES =====================
+// Painel visual com as principais altas/quedas de preço e onde dá para
+// economizar trocando de fornecedor. Respeita o filtro de tipo (chips).
+function analisarVariacoes() {
+  const todas = coletarCompras();
+  const compras = fornTipoFiltro === 'todos' ? todas : todas.filter(c => c.tipo === fornTipoFiltro);
+
+  const porItem = {};
+  compras.forEach(c => { (porItem[c.itemId] = porItem[c.itemId] || []).push(c); });
+
+  return Object.values(porItem).map(lista => {
+    const ord = lista.slice().sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+    const item = ord[0];
+
+    // Última variação registrada do item (compra mais recente que tem variação).
+    let varUnit = null, varPct = null, varData = '';
+    for (let i = ord.length - 1; i >= 0; i--) {
+      if (ord[i].variacaoPct != null) { varUnit = ord[i].variacaoUnit; varPct = ord[i].variacaoPct; varData = ord[i].data; break; }
+    }
+
+    // Comparação entre fornecedores (preço médio por unidade-base).
+    const porForn = {};
+    ord.forEach(c => { if (c.custoUnit > 0) (porForn[c.fornecedor] = porForn[c.fornecedor] || []).push(c.custoUnit); });
+    const fornAvg = Object.keys(porForn)
+      .map(f => ({ f, avg: porForn[f].reduce((s, v) => s + v, 0) / porForn[f].length }))
+      .sort((a, b) => a.avg - b.avg);
+    const melhor = fornAvg[0] || null;
+    const pior = fornAvg[fornAvg.length - 1] || null;
+    const nForn = fornAvg.length;
+    const economiaUnit = nForn > 1 ? pior.avg - melhor.avg : 0;
+    const economiaPct = nForn > 1 && pior.avg > 0 ? (economiaUnit / pior.avg) * 100 : 0;
+
+    return { item, nForn, varUnit, varPct, varData, melhor, pior, economiaUnit, economiaPct };
+  });
+}
+
+function resumoLinhaItem(conteudoDireita, itemObj) {
+  return '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:9px 12px;border:1px solid var(--border);border-radius:9px;margin-bottom:7px;background:var(--surface);">' +
+    '<div style="min-width:0;">' +
+      '<div style="font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">' + escHtml(itemObj.item) + ' ' + tipoBadge(itemObj.tipo) + '</div>' +
+    '</div>' +
+    '<div style="text-align:right;white-space:nowrap;font-family:var(--font-mono);font-size:13px;">' + conteudoDireita + '</div>' +
+  '</div>';
+}
+
+function resumoSecao(titulo, sub, htmlLista, vazioMsg) {
+  return '<div style="margin-bottom:18px;">' +
+    '<div style="font-family:var(--font-sans);font-weight:700;font-size:14px;margin-bottom:2px;">' + titulo + '</div>' +
+    '<div style="font-size:12px;color:var(--text-light);margin-bottom:9px;">' + sub + '</div>' +
+    (htmlLista || '<div style="font-size:12px;color:var(--text-light);font-style:italic;">' + vazioMsg + '</div>') +
+  '</div>';
+}
+
+function openResumoVariacoes() {
+  const dados = analisarVariacoes();
+  const body = document.getElementById('resumo-variacoes-body');
+
+  if (!dados.length) {
+    body.innerHTML = '<p class="section-sub">Nenhuma compra registrada ainda para analisar.</p>';
+    document.getElementById('modal-resumo-variacoes').classList.add('open');
+    return;
+  }
+
+  const comVar = dados.filter(d => d.varPct != null);
+  const altas = comVar.filter(d => d.varPct > 0.5).sort((a, b) => b.varPct - a.varPct).slice(0, 6);
+  const quedas = comVar.filter(d => d.varPct < -0.5).sort((a, b) => a.varPct - b.varPct).slice(0, 6);
+  const trocas = dados.filter(d => d.nForn > 1 && d.economiaPct > 1).sort((a, b) => b.economiaPct - a.economiaPct).slice(0, 6);
+
+  // Cabeçalho com placar geral.
+  const nSubiu = comVar.filter(d => d.varPct > 0.5).length;
+  const nCaiu = comVar.filter(d => d.varPct < -0.5).length;
+  const placar =
+    '<div class="stats-row" style="margin-bottom:18px;">' +
+      '<div class="stat-card"><div class="stat-value" style="color:var(--red);">' + nSubiu + '</div><div class="stat-label">Itens que subiram</div></div>' +
+      '<div class="stat-card"><div class="stat-value" style="color:var(--green);">' + nCaiu + '</div><div class="stat-label">Itens que caíram</div></div>' +
+      '<div class="stat-card"><div class="stat-value">' + trocas.length + '</div><div class="stat-label">Trocas vantajosas</div></div>' +
+    '</div>';
+
+  const htmlAltas = altas.map(d => resumoLinhaItem(variacaoBadge(d.varUnit, d.varPct, d.item.unidade), d.item)).join('');
+  const htmlQuedas = quedas.map(d => resumoLinhaItem(variacaoBadge(d.varUnit, d.varPct, d.item.unidade), d.item)).join('');
+  const htmlTrocas = trocas.map(d => {
+    const direita =
+      '<span style="color:var(--green);font-weight:700;">economize ' + d.economiaPct.toFixed(0) + '%</span><br>' +
+      '<span style="font-size:11px;color:var(--text-light);">★ ' + escHtml(d.melhor.f) + ' (' + fmtPrecoGrande(d.melhor.avg, d.item.unidade) + ')' +
+      ' vs ' + escHtml(d.pior.f) + ' (' + fmtPrecoGrande(d.pior.avg, d.item.unidade) + ')</span>';
+    return resumoLinhaItem(direita, d.item);
+  }).join('');
+
+  body.innerHTML =
+    placar +
+    resumoSecao('📈 Maiores altas de preço', 'Itens que ficaram mais caros na última compra.', htmlAltas, 'Nenhuma alta registrada.') +
+    resumoSecao('📉 Maiores quedas de preço', 'Itens que ficaram mais baratos na última compra.', htmlQuedas, 'Nenhuma queda registrada.') +
+    resumoSecao('💰 Troque de fornecedor e economize', 'Itens comprados de mais de um fornecedor com diferença de preço.', htmlTrocas, 'Sem comparação entre fornecedores ainda.');
+
+  document.getElementById('modal-resumo-variacoes').classList.add('open');
+}
+
+function closeResumoVariacoes() {
+  document.getElementById('modal-resumo-variacoes').classList.remove('open');
 }
 
 function setReceitaView(view) {
