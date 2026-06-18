@@ -1557,7 +1557,6 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <button class="toggle-btn active" data-classe="todos" onclick="setInsumoClasseFiltro('todos')">Todos</button>
       <button class="toggle-btn" data-classe="insumo" onclick="setInsumoClasseFiltro('insumo')">Insumos</button>
       <button class="toggle-btn" data-classe="revenda" onclick="setInsumoClasseFiltro('revenda')">Revenda</button>
-      <button class="toggle-btn" data-classe="ambos" onclick="setInsumoClasseFiltro('ambos')">Insumo + Revenda</button>
       <button class="toggle-btn" data-classe="embalagem" onclick="setInsumoClasseFiltro('embalagem')">Embalagens</button>
       <button class="toggle-btn" data-classe="limpeza" onclick="setInsumoClasseFiltro('limpeza')">Material de limpeza</button>
     </div>
@@ -5537,8 +5536,9 @@ function ingredienteMatchesClasse(ing) {
   const classe = ing.classe || 'insumo';
   const itemClass = getItemClass(ing.nome);
   if (insumoClasseFiltro === 'todos') return true;
-  if (insumoClasseFiltro === 'ambos') return itemClass === 'ambos';
   if (insumoClasseFiltro === 'revenda') return false;
+  // Itens "insumo + revenda" (ambos) também aparecem na aba de Insumos.
+  if (insumoClasseFiltro === 'insumo') return classe === 'insumo' && (itemClass === 'insumo' || itemClass === 'ambos');
   return classe === insumoClasseFiltro && itemClass === 'insumo';
 }
 
@@ -5574,9 +5574,14 @@ function renderIngredientes() {
   const tbody = document.getElementById('ingredientes-tbody');
   renderQuickInsumoList();
   const lista = ingredientes.filter(ingredienteMatchesClasse);
-  const revendas = (insumoClasseFiltro === 'todos' || insumoClasseFiltro === 'revenda')
-    ? revendasSemInsumo()
-    : [];
+  // Na aba "Revenda" mostramos TODOS os produtos de revenda (inclusive os que
+  // também são insumo). Em "Todos" usamos apenas os sem insumo para não duplicar
+  // a linha de insumo já exibida acima.
+  const revendas = insumoClasseFiltro === 'revenda'
+    ? produtos.filter(p => (p.tipo || 'fabricacao') === 'revenda')
+    : insumoClasseFiltro === 'todos'
+      ? revendasSemInsumo()
+      : [];
   const rows = lista.map(ing => {
     const uc = getUltimaCompra(ing);
     const custoUnit = custoIngredienteUnit(ing);
