@@ -5088,7 +5088,7 @@ function renderFabricacaoSheet(resort = true) {
       <td style="white-space:nowrap;">
         ${temFicha
           ? `<button class="btn btn-ghost btn-sm" onclick="toggleFabFichaPreview(${p.id})" title="Ver ficha técnica" style="${fabFichaOpenId === p.id ? 'background:var(--surface-soft);' : ''}">
-               ${fabFichaOpenId === p.id ? '▲' : '▼'} Ficha
+               ☰ Ficha
              </button>`
           : `<button class="btn btn-ghost btn-sm" onclick="openFichaParaProduto(${p.id}, true)" title="Criar ficha técnica">+ Ficha</button>`
         }
