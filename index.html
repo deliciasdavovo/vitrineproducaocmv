@@ -1924,16 +1924,17 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
           <thead>
             <tr>
               <th>Produto</th>
+              <th>CMV %</th>
+              <th>Preço venda (R$)</th>
+              <th>Vende por</th>
+              <th title="Preço sugerido: markup 100% sobre o custo (CMV alvo 50%)">Preço sug.</th>
+              <th>Custo un.</th>
+              <th>Margem R$</th>
+              <th>Margem %</th>
               <th>Qtd. comprada</th>
               <th>Un. compra</th>
               <th>Valor da compra (R$)</th>
-              <th>Custo un.</th>
-              <th>Preço venda (R$)</th>
-              <th>Vende por</th>
-              <th>Margem R$</th>
-              <th>Margem %</th>
-              <th>CMV %</th>
-              <th title="Preço sugerido: markup 100% sobre o custo (CMV alvo 50%)">Preço sug.</th>
+              <th>Categoria</th>
               <th></th>
             </tr>
           </thead>
@@ -2022,16 +2023,17 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
           <thead>
             <tr>
               <th>Produto</th>
+              <th>CMV %</th>
+              <th>Preço venda (R$)</th>
+              <th>Vende por</th>
+              <th title="Preço sugerido: markup 100% sobre o custo (CMV alvo 50%)">Preço sug.</th>
+              <th>Custo un.</th>
+              <th>Margem R$</th>
+              <th>Margem %</th>
               <th>Qtd. comprada</th>
               <th>Un. compra</th>
               <th>Valor da compra (R$)</th>
-              <th>Custo un.</th>
-              <th>Preço venda (R$)</th>
-              <th>Vende por</th>
-              <th>Margem R$</th>
-              <th>Margem %</th>
-              <th>CMV %</th>
-              <th title="Preço sugerido: markup 100% sobre o custo (CMV alvo 50%)">Preço sug.</th>
+              <th>Categoria</th>
               <th></th>
             </tr>
           </thead>
@@ -5241,25 +5243,25 @@ function renderRevendaCMV() {
         ${sheetNameField(p.nome, `updateProdutoCell(${p.id},'nome',this.value)`, 'Nome do produto', 'font-weight:600;')}
         <button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Carrinho de compras" aria-label="Carrinho de compras" style="margin-top:4px;">${cartBtnLabel((p.historicoCompras || []).length)}</button>
       </td>
+      ${renderCmvTd(cmv, calculavel, 'revenda')}
+      <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'preco', this.value)" placeholder="0,00"></td>
+      <td><select class="sheet-select" onchange="updateRevendaCampo(${p.id}, 'precoUnidade', this.value)">${revendaUnidadeOptions(vendaUnidade)}</select></td>
+      <td title="Preço sugerido: markup 100% sobre o custo (CMV alvo 50%), referência para revenda em alimentação"><span class="sheet-readonly" style="color:var(--text-mid);font-style:italic;">${custo > 0 ? money(custo * 2) : '—'}</span></td>
+      <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${custo > 0 ? money(custo) + '/' + vendaUnidade : '—'}</span></td>
+      <td><span class="sheet-readonly">${calculavel ? money(margem) : '—'}</span></td>
+      <td><span class="sheet-readonly">${calculavel ? margemPct.toFixed(1) + '%' : '—'}</span></td>
       <td><input class="sheet-input" type="number" min="0" step="0.001" value="${qtd || ''}" onblur="updateRevendaCampo(${p.id}, 'qtdComprada', this.value)" placeholder="ex: 7"></td>
       <td><select class="sheet-select" onchange="updateRevendaCampo(${p.id}, 'compraUnidade', this.value)">${revendaUnidadeOptions(compraUnidade)}</select></td>
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(valor)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'valorCompra', this.value)" placeholder="ex: 18,43"></td>
-      <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${custo > 0 ? money(custo) + '/' + vendaUnidade : '—'}</span></td>
-      <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'preco', this.value)" placeholder="0,00"></td>
-      <td><select class="sheet-select" onchange="updateRevendaCampo(${p.id}, 'precoUnidade', this.value)">${revendaUnidadeOptions(vendaUnidade)}</select></td>
-      <td><span class="sheet-readonly">${calculavel ? money(margem) : '—'}</span></td>
-      <td><span class="sheet-readonly">${calculavel ? margemPct.toFixed(1) + '%' : '—'}</span></td>
-      ${renderCmvTd(cmv, calculavel, 'revenda')}
-      <td title="Preço sugerido: markup 100% sobre o custo (CMV alvo 50%), referência para revenda em alimentação"><span class="sheet-readonly" style="color:var(--text-mid);font-style:italic;">${custo > 0 ? money(custo * 2) : '—'}</span></td>
+      <td>${classSelectHtml(p.nome, `reclassifyRevenda(${p.id}, this.value)`)}</td>
       <td style="white-space:nowrap;">
-        ${classSelectHtml(p.nome, `reclassifyRevenda(${p.id}, this.value)`)}
         <button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))" title="Editar produto">Editar</button>
         <button class="btn btn-ghost btn-icon-delete" onclick="deleteProduto(${p.id})" title="Excluir revenda" aria-label="Excluir revenda">&times;</button>
       </td>
     </tr>`;
   };
   const base = produtos.filter(p => (p.tipo || 'fabricacao') === 'revenda');
-  const emptyMsg = '<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
+  const emptyMsg = '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
   // Painel da aba CMV: usa a ordenação da própria aba (cmvOrdem), sem filtro de busca.
   const cmvBody = document.getElementById('revenda-tbody');
   if (cmvBody) {
