@@ -2007,6 +2007,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <th>Margem %</th>
               <th>Rend.</th>
               <th>Categoria</th>
+              <th></th>
             </tr>
           </thead>
           <tbody id="producao-tbody"></tbody>
@@ -5188,7 +5189,7 @@ function renderProducaoCMV() {
       return (a.nome || '').localeCompare(b.nome || '');
     });
   if (!fabricacao.length) {
-    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>';
     return;
   }
   tbody.innerHTML = fabricacao.map(p => {
@@ -5208,10 +5209,7 @@ function renderProducaoCMV() {
     return `<tr>
       <td>
         <div style="display:flex;align-items:flex-start;gap:6px;">
-          <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-top:3px;">
-            <button class="btn btn-ghost btn-sm" onclick="openFichaParaProduto(${p.id})" title="${temFicha ? 'Ver/editar ficha técnica' : 'Criar ficha técnica'}" style="white-space:nowrap;font-size:10.5px;">${temFicha ? 'Ficha ✓' : 'Ficha'}</button>
-            <button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr=>pr.id===${p.id}))" title="Editar produto" style="white-space:nowrap;font-size:10.5px;">Editar</button>
-          </div>
+          <button class="btn btn-ghost btn-sm" onclick="openFichaParaProduto(${p.id})" title="${temFicha ? 'Ver/editar ficha técnica' : 'Criar ficha técnica'}" style="flex-shrink:0;margin-top:5px;font-size:10.5px;white-space:nowrap;">${temFicha ? 'Ficha ✓' : 'Ficha'}</button>
           <span class="sheet-readonly" style="font-weight:600;">${p.nome}</span>
         </div>
       </td>
@@ -5224,6 +5222,7 @@ function renderProducaoCMV() {
       <td><span class="sheet-readonly">${calculavel ? margem.toFixed(1) + '%' : '—'}</span></td>
       <td><span class="sheet-readonly">${temFicha ? rendimento : '—'}</span></td>
       <td><span class="sheet-readonly" style="font-size:12px;">${p.categoria || '—'}</span></td>
+      <td style="white-space:nowrap;"><button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr=>pr.id===${p.id}))" title="Editar produto">Editar</button></td>
     </tr>`;
   }).join('');
 }
