@@ -1183,23 +1183,235 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   border-bottom: 2px solid var(--border); margin-bottom: 8px;
 }
 
-/* RESPONSIVE */
+/* ============================================================
+   MOBILE BOTTOM NAVIGATION (definido globalmente, ativado via media query)
+   ============================================================ */
+.mobile-bottom-nav {
+  display: none;
+  position: fixed;
+  bottom: 0; left: 0; right: 0;
+  z-index: 150;
+  background: rgba(255,255,255,0.97);
+  backdrop-filter: saturate(180%) blur(20px);
+  -webkit-backdrop-filter: saturate(180%) blur(20px);
+  border-top: 1px solid var(--border);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  box-shadow: 0 -2px 16px rgba(15,23,42,0.09);
+}
+.mob-nav-group {
+  display: flex;
+  align-items: stretch;
+  width: 100%;
+}
+.mob-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 3px;
+  padding: 8px 2px 10px;
+  min-height: 60px;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-light);
+  letter-spacing: 0;
+  line-height: 1.1;
+  -webkit-tap-highlight-color: transparent;
+  transition: color 0.15s;
+  position: relative;
+  user-select: none;
+}
+.mob-nav-item svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  stroke-width: 1.8;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  transition: transform 0.2s cubic-bezier(0.34,1.56,0.64,1), stroke 0.15s;
+  flex-shrink: 0;
+}
+.mob-nav-item.active { color: var(--blue); }
+.mob-nav-item.active svg { transform: translateY(-2px) scale(1.08); }
+.mob-nav-item.active::after {
+  content: '';
+  position: absolute;
+  bottom: 2px; left: 50%;
+  transform: translateX(-50%);
+  width: 20px; height: 3px;
+  background: var(--blue);
+  border-radius: 999px;
+  animation: mob-dot-in 0.22s ease both;
+}
+.mob-nav-item:active { opacity: 0.55; }
+@keyframes mob-dot-in {
+  from { width: 4px; opacity: 0; }
+  to { width: 20px; opacity: 1; }
+}
+@keyframes mob-sheet-in {
+  from { transform: translateY(44px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* ============================================================
+   RESPONSIVE — max-width: 640px
+   ============================================================ */
 @media (max-width: 640px) {
-  .header { padding: 0 16px; height: 64px; }
-  .header-logo { font-size: 15px; }
-  .nav { top: 64px; padding: 8px 12px; }
-  .nav-btn { padding: 8px 12px; font-size: 12px; }
-  .page { padding: 16px 16px 40px; }
-  .section-title { font-size: 23px; }
+  /* Espaço para o bottom nav fixo */
+  body { padding-bottom: calc(60px + env(safe-area-inset-bottom, 0px)); }
+
+  /* Header compacto */
+  .header { padding: 0 14px; height: 56px; }
+  .header-logo { font-size: 14px; }
+  .group-switcher { padding: 3px; }
+  .group-btn { padding: 6px 13px; font-size: 12px; }
+  .unit-switcher { padding: 3px; }
+  .unit-btn { padding: 6px 11px; font-size: 12px; }
+  .unit-switcher-label { font-size: 10px; padding-left: 6px; }
+
+  /* Oculta nav superior; exibe nav inferior */
+  .nav { display: none !important; }
+  .mobile-bottom-nav { display: flex; }
+
+  /* Páginas */
+  .page { padding: 14px 14px 24px; }
+  .section-title { font-size: 20px; }
+  .section-sub { font-size: 13px; margin-bottom: 18px; }
+
+  /* Stats */
+  .stats-row { grid-template-columns: 1fr 1fr; gap: 10px; }
+  .stat-card { padding: 12px; }
+  .stat-value { font-size: 22px; }
+
+  /* Vitrine */
   .vitrine-container { grid-template-columns: 1fr; }
-  .vitrine-shelf { overflow-x: auto; }
+  .vitrine-shelf { overflow-x: auto; -webkit-overflow-scrolling: touch; }
   .vitrine-slot { min-width: 110px; }
-  .stats-row { grid-template-columns: 1fr 1fr; }
+  .vitrine-slot .slot-remove { opacity: 1; }
+
+  /* Abas de dia / filtro */
+  .day-tabs { gap: 5px; }
+  .day-tab { padding: 9px 13px; font-size: 12px; }
+  .vitrine-filter-tab { padding: 9px 13px; font-size: 12px; }
+
+  /* Formulários — font-size 16px previne zoom automático no iOS */
   .form-row { grid-template-columns: 1fr; }
   .form-row.three { grid-template-columns: 1fr; }
+  .form-group input, .form-group select, .form-group textarea {
+    font-size: 16px;
+    min-height: 44px;
+  }
+  .apoio-entry input, .apoio-entry select { font-size: 16px; }
+
+  /* Touch targets mínimos */
+  .btn { min-height: 44px; }
+  .btn-sm { min-height: 36px; }
+  .btn-icon-delete { min-height: 32px; }
+
+  /* Cards */
+  .card { padding: 14px; margin-bottom: 12px; }
+
+  /* Apoio produção */
+  .apoio-entry { grid-template-columns: 1fr 58px 58px; }
+
+  /* Receitas */
   .receita-item-row { grid-template-columns: 1fr; }
+
+  /* Pedido */
   .pedido-item, .pedido-head { grid-template-columns: 1fr 64px; }
   .pedido-item > :nth-child(3), .pedido-head > :nth-child(3) { display: none; }
+  .pedido-header { padding: 14px 16px; }
+  .pedido-title { font-size: 16px; }
+
+  /* Cronograma */
+  .cronograma-row { grid-template-columns: 68px 1fr auto; gap: 8px; }
+
+  /* Lista de slots */
+  .slot-list-row { min-height: 50px; }
+
+  /* Toggle */
+  .toggle-btn { padding: 8px 12px; font-size: 11px; }
+
+  /* Modal → bottom sheet */
+  .modal-overlay { align-items: flex-end; padding: 0; }
+  .modal {
+    border-radius: 20px 20px 0 0;
+    max-height: 90vh;
+    max-width: 100%;
+    padding: 20px 18px calc(20px + env(safe-area-inset-bottom, 0px));
+    animation: mob-sheet-in 0.28s cubic-bezier(0.34,1.10,0.64,1) both;
+  }
+  .modal::before {
+    content: '';
+    display: block;
+    width: 36px; height: 4px;
+    background: var(--border);
+    border-radius: 999px;
+    margin: -8px auto 16px;
+  }
+  .modal-title { font-size: 16px; }
+  .modal-actions { flex-wrap: wrap; }
+  .modal-actions .btn { flex: 1; justify-content: center; min-width: 100px; }
+
+  /* Toast acima do nav inferior */
+  .toast {
+    bottom: calc(60px + env(safe-area-inset-bottom, 0px) + 12px);
+    right: 14px; left: 14px;
+    max-width: none;
+  }
+
+  /* Context menu → bottom sheet */
+  .slot-context-menu {
+    position: fixed !important;
+    left: 0 !important; right: 0 !important;
+    bottom: 0 !important; top: auto !important;
+    border-radius: 16px 16px 0 0;
+    min-width: unset;
+    padding: 8px 8px calc(8px + env(safe-area-inset-bottom, 0px));
+    animation: mob-sheet-in 0.22s ease both;
+  }
+  .slot-context-menu::before {
+    content: '';
+    display: block;
+    width: 32px; height: 4px;
+    background: var(--border);
+    border-radius: 999px;
+    margin: 4px auto 10px;
+  }
+  .slot-context-menu button { padding: 13px 10px; font-size: 14px; min-height: 50px; }
+
+  /* Autocomplete */
+  .ac-item { padding: 12px 13px; font-size: 14px; }
+
+  /* Micro-interações: feedback tátil */
+  .btn:active { transform: scale(0.97); box-shadow: none; }
+  .day-tab:active:not(.active) { transform: scale(0.95); }
+  .vitrine-filter-tab:active:not(.active) { transform: scale(0.95); }
+  .vitrine-slot:active { transform: scale(0.97); }
+  .slot-list-row:active { background: var(--warm); }
+  .card:active { transform: scale(0.995); }
+}
+
+/* Telas muito pequenas (320px) */
+@media (max-width: 380px) {
+  .header-logo span { display: none; }
+  .group-btn { padding: 6px 10px; font-size: 11px; }
+}
+
+/* Respeita preferência de movimento reduzido */
+@media (prefers-reduced-motion: reduce) {
+  .mob-nav-item svg,
+  .mob-nav-item.active::after,
+  .modal,
+  .slot-context-menu,
+  .btn,
+  .vitrine-slot { transition: none !important; animation: none !important; }
 }
 
 /* ============================================================
@@ -3376,7 +3588,13 @@ function showPage(page) {
     document.querySelectorAll('.group-btn').forEach(b => b.classList.toggle('active', b.dataset.group === group));
     document.getElementById('nav-vitrines').style.display = group === 'vitrines' ? 'flex' : 'none';
     document.getElementById('nav-cmv').style.display = group === 'cmv' ? 'flex' : 'none';
+    // Sincroniza nav mobile inferior
+    const mobVit = document.getElementById('mob-nav-vitrines');
+    const mobCmv = document.getElementById('mob-nav-cmv');
+    if (mobVit) mobVit.style.display = group === 'vitrines' ? 'flex' : 'none';
+    if (mobCmv) mobCmv.style.display = group === 'cmv' ? 'flex' : 'none';
   }
+  document.querySelectorAll('.mob-nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
 
   if (page === 'vitrine') renderVitrine();
   if (page === 'cronograma') renderCronograma();
@@ -7936,6 +8154,55 @@ loadFromSupabase().then(() => {
   );
 });
 </script>
+
+<!-- MOBILE BOTTOM NAVIGATION -->
+<nav class="mobile-bottom-nav" id="mobile-bottom-nav" role="navigation" aria-label="Navegação principal">
+
+  <!-- Grupo: Vitrines -->
+  <div class="mob-nav-group" id="mob-nav-vitrines" style="display:none">
+    <button class="mob-nav-item" data-page="vitrine" onclick="showPage('vitrine')" aria-label="Vitrine">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Vitrine</span>
+    </button>
+    <button class="mob-nav-item" data-page="cronograma" onclick="showPage('cronograma')" aria-label="Cronograma">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span>Crono</span>
+    </button>
+    <button class="mob-nav-item" data-page="perdas" onclick="showPage('perdas')" aria-label="Perdas">
+      <svg viewBox="0 0 24 24"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+      <span>Perdas</span>
+    </button>
+    <button class="mob-nav-item" data-page="pedido" onclick="showPage('pedido')" aria-label="Pedido de Produção">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+      <span>Pedido</span>
+    </button>
+    <button class="mob-nav-item" data-page="historico" onclick="showPage('historico')" aria-label="Histórico de Produção">
+      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></svg>
+      <span>Histórico</span>
+    </button>
+  </div>
+
+  <!-- Grupo: CMV -->
+  <div class="mob-nav-group" id="mob-nav-cmv" style="display:flex">
+    <button class="mob-nav-item" data-page="insumos" onclick="showPage('insumos')" aria-label="Insumos e Fichas">
+      <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"/></svg>
+      <span>Insumos</span>
+    </button>
+    <button class="mob-nav-item active" data-page="cmv" onclick="showPage('cmv')" aria-label="CMV">
+      <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      <span>CMV</span>
+    </button>
+    <button class="mob-nav-item" data-page="fornecedores" onclick="showPage('fornecedores')" aria-label="Fornecedores">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+      <span>Fornec.</span>
+    </button>
+    <button class="mob-nav-item" data-page="banco" onclick="showPage('banco')" aria-label="Banco de Dados">
+      <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      <span>Dados</span>
+    </button>
+  </div>
+
+</nav>
 </body>
 </html>
 
