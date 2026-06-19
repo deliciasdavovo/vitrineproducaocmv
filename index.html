@@ -5182,6 +5182,19 @@ function syncRevendaUltimaCompra(p) {
   atual.compraUnidade = p.compraUnidade || atual.compraUnidade || p.precoUnidade || 'un';
 }
 
+function openFichaParaProduto(prodId) {
+  const receitas = getReceitasByProduto(prodId);
+  if (receitas.length > 0) {
+    openReceitaModal(receitas[0]);
+  } else {
+    openReceitaModal(null);
+    setTimeout(() => {
+      const sel = document.getElementById('rec-produto');
+      if (sel) sel.value = prodId;
+    }, 50);
+  }
+}
+
 function renderProducaoCMV() {
   const tbody = document.getElementById('producao-tbody');
   if (!tbody) return;
@@ -5217,7 +5230,15 @@ function renderProducaoCMV() {
       ? `${money(custoNaUnidade)}/kg`
       : `${money(custoTotal / rendimento)}/un`;
     return `<tr>
-      <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span></td>
+      <td>
+        <div style="display:flex;align-items:flex-start;gap:6px;">
+          <div style="display:flex;flex-direction:column;gap:3px;flex-shrink:0;margin-top:3px;">
+            <button class="btn btn-ghost btn-sm" onclick="openFichaParaProduto(${p.id})" title="${temFicha ? 'Ver/editar ficha técnica' : 'Criar ficha técnica'}" style="white-space:nowrap;font-size:10.5px;">${temFicha ? 'Ficha ✓' : 'Ficha'}</button>
+            <button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr=>pr.id===${p.id}))" title="Editar produto" style="white-space:nowrap;font-size:10.5px;">Editar</button>
+          </div>
+          <span class="sheet-readonly" style="font-weight:600;">${p.nome}</span>
+        </div>
+      </td>
       ${renderCmvTd(cmv, calculavel, 'fabricacao')}
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateProducaoPreco(${p.id}, this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
       <td title="Preço sugerido: CMV alvo 35%"><span class="sheet-readonly" style="color:var(--blue);font-weight:700;background:#F1F5F9;padding:2px 8px;border-radius:5px;">${custoNaUnidade > 0 ? money(custoNaUnidade / 0.35) : '—'}</span></td>
