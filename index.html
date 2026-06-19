@@ -994,7 +994,8 @@ tr:hover td { background: var(--surface-soft); }
 /* Planilhas de insumos / produtos / revenda: reduz o zoom para caber todas
    as colunas na tela sem precisar rolar para o lado. */
 #page-insumos .sheet-table,
-#page-produtos .sheet-table { zoom: 0.8; }
+#page-produtos .sheet-table,
+#page-cmv .sheet-table { zoom: 0.8; }
 
 /* Campo de nome que quebra a linha para mostrar o nome inteiro do produto/insumo. */
 .sheet-name {
@@ -5242,8 +5243,10 @@ function renderRevendaCMV() {
     const calculavel = preco > 0 && custo > 0;
     return `<tr data-id="${p.id}"${revNewIds.has(p.id) ? ' class="sheet-row-new"' : ''}>
       <td>
-        ${sheetNameField(p.nome, `updateProdutoCell(${p.id},'nome',this.value)`, 'Nome do produto', 'font-weight:600;')}
-        <button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Carrinho de compras" aria-label="Carrinho de compras" style="margin-top:4px;">${cartBtnLabel((p.historicoCompras || []).length)}</button>
+        <div style="display:flex;align-items:flex-start;gap:6px;">
+          <button class="btn btn-ghost btn-sm" onclick="openRevendaHistoricoModal(${p.id})" title="Carrinho de compras" aria-label="Carrinho de compras" style="flex-shrink:0;margin-top:5px;">${cartBtnLabel((p.historicoCompras || []).length)}</button>
+          ${sheetNameField(p.nome, `updateProdutoCell(${p.id},'nome',this.value)`, 'Nome do produto', '')}
+        </div>
       </td>
       ${renderCmvTd(cmv, calculavel, 'revenda')}
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'preco', this.value)" placeholder="0,00"></td>
