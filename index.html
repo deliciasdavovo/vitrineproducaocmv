@@ -4948,6 +4948,8 @@ let currentCmvTab = 'producao';
 let currentInsumosTab = 'fabricacao';
 let currentReceitaView = 'flat';
 let lastAddedReceitaId = null;
+let fichasStatusBarOpen = false;
+let fabFichaOpenId = null;
 
 // Busca e ordenação das planilhas de Insumos & Fichas
 let fabBusca = '', fabOrdem = 'nome';
@@ -5082,9 +5084,29 @@ function renderFabricacaoSheet(resort = true) {
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'precoUnidade',this.value)">${precoUnidadeOptions(getPrecoUnidadeLabel(p))}</select></td>
       <td><span class="sheet-readonly">${custoNaUnidade > 0 ? money(custoNaUnidade) + custoLabel : (temFicha ? '—' : '<span style="color:var(--text-light);">sem ficha</span>')}</span></td>
       ${renderCmvTd(cmv, calculavel, 'fabricacao')}
-      <td><button class="btn btn-ghost btn-sm" onclick="openFichaParaProduto(${p.id}, ${!temFicha})" title="Ver ficha técnica">${temFicha ? 'Ver ficha' : '+ Ficha'}</button></td>
+      <td style="white-space:nowrap;">
+        ${temFicha
+          ? `<button class="btn btn-ghost btn-sm" onclick="toggleFabFichaPreview(${p.id})" title="Ver ficha técnica" style="${fabFichaOpenId === p.id ? 'background:var(--surface-soft);' : ''}">
+               ${fabFichaOpenId === p.id ? '▲' : '▼'} Ficha
+             </button>`
+          : `<button class="btn btn-ghost btn-sm" onclick="openFichaParaProduto(${p.id}, true)" title="Criar ficha técnica">+ Ficha</button>`
+        }
+      </td>
       <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
     </tr>`);
+    if (temFicha && fabFichaOpenId === p.id) {
+      linhas.push(`<tr>
+        <td colspan="12" style="padding:0;background:var(--surface-soft);border-bottom:2px solid var(--border);">
+          <div style="padding:12px 16px;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;">
+              <span style="font-weight:600;font-size:12px;color:var(--text-mid);">Ficha técnica — ${escHtml(p.nome || '')}</span>
+              <button class="btn btn-ghost btn-sm" onclick="openFichaParaProduto(${p.id})" style="font-size:11px;" title="Abrir editor completo">✏ Editar ficha</button>
+            </div>
+            ${renderFichaPreviewHTML(p.id)}
+          </div>
+        </td>
+      </tr>`);
+    }
   });
   tbody.innerHTML = linhas.join('') || `<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado — clique em "+ Novo produto de fabricação"</td></tr>`;
 }
@@ -6260,14 +6282,65 @@ function renderFichasStatusBar() {
   if (!fabProdutos.length) { bar.innerHTML = ''; return; }
   const comFicha = fabProdutos.filter(p => getReceitasByProduto(p.id).length > 0);
   const semFicha = fabProdutos.filter(p => getReceitasByProduto(p.id).length === 0);
-  const semFichaLinks = semFicha.map(p =>
-    `<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:2px 7px;height:auto;" onclick="openFichaParaProduto(${p.id}, true)">${escHtml(p.nome || '(sem nome)')}</button>`
-  ).join('');
-  bar.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;background:var(--surface-soft);border:1px solid var(--border);border-radius:8px;font-size:12px;">
-    <span style="color:var(--text-mid);font-weight:600;">Fichas técnicas:</span>
-    <span style="color:var(--green);font-weight:700;">${comFicha.length} com ficha</span>
-    ${semFicha.length ? `<span style="color:var(--text-mid);">·</span><span style="color:#B45309;font-weight:700;">${semFicha.length} sem ficha</span><span style="color:var(--text-light);margin:0 2px;">→</span>${semFichaLinks}` : ''}
+  const hasSemFicha = semFicha.length > 0;
+  const semFichaLinks = hasSemFicha && fichasStatusBarOpen
+    ? `<div style="display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;padding-top:8px;border-top:1px solid var(--border);">${semFicha.map(p =>
+        `<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:2px 8px;height:auto;" onclick="openFichaParaProduto(${p.id}, true)">${escHtml(p.nome || '(sem nome)')}</button>`
+      ).join('')}</div>`
+    : '';
+  bar.innerHTML = `<div style="padding:8px 12px;background:var(--surface-soft);border:1px solid var(--border);border-radius:8px;font-size:12px;">
+    <div style="display:flex;align-items:center;justify-content:space-between;">
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <span style="color:var(--text-mid);font-weight:600;">Fichas técnicas:</span>
+        <span style="color:var(--green);font-weight:700;">${comFicha.length} com ficha</span>
+        ${hasSemFicha ? `<span style="color:var(--text-mid);">·</span><span style="color:#B45309;font-weight:700;">${semFicha.length} sem ficha</span>` : ''}
+      </div>
+      ${hasSemFicha ? `<button onclick="toggleFichasStatusBar()" style="background:none;border:none;cursor:pointer;font-size:11px;color:var(--text-mid);padding:2px 4px;" title="${fichasStatusBarOpen ? 'Recolher' : 'Ver produtos sem ficha'}">${fichasStatusBarOpen ? '▲ recolher' : '▼ ver produtos'}</button>` : ''}
+    </div>
+    ${semFichaLinks}
   </div>`;
+}
+
+function toggleFichasStatusBar() {
+  fichasStatusBarOpen = !fichasStatusBarOpen;
+  renderFichasStatusBar();
+}
+
+function toggleFabFichaPreview(prodId) {
+  fabFichaOpenId = fabFichaOpenId === prodId ? null : prodId;
+  renderFabricacaoSheet(false);
+}
+
+function renderFichaPreviewHTML(prodId) {
+  const linhas = getReceitasByProduto(prodId);
+  if (!linhas.length) return `<p style="color:var(--text-light);font-size:12px;margin:0;">Sem ingredientes cadastrados.</p>`;
+  const prod = produtos.find(p => p.id === prodId);
+  const rendimento = getProdutoReceitaRendimento(prodId);
+  const unidade = getProdutoReceitaUnidade(prodId);
+  const custoTotal = prod ? getProdutoCustoNaUnidadePreco(prod) : 0;
+  const rows = linhas.map(r => {
+    const item = r.itens?.[0] || {};
+    const ing = ingredientes.find(i => i.id === item.ingId);
+    const usoUnid = getItemUsoUnidade(item, ing);
+    const custo = getReceitaItemCusto(item);
+    return `<tr>
+      <td style="padding:3px 8px;">${escHtml(ing?.nome || '—')}</td>
+      <td style="padding:3px 8px;color:var(--text-mid);">${item.qtd || 0} ${usoUnid}</td>
+      <td style="padding:3px 8px;color:var(--text-mid);">${custo > 0 ? money(custo) : '—'}</td>
+    </tr>`;
+  }).join('');
+  return `<table style="width:100%;font-size:12px;border-collapse:collapse;">
+    <thead><tr style="border-bottom:1px solid var(--border);">
+      <th style="text-align:left;padding:3px 8px;font-weight:600;color:var(--text-light);">Ingrediente</th>
+      <th style="text-align:left;padding:3px 8px;font-weight:600;color:var(--text-light);">Qtd.</th>
+      <th style="text-align:left;padding:3px 8px;font-weight:600;color:var(--text-light);">Custo</th>
+    </tr></thead>
+    <tbody>${rows}</tbody>
+    <tfoot><tr style="border-top:1px solid var(--border);">
+      <td colspan="2" style="padding:4px 8px;font-size:11px;color:var(--text-mid);">Rendimento: <strong>${rendimento} ${unidade}</strong></td>
+      <td style="padding:4px 8px;font-weight:700;">${money(custoTotal)}</td>
+    </tfoot>
+  </table>`;
 }
 
 function openFichaParaProduto(prodId, addIfEmpty = false) {
