@@ -2000,6 +2000,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <th>Produto</th>
               <th>CMV %</th>
               <th>Preço venda (R$)</th>
+              <th title="Preço sugerido: CMV alvo 35% (markup ~186% sobre o custo)">Preço sug.</th>
               <th>Custo ficha</th>
               <th>Custo un.</th>
               <th>Lucro un.</th>
@@ -5175,7 +5176,7 @@ function renderProducaoCMV() {
       return (a.nome || '').localeCompare(b.nome || '');
     });
   if (!fabricacao.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>';
     return;
   }
   tbody.innerHTML = fabricacao.map(p => {
@@ -5196,6 +5197,7 @@ function renderProducaoCMV() {
       <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span></td>
       ${renderCmvTd(cmv, calculavel, 'fabricacao')}
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateProducaoPreco(${p.id}, this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
+      <td title="Preço sugerido: CMV alvo 35%"><span class="sheet-readonly" style="color:var(--text-mid);font-style:italic;">${custoNaUnidade > 0 ? money(custoNaUnidade / 0.35) : '—'}</span></td>
       <td><span class="sheet-readonly">${temFicha ? money(custoTotal) : '<span style="color:var(--text-light);">sem ficha</span>'}</span></td>
       <td><span class="sheet-readonly">${custoNaUnidade > 0 ? custoUnDisplay : '—'}</span></td>
       <td><span class="sheet-readonly" style="font-weight:600;color:${lucro >= 0 ? 'var(--green)' : 'var(--red)'};">${calculavel ? money(lucro) : '—'}</span></td>
