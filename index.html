@@ -1927,6 +1927,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <th>CMV %</th>
               <th>Preço venda (R$)</th>
               <th>Vende por</th>
+              <th title="Preço sugerido: markup 100% sobre o custo (CMV alvo 50%)">Preço sug.</th>
               <th>Custo un.</th>
               <th>Margem R$</th>
               <th>Margem %</th>
@@ -2025,6 +2026,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <th>CMV %</th>
               <th>Preço venda (R$)</th>
               <th>Vende por</th>
+              <th title="Preço sugerido: markup 100% sobre o custo (CMV alvo 50%)">Preço sug.</th>
               <th>Custo un.</th>
               <th>Margem R$</th>
               <th>Margem %</th>
@@ -5244,6 +5246,7 @@ function renderRevendaCMV() {
       ${renderCmvTd(cmv, calculavel, 'revenda')}
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'preco', this.value)" placeholder="0,00"></td>
       <td><select class="sheet-select" onchange="updateRevendaCampo(${p.id}, 'precoUnidade', this.value)">${revendaUnidadeOptions(vendaUnidade)}</select></td>
+      <td title="Preço sugerido: markup 100% sobre o custo (CMV alvo 50%), referência para revenda em alimentação"><span class="sheet-readonly" style="color:var(--text-mid);font-style:italic;">${custo > 0 ? money(custo * 2) : '—'}</span></td>
       <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${custo > 0 ? money(custo) + '/' + vendaUnidade : '—'}</span></td>
       <td><span class="sheet-readonly">${calculavel ? money(margem) : '—'}</span></td>
       <td><span class="sheet-readonly">${calculavel ? margemPct.toFixed(1) + '%' : '—'}</span></td>
@@ -5258,7 +5261,7 @@ function renderRevendaCMV() {
     </tr>`;
   };
   const base = produtos.filter(p => (p.tipo || 'fabricacao') === 'revenda');
-  const emptyMsg = '<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
+  const emptyMsg = '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
   // Painel da aba CMV: usa a ordenação da própria aba (cmvOrdem), sem filtro de busca.
   const cmvBody = document.getElementById('revenda-tbody');
   if (cmvBody) {
