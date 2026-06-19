@@ -1696,7 +1696,8 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
   <!-- PAINEL REVENDA -->
   <div id="insumos-panel-revenda" style="display:none;">
-    <p class="section-sub" style="margin-bottom:12px;">Produtos comprados prontos: registre a compra, o custo unitario e o preco de venda em formato de planilha.</p>
+    <p class="section-sub" style="margin-bottom:8px;">Produtos comprados prontos: registre a compra, o custo unitário e o preço de venda em formato de planilha.</p>
+    <p class="section-sub" style="margin-bottom:12px;font-size:12px;"><strong>Markup alvo para revenda</strong>: 100% sobre o custo (CMV 50%) · <span style="color:#166534;">Bom: &lt; 45%</span> · <span style="color:#92400E;">Atenção: 45–55%</span> · <span style="color:#991B1B;">Alto: &gt; 55%</span></p>
     <div class="sheet-toolbar" style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;align-items:center;">
       <input type="text" placeholder="Buscar produto..." oninput="setRevBusca(this.value)" style="flex:1;min-width:180px;border:1px solid var(--border);border-radius:8px;padding:9px 12px;font-size:13px;font-family:var(--font-sans);outline:none;background:var(--surface);">
       <select class="sheet-select" onchange="setRevOrdem(this.value)" style="width:auto;">
@@ -1720,6 +1721,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <th>Margem R$</th>
               <th>Margem %</th>
               <th>CMV %</th>
+              <th title="Preço sugerido: markup 100% sobre o custo (CMV alvo 50%)">Preço sug.</th>
               <th></th>
             </tr>
           </thead>
@@ -1754,7 +1756,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
     </div>
     <div class="stat-card" id="cmv-stat-card-alertas">
       <div class="stat-value" id="cmv-stat-alertas">0</div>
-      <div class="stat-label">Produtos acima de 35%</div>
+      <div class="stat-label" title="Fabricação: CMV > 35% · Revenda: CMV > 55%">Produtos CMV alto</div>
     </div>
   </div>
 
@@ -1800,7 +1802,8 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
   <!-- PAINEL REVENDA CMV -->
   <div id="cmv-panel-revenda" style="display:none;">
-    <p class="section-sub" style="margin-bottom:12px;">Produtos comprados prontos: informe a última compra (quantidade e valor pago) e o custo unitário, margem e CMV saem sozinhos.</p>
+    <p class="section-sub" style="margin-bottom:8px;">Produtos comprados prontos: informe a última compra (quantidade e valor pago) e o custo unitário, margem e CMV saem sozinhos.</p>
+    <p class="section-sub" style="margin-bottom:12px;font-size:12px;"><strong>Referência de markup para revenda</strong> (alimentação — Sebrae): markup alvo de 100% sobre o custo (CMV 50%) · <span style="color:#166534;">Bom: CMV &lt; 45%</span> · <span style="color:#92400E;">Atenção: 45–55%</span> · <span style="color:#991B1B;">Alto: &gt; 55%</span></p>
     <div class="sheet-card">
       <div class="table-wrap">
         <table class="sheet-table">
@@ -1816,6 +1819,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <th>Margem R$</th>
               <th>Margem %</th>
               <th>CMV %</th>
+              <th title="Preço sugerido: markup 100% sobre o custo (CMV alvo 50%)">Preço sug.</th>
               <th></th>
             </tr>
           </thead>
@@ -4691,15 +4695,23 @@ function getProdutoCustoNaUnidadePreco(prod) {
   return custoTotal / rendimento;
 }
 
-function getCmvStatus(cmv) {
+// Para fabricação própria: meta CMV < 28% (Bom), 28-35% (Atenção), > 35% (Alto)
+// Para revenda: meta CMV < 45% (Bom), 45-55% (Atenção), > 55% (Alto)
+// — markup alvo revenda: 2× o custo (100% sobre o custo), CMV alvo 50%
+function getCmvStatus(cmv, tipo) {
+  if (tipo === 'revenda') {
+    if (cmv > 55) return { label: 'Alto', badge: 'badge-red', color: '#991B1B', bg: '#FEE2E2' };
+    if (cmv > 45) return { label: 'Atenção', badge: 'badge-yellow', color: '#92400E', bg: '#FEF9C3' };
+    return { label: 'Bom', badge: 'badge-green', color: '#166534', bg: '#DCFCE7' };
+  }
   if (cmv > 35) return { label: 'Alto', badge: 'badge-red', color: '#991B1B', bg: '#FEE2E2' };
   if (cmv > 28) return { label: 'Atenção', badge: 'badge-yellow', color: '#92400E', bg: '#FEF9C3' };
   return { label: 'Bom', badge: 'badge-green', color: '#166534', bg: '#DCFCE7' };
 }
 
-function renderCmvTd(cmv, calculavel) {
+function renderCmvTd(cmv, calculavel, tipo) {
   if (!calculavel) return `<td>—</td>`;
-  const s = getCmvStatus(cmv);
+  const s = getCmvStatus(cmv, tipo);
   return `<td style="background:${s.bg};padding:0;"><div class="cmv-full-cell" style="color:${s.color};"><span class="cmv-pct">${cmv.toFixed(1)}%</span><span class="cmv-lbl">${s.label}</span></div></td>`;
 }
 
@@ -4846,7 +4858,7 @@ function renderFabricacaoSheet(resort = true) {
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateFabricacaoCell(${p.id},'preco',this.value)" placeholder="0,00" style="min-width:80px;"></td>
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'precoUnidade',this.value)">${precoUnidadeOptions(getPrecoUnidadeLabel(p))}</select></td>
       <td><span class="sheet-readonly">${custoNaUnidade > 0 ? money(custoNaUnidade) + custoLabel : (temFicha ? '—' : '<span style="color:var(--text-light);">sem ficha</span>')}</span></td>
-      ${renderCmvTd(cmv, calculavel)}
+      ${renderCmvTd(cmv, calculavel, 'fabricacao')}
       <td><button class="btn btn-ghost btn-sm" onclick="setInsumosTab('receitas')" title="Ver fichas técnicas">${temFicha ? 'Ver ficha' : '+ Ficha'}</button></td>
       <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
     </tr>`);
@@ -4960,7 +4972,7 @@ function renderProducaoCMV() {
       : `${money(custoTotal / rendimento)}/un`;
     return `<tr>
       <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span></td>
-      ${renderCmvTd(cmv, calculavel)}
+      ${renderCmvTd(cmv, calculavel, 'fabricacao')}
       <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(preco)}" oninput="maskMoney(this)" onblur="updateProducaoPreco(${p.id}, this.value)" placeholder="0,00"><span class="sheet-readonly" style="font-size:11px;color:var(--text-light);padding-top:0;">por ${getPrecoUnidadeLabel(p)}</span></td>
       <td><span class="sheet-readonly">${temFicha ? money(custoTotal) : '<span style="color:var(--text-light);">sem ficha</span>'}</span></td>
       <td><span class="sheet-readonly">${custoNaUnidade > 0 ? custoUnDisplay : '—'}</span></td>
@@ -5019,7 +5031,8 @@ function renderRevendaCMV() {
       <td><select class="sheet-select" onchange="updateRevendaCampo(${p.id}, 'precoUnidade', this.value)">${revendaUnidadeOptions(vendaUnidade)}</select></td>
       <td><span class="sheet-readonly">${calculavel ? money(margem) : '—'}</span></td>
       <td><span class="sheet-readonly">${calculavel ? margemPct.toFixed(1) + '%' : '—'}</span></td>
-      ${renderCmvTd(cmv, calculavel)}
+      ${renderCmvTd(cmv, calculavel, 'revenda')}
+      <td title="Preço sugerido: markup 100% sobre o custo (CMV alvo 50%), referência para revenda em alimentação"><span class="sheet-readonly" style="color:var(--text-mid);font-style:italic;">${custo > 0 ? money(custo * 2) : '—'}</span></td>
       <td style="white-space:nowrap;">
         ${classSelectHtml(p.nome, `reclassifyRevenda(${p.id}, this.value)`)}
         <button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))" title="Editar produto">Editar</button>
@@ -5028,7 +5041,7 @@ function renderRevendaCMV() {
     </tr>`;
   };
   const base = produtos.filter(p => (p.tipo || 'fabricacao') === 'revenda');
-  const emptyMsg = '<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
+  const emptyMsg = '<tr><td colspan="12" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
   // Painel da aba CMV: usa a ordenação da própria aba (cmvOrdem), sem filtro de busca.
   const cmvBody = document.getElementById('revenda-tbody');
   if (cmvBody) {
@@ -5766,7 +5779,8 @@ function renderCMV() {
   const cmvs = [...cmvsFabricacao, ...cmvsRevenda];
 
   const media = cmvs.length ? cmvs.reduce((a, b) => a + b, 0) / cmvs.length : 0;
-  const alertas = cmvs.filter(v => v > 35).length;
+  // Alertas por tipo: fabricação > 35%, revenda > 55% (thresholds diferentes por tipo de produto)
+  const alertas = cmvsFabricacao.filter(v => v > 35).length + cmvsRevenda.filter(v => v > 55).length;
   document.getElementById('cmv-stat-ingredientes').textContent = ingredientes.length;
   document.getElementById('cmv-stat-receitas').textContent = receitas.length;
 
@@ -5976,7 +5990,7 @@ function renderReceitaRow(receita) {
     <td>${unidadeCell}</td>
     <td>${pesoCell}</td>
     <td><span class="sheet-readonly" title="Custo total da ficha técnica por unidade">${custoLabel}</span></td>
-    ${renderCmvTd(cmv, cmvCalculavel)}
+    ${renderCmvTd(cmv, cmvCalculavel, 'fabricacao')}
     <td style="white-space:nowrap;">
       <button class="btn btn-ghost btn-sm" onclick="duplicateReceita(${receita.id})" title="Duplicar esta linha">⧉</button>
       <button class="btn btn-ghost btn-sm" onclick="insertReceitaRowAfter(${receita.id})" title="Inserir linha abaixo">+</button>
