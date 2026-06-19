@@ -2033,9 +2033,6 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
               <th>Custo un.</th>
               <th>Margem R$</th>
               <th>Margem %</th>
-              <th>Qtd. comprada</th>
-              <th>Un. compra</th>
-              <th>Valor da compra (R$)</th>
               <th>Categoria</th>
               <th></th>
             </tr>
@@ -5274,7 +5271,7 @@ function renderRevendaCMV() {
     if (ordem === 'cmv') return revCmv(b) - revCmv(a);
     return (a.nome || '').localeCompare(b.nome || '');
   });
-  const buildRow = p => {
+  const buildRow = (p, showCompra = true) => {
     const uc = getUltimaCompraRevenda(p);
     const qtd = Number(uc.qtdCompra) || Number(p.qtdComprada) || 0;
     const valor = Number(uc.custoCompra) || Number(p.valorCompra) || 0;
@@ -5300,9 +5297,9 @@ function renderRevendaCMV() {
       <td><span class="sheet-readonly" style="font-family:var(--font-mono);">${custo > 0 ? money(custo) + '/' + vendaUnidade : '—'}</span></td>
       <td><span class="sheet-readonly">${calculavel ? money(margem) : '—'}</span></td>
       <td><span class="sheet-readonly">${calculavel ? margemPct.toFixed(1) + '%' : '—'}</span></td>
-      <td><input class="sheet-input" type="number" min="0" step="0.001" value="${qtd || ''}" onblur="updateRevendaCampo(${p.id}, 'qtdComprada', this.value)" placeholder="ex: 7"></td>
+      ${showCompra ? `<td><input class="sheet-input" type="number" min="0" step="0.001" value="${qtd || ''}" onblur="updateRevendaCampo(${p.id}, 'qtdComprada', this.value)" placeholder="ex: 7"></td>
       <td><select class="sheet-select" onchange="updateRevendaCampo(${p.id}, 'compraUnidade', this.value)">${revendaUnidadeOptions(compraUnidade)}</select></td>
-      <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(valor)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'valorCompra', this.value)" placeholder="ex: 18,43"></td>
+      <td><input class="sheet-input" type="text" inputmode="decimal" value="${moneyInputVal(valor)}" oninput="maskMoney(this)" onblur="updateRevendaCampo(${p.id}, 'valorCompra', this.value)" placeholder="ex: 18,43"></td>` : ''}
       <td>${classSelectHtml(p.nome, `reclassifyRevenda(${p.id}, this.value)`)}</td>
       <td style="white-space:nowrap;">
         <button class="btn btn-ghost btn-sm" onclick="openProdModal(produtos.find(pr => pr.id === ${p.id}))" title="Editar produto">Editar</button>
@@ -5311,12 +5308,13 @@ function renderRevendaCMV() {
     </tr>`;
   };
   const base = produtos.filter(p => (p.tipo || 'fabricacao') === 'revenda');
-  const emptyMsg = '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
+  const emptyMsgCmv = '<tr><td colspan="10" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
+  const emptyMsgIns = '<tr><td colspan="13" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de revenda cadastrado. Use o botão abaixo para adicionar.</td></tr>';
   // Painel da aba CMV: usa a ordenação da própria aba (cmvOrdem), sem filtro de busca.
   const cmvBody = document.getElementById('revenda-tbody');
   if (cmvBody) {
     const lista = sortRevenda(base, cmvOrdem);
-    cmvBody.innerHTML = lista.length ? lista.map(buildRow).join('') : emptyMsg;
+    cmvBody.innerHTML = lista.length ? lista.map(p => buildRow(p, false)).join('') : emptyMsgCmv;
   }
   // Painel da aba Insumos: mantém busca e ordenação próprias (revBusca / revOrdem).
   const insBody = document.getElementById('insumos-revenda-tbody');
@@ -5325,7 +5323,7 @@ function renderRevendaCMV() {
       base.filter(p => !revBusca || (p.nome || '').toLowerCase().includes(revBusca)),
       revOrdem
     );
-    insBody.innerHTML = lista.length ? lista.map(buildRow).join('') : emptyMsg;
+    insBody.innerHTML = lista.length ? lista.map(p => buildRow(p, true)).join('') : emptyMsgIns;
   }
 }
 
