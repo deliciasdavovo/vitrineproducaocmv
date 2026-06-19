@@ -1873,6 +1873,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         <option value="cmv">Ordenar: Maior CMV</option>
       </select>
     </div>
+    <div id="fichas-status-bar" style="margin-bottom:10px;"></div>
     <div id="receitas-container">
       <div class="sheet-card">
         <div class="table-wrap">
@@ -4945,6 +4946,7 @@ function renderMarginIndicator(value, calculavel, suffix = '') {
 let currentCmvTab = 'producao';
 let currentInsumosTab = 'fabricacao';
 let currentReceitaView = 'flat';
+let lastAddedReceitaId = null;
 
 // Busca e ordenação das planilhas de Insumos & Fichas
 let fabBusca = '', fabOrdem = 'nome';
@@ -5079,7 +5081,7 @@ function renderFabricacaoSheet(resort = true) {
       <td><select class="sheet-select" onchange="updateFabricacaoCell(${p.id},'precoUnidade',this.value)">${precoUnidadeOptions(getPrecoUnidadeLabel(p))}</select></td>
       <td><span class="sheet-readonly">${custoNaUnidade > 0 ? money(custoNaUnidade) + custoLabel : (temFicha ? '—' : '<span style="color:var(--text-light);">sem ficha</span>')}</span></td>
       ${renderCmvTd(cmv, calculavel, 'fabricacao')}
-      <td><button class="btn btn-ghost btn-sm" onclick="setInsumosTab('receitas')" title="Ver fichas técnicas">${temFicha ? 'Ver ficha' : '+ Ficha'}</button></td>
+      <td><button class="btn btn-ghost btn-sm" onclick="openFichaParaProduto(${p.id}, ${!temFicha})" title="Ver ficha técnica">${temFicha ? 'Ver ficha' : '+ Ficha'}</button></td>
       <td><button class="btn btn-ghost btn-sm" onclick="deleteProduto(${p.id})" style="color:var(--red)">×</button></td>
     </tr>`);
   });
@@ -6175,7 +6177,7 @@ function renderIngredientes() {
   tbody.innerHTML = rows.join('') || `<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum item nesta classificacao</td></tr>`;
 }
 
-function renderReceitaRow(receita) {
+function renderReceitaRow(receita, readOnlyProduct = false) {
   const prod = produtos.find(p => p.id === receita.prodId);
   const custoTotal = prod ? getProdutoReceitaCusto(prod.id) : getReceitaCusto(receita);
   const rendimento = prod ? getProdutoReceitaRendimento(prod.id) : (Number(receita.rendimento) || 1);
@@ -6197,12 +6199,11 @@ function renderReceitaRow(receita) {
   const pesoCell = isPrincipal
     ? `<input class="sheet-input" type="number" min="0" step="0.1" value="${receita.pesoPorUnidade || ''}" onblur="updateReceitaCell(${receita.id}, 'pesoPorUnidade', this.value)" placeholder="—" style="width:70px;">`
     : `<span class="sheet-readonly" style="color:var(--text-light);">${pesoG || '—'}</span>`;
-  return `<tr>
-    <td>
-      <select class="sheet-select" onchange="updateReceitaCell(${receita.id}, 'prodId', this.value)">
-        ${produtos.map(p => `<option value="${p.id}" ${p.id === receita.prodId ? 'selected' : ''}>${p.nome}</option>`).join('')}
-      </select>
-    </td>
+  const prodCell = readOnlyProduct
+    ? `<td><span class="sheet-readonly">${prod?.nome || 'Produto desconhecido'}</span></td>`
+    : `<td><select class="sheet-select" onchange="updateReceitaCell(${receita.id}, 'prodId', this.value)">${produtos.map(p => `<option value="${p.id}" ${p.id === receita.prodId ? 'selected' : ''}>${escHtml(p.nome || '')}</option>`).join('')}</select></td>`;
+  return `<tr data-receita-id="${receita.id}"${receita.id === lastAddedReceitaId ? ' class="sheet-row-new"' : ''}>
+    ${prodCell}
     <td>${renderReceitaIngredientesCell(receita)}</td>
     <td>${renderReceitaQtdCell(receita)}</td>
     <td><span class="sheet-readonly" title="Custo deste insumo na quantidade usada">${custoInsumo > 0 ? money(custoInsumo) : '—'}</span></td>
@@ -6246,6 +6247,39 @@ function renderReceitaSheet() {
     renderReceitaGrouped();
   } else {
     renderReceitaByCategory();
+  }
+  renderFichasStatusBar();
+}
+
+function renderFichasStatusBar() {
+  const bar = document.getElementById('fichas-status-bar');
+  if (!bar) return;
+  const fabProdutos = produtos.filter(p => (p.tipo || 'fabricacao') === 'fabricacao');
+  if (!fabProdutos.length) { bar.innerHTML = ''; return; }
+  const comFicha = fabProdutos.filter(p => getReceitasByProduto(p.id).length > 0);
+  const semFicha = fabProdutos.filter(p => getReceitasByProduto(p.id).length === 0);
+  const semFichaLinks = semFicha.map(p =>
+    `<button class="btn btn-ghost btn-sm" style="font-size:11px;padding:2px 7px;height:auto;" onclick="openFichaParaProduto(${p.id}, true)">${escHtml(p.nome || '(sem nome)')}</button>`
+  ).join('');
+  bar.innerHTML = `<div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:8px 12px;background:var(--surface-soft);border:1px solid var(--border);border-radius:8px;font-size:12px;">
+    <span style="color:var(--text-mid);font-weight:600;">Fichas técnicas:</span>
+    <span style="color:var(--green);font-weight:700;">${comFicha.length} com ficha</span>
+    ${semFicha.length ? `<span style="color:var(--text-mid);">·</span><span style="color:#B45309;font-weight:700;">${semFicha.length} sem ficha</span><span style="color:var(--text-light);margin:0 2px;">→</span>${semFichaLinks}` : ''}
+  </div>`;
+}
+
+function openFichaParaProduto(prodId, addIfEmpty = false) {
+  setInsumosTab('receitas');
+  const temFicha = getReceitasByProduto(parseInt(prodId)).length > 0;
+  if (!temFicha && addIfEmpty) {
+    setReceitaView('grouped');
+    addReceitaRow(prodId);
+  } else {
+    setReceitaView('grouped');
+    setTimeout(() => {
+      const el = document.querySelector(`[data-prod-ficha="${prodId}"]`);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }, 100);
   }
 }
 
@@ -6306,7 +6340,7 @@ function renderReceitaGrouped() {
     const isKg = prod && (prod.precoUnidade || 'un') === 'kg';
     const custoLabel = isKg && pesoG > 0 ? `${money(custoNaUnidade)}/kg` : `${money(custoNaUnidade)}/un`;
     return `
-      <div class="sheet-card" style="margin-bottom:14px;">
+      <div class="sheet-card" data-prod-ficha="${prodId}" style="margin-bottom:14px;">
         <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 14px 8px;border-bottom:1px solid var(--border);background:var(--surface-soft);">
           <div>
             <span style="font-weight:700;font-size:14px;">${prod?.nome || 'Produto desconhecido'}</span>
@@ -6323,7 +6357,7 @@ function renderReceitaGrouped() {
               <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th><th>Custo insumo</th>
               <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo ficha</th><th>CMV</th><th></th>
             </tr></thead>
-            <tbody>${linhas.map(renderReceitaRow).join('')}</tbody>
+            <tbody>${linhas.map(r => renderReceitaRow(r, true)).join('')}</tbody>
           </table>
         </div>
         <div class="sheet-actions">
@@ -6363,7 +6397,7 @@ function renderReceitaByCategory() {
       const isKg = prod && (prod.precoUnidade || 'un') === 'kg';
       const custoLabel = isKg && pesoG > 0 ? `${money(custoNaUnidade)}/kg` : `${money(custoNaUnidade)}/un`;
       return `
-        <div style="border-left:3px solid var(--border);margin:0 0 12px 8px;padding-left:0;">
+        <div data-prod-ficha="${prodId}" style="border-left:3px solid var(--border);margin:0 0 12px 8px;padding-left:0;">
           <div style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface-soft);border-top:1px solid var(--border);border-bottom:1px solid var(--border);">
             <span style="font-weight:600;font-size:13px;">${prod?.nome || 'Produto desconhecido'}</span>
             <div style="display:flex;gap:8px;align-items:center;">
@@ -6377,7 +6411,7 @@ function renderReceitaByCategory() {
                 <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th><th>Custo insumo</th>
                 <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo ficha</th><th>CMV</th><th></th>
               </tr></thead>
-              <tbody>${linhas.map(renderReceitaRow).join('')}</tbody>
+              <tbody>${linhas.map(r => renderReceitaRow(r, true)).join('')}</tbody>
             </table>
           </div>
           <div class="sheet-actions">
@@ -6800,8 +6834,10 @@ function addReceitaRow(prodId = null) {
   if (!produtos.length) return showToast('Cadastre um produto antes da receita', 'error');
   if (!ingredientes.length) return showToast('Cadastre um ingrediente antes da receita', 'error');
   const produtoId = parseInt(prodId) || produtos[0].id;
+  const newId = ++nextId;
+  lastAddedReceitaId = newId;
   receitas.push({
-    id: ++nextId,
+    id: newId,
     prodId: produtoId,
     rendimento: 1,
     unidade: 'un.',
@@ -6809,6 +6845,11 @@ function addReceitaRow(prodId = null) {
   });
   saveAll();
   renderCMV();
+  setTimeout(() => {
+    const el = document.querySelector(`tr[data-receita-id="${newId}"]`);
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    lastAddedReceitaId = null;
+  }, 80);
 }
 
 // Insere uma nova linha (vazia) logo abaixo da linha informada, no mesmo produto.
