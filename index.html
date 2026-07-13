@@ -1476,6 +1476,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <!-- NAV: VITRINES -->
 <div class="nav" id="nav-vitrines" style="display:none">
   <button class="nav-btn" data-page="vitrine" onclick="showPage('vitrine')">Vitrines</button>
+  <button class="nav-btn" data-page="vitrine-padrao" onclick="showPage('vitrine-padrao')">Vitrine Padrão</button>
   <button class="nav-btn" data-page="cronograma" onclick="showPage('cronograma')">Cronograma</button>
   <button class="nav-btn" data-page="perdas" onclick="showPage('perdas')">Perdas</button>
   <button class="nav-btn" data-page="pedido" onclick="showPage('pedido')">Pedido de Produção</button>
@@ -1557,6 +1558,43 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         </table>
       </div>
     </div>
+  </div>
+</div>
+
+<!-- ===================== PAGE: VITRINE PADRÃO ===================== -->
+<div class="page" id="page-vitrine-padrao">
+  <h2 class="section-title">Vitrine Padrão da Semana</h2>
+  <p class="section-sub">Desenhe o que a vitrine deve ter em cada dia da semana. A partir daqui você gera a lista de produção do dia — que aparece no Pedido de Produção.</p>
+
+  <div class="unit-switcher" title="Unidade do padrão de vitrine" style="margin-bottom:16px;width:fit-content;">
+    <span class="unit-switcher-label">Unidade</span>
+    <button class="unit-btn active" data-padrao-unit="matriz" onclick="setPadraoUnit('matriz')">Matriz</button>
+    <button class="unit-btn" data-padrao-unit="vilanova" onclick="setPadraoUnit('vilanova')">Vila Nova</button>
+  </div>
+
+  <div class="day-tabs" id="padrao-day-tabs">
+    <button class="day-tab active" onclick="setPadraoDay('seg')">Seg</button>
+    <button class="day-tab" onclick="setPadraoDay('ter')">Ter</button>
+    <button class="day-tab" onclick="setPadraoDay('qua')">Qua</button>
+    <button class="day-tab" onclick="setPadraoDay('qui')">Qui</button>
+    <button class="day-tab" onclick="setPadraoDay('sex')">Sex</button>
+    <button class="day-tab" onclick="setPadraoDay('sab')">Sáb</button>
+    <button class="day-tab" onclick="setPadraoDay('dom')">Dom</button>
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:14px 0 18px;">
+    <button class="btn btn-primary" onclick="gerarProducaoDoDia(currentPadraoDay)">▸ Gerar produção do dia</button>
+    <button class="btn btn-ghost btn-sm" onclick="copiarPadraoDeDia()">Copiar de outro dia…</button>
+    <button class="btn btn-ghost btn-sm" onclick="limparPadraoDoDia()" style="color:var(--red)">Limpar dia</button>
+    <span id="padrao-resumo" style="font-size:12px;color:var(--text-light);margin-left:auto;"></span>
+  </div>
+
+  <div id="padrao-vitrine-groups"></div>
+
+  <div style="margin-top:28px;">
+    <h2 class="section-title" style="font-size:17px;">Fora da vitrine — Revenda, Cafeteria e Encomenda</h2>
+    <p class="section-sub">Estes produtos não fazem parte do desenho da vitrine. Ficam separados aqui — planeje a quantidade do dia se precisar produzir ou separar, sem misturar com a vitrine.</p>
+    <div id="padrao-outros-groups"></div>
   </div>
 </div>
 
@@ -3678,7 +3716,7 @@ async function loadFromSupabase() {
 // ============================================================
 // Mapeia cada pagina ao seu grupo de cabecalho
 const PAGE_GROUPS = {
-  vitrine: 'vitrines', cronograma: 'vitrines', perdas: 'vitrines', pedido: 'vitrines', historico: 'vitrines',
+  vitrine: 'vitrines', 'vitrine-padrao': 'vitrines', cronograma: 'vitrines', perdas: 'vitrines', pedido: 'vitrines', historico: 'vitrines',
   insumos: 'cmv', cmv: 'cmv', fornecedores: 'cmv', banco: 'cmv'
 };
 
@@ -3711,6 +3749,7 @@ function showPage(page) {
   document.querySelectorAll('.mob-nav-item').forEach(b => b.classList.toggle('active', b.dataset.page === page));
 
   if (page === 'vitrine') renderVitrine();
+  if (page === 'vitrine-padrao') renderVitrinePadrao();
   if (page === 'cronograma') renderCronograma();
   if (page === 'produtos') renderProdutos();
   if (page === 'banco') renderBancoDados();
@@ -3776,6 +3815,206 @@ function getVitrine() {
   if (!vitrines[currentUnit]) vitrines[currentUnit] = {};
   if (!vitrines[currentUnit][currentDay]) vitrines[currentUnit][currentDay] = [];
   return vitrines[currentUnit][currentDay];
+}
+
+// ============================================================
+// VITRINE PADRÃO — o desenho da vitrine por dia da semana.
+// Reaproveita planoSemanal[unit][prodId][day] como a quantidade
+// padrão de cada produto por dia (mesma fonte do Pedido de Produção).
+// ============================================================
+let currentPadraoDay = 'seg';
+
+// Classifica o produto em: vitrine | revenda | cafeteria | encomenda.
+// Usa a coluna "vitrine" (e o tipo/encomenda/categoria) para separar o que
+// é de vitrine dos demais produtos.
+function getProdutoSegmento(p) {
+  if ((p.tipo || 'fabricacao') === 'revenda') return 'revenda';
+  if (p.encomenda) return 'encomenda';
+  const cat = (p.categoria || '').toLowerCase();
+  const vit = (p.vitrine || '').toLowerCase();
+  if (cat.includes('cafeter') || vit.includes('cafeter')) return 'cafeteria';
+  return 'vitrine';
+}
+
+function setPadraoDay(day) {
+  currentPadraoDay = day;
+  document.querySelectorAll('#padrao-day-tabs .day-tab').forEach(b => b.classList.remove('active'));
+  if (event && event.currentTarget) event.currentTarget.classList.add('active');
+  renderVitrinePadrao();
+}
+
+function setPadraoUnit(unit) {
+  currentUnit = unit;
+  renderVitrinePadrao();
+}
+
+function padraoQty(prodId, day) {
+  return Number(((planoSemanal[currentUnit] || {})[prodId] || {})[day]) || 0;
+}
+
+function setPadraoQty(prodId, day, value) {
+  const plano = getPlanoSemanal();
+  if (!plano[prodId]) plano[prodId] = {};
+  const qty = Math.max(0, parseInt(value) || 0);
+  if (qty > 0) plano[prodId][day] = qty;
+  else delete plano[prodId][day];
+  saveAll();
+  atualizarPadraoResumo();
+}
+
+// Monta uma seção de produtos com input de quantidade para o dia atual.
+function padraoSectionHtml(titulo, nota, prods, badgeClass) {
+  const day = currentPadraoDay;
+  const ordered = prods.slice().sort((a, b) => {
+    const qa = padraoQty(a.id, day), qb = padraoQty(b.id, day);
+    if ((qb > 0) - (qa > 0)) return (qb > 0) - (qa > 0);
+    return (a.nome || '').localeCompare(b.nome || '', 'pt-BR', { sensitivity: 'base' });
+  });
+  const totalItens = ordered.reduce((s, p) => s + padraoQty(p.id, day), 0);
+  const rows = ordered.length ? ordered.map(p => {
+    const q = padraoQty(p.id, day);
+    return `<div class="pedido-item" style="${q > 0 ? 'background:var(--warm);' : ''}">
+      <div>
+        <div class="prod-name">${escHtml(p.nome)}${p.curva ? ` <span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span>` : ''}</div>
+        <div class="prod-resp">${escHtml(p.resp || p.categoria || '')}</div>
+      </div>
+      <input type="number" min="0" step="1" class="sheet-input" style="width:72px;text-align:center;font-weight:700;"
+        value="${q || ''}" placeholder="—"
+        onchange="setPadraoQty(${p.id}, '${day}', this.value)" title="Quantidade padrão na vitrine de ${dayShort[day]}">
+      <div style="font-size:12px;color:var(--text-light);">${p.validade ? p.validade + 'd val.' : ''}</div>
+    </div>`;
+  }).join('') : `<div class="empty-state" style="padding:18px;"><p>Nenhum produto nesta lista.</p></div>`;
+
+  return `<div class="card" style="margin-bottom:14px;">
+    <div class="pedido-header" style="display:flex;justify-content:space-between;align-items:center;">
+      <div>
+        <div class="pedido-title">${escHtml(titulo)} ${badgeClass ? `<span class="badge ${badgeClass}" style="margin-left:6px;">${totalItens || 0}</span>` : ''}</div>
+        ${nota ? `<div style="font-size:12px;color:var(--text-light);margin-top:2px;">${escHtml(nota)}</div>` : ''}
+      </div>
+    </div>
+    <div class="pedido-head"><span>Produto</span><span style="text-align:center;">Qtd</span><span></span></div>
+    ${rows}
+  </div>`;
+}
+
+function renderVitrinePadrao() {
+  const wrap = document.getElementById('padrao-vitrine-groups');
+  if (!wrap) return;
+
+  // Sincroniza os botões de unidade da página com a unidade atual
+  document.querySelectorAll('#page-vitrine-padrao [data-padrao-unit]').forEach(b =>
+    b.classList.toggle('active', b.dataset.padraoUnit === currentUnit));
+
+  const day = currentPadraoDay;
+  const groups = getVitrineGroups(currentUnit);
+
+  // Produtos de vitrine, agrupados pela coluna "vitrine"
+  const vitrineProds = produtos.filter(p => getProdutoSegmento(p) === 'vitrine');
+  const usados = new Set();
+  let html = groups.map(gid => {
+    const prods = vitrineProds.filter(p => inferProductVitrine(p) === gid);
+    prods.forEach(p => usados.add(p.id));
+    return padraoSectionHtml(getVitrineLabel(gid), null, prods, 'badge-a');
+  }).join('');
+  // Produtos de vitrine cujo grupo não está no layout desta unidade
+  const soltos = vitrineProds.filter(p => !usados.has(p.id));
+  if (soltos.length) html += padraoSectionHtml('Outros da vitrine', 'Sem grupo de vitrine definido', soltos, 'badge-a');
+  wrap.innerHTML = html;
+
+  // Fora da vitrine: revenda, cafeteria, encomenda — separados
+  const outros = document.getElementById('padrao-outros-groups');
+  if (outros) {
+    const revenda = produtos.filter(p => getProdutoSegmento(p) === 'revenda');
+    const cafeteria = produtos.filter(p => getProdutoSegmento(p) === 'cafeteria');
+    const encomenda = produtos.filter(p => getProdutoSegmento(p) === 'encomenda');
+    let oh = '';
+    if (revenda.length) oh += padraoSectionHtml('Revenda', 'Produtos comprados prontos', revenda, 'badge-b');
+    if (cafeteria.length) oh += padraoSectionHtml('Cafeteria', 'Itens da cafeteria', cafeteria, 'badge-b');
+    if (encomenda.length) oh += padraoSectionHtml('Encomenda', 'Produzidos sob encomenda', encomenda, 'badge-c');
+    outros.innerHTML = oh || `<div class="empty-state" style="padding:18px;"><p>Nenhum produto de revenda, cafeteria ou encomenda cadastrado.</p></div>`;
+  }
+
+  atualizarPadraoResumo();
+}
+
+function atualizarPadraoResumo() {
+  const el = document.getElementById('padrao-resumo');
+  if (!el) return;
+  const day = currentPadraoDay;
+  const vitrineProds = produtos.filter(p => getProdutoSegmento(p) === 'vitrine');
+  let itens = 0, tipos = 0;
+  vitrineProds.forEach(p => { const q = padraoQty(p.id, day); if (q > 0) { itens += q; tipos++; } });
+  el.textContent = `${dayNames[day]}: ${tipos} produto(s) · ${itens} item(ns) na vitrine`;
+}
+
+// Aplica a quantidade produzida de um produto num dia (grava na vitrine).
+// Espelha a lógica do Pedido de Produção, mas para um dia arbitrário.
+function setProducedQtyForDay(prodId, value, day) {
+  if (!vitrines[currentUnit]) vitrines[currentUnit] = {};
+  const buckets = vitrines[currentUnit];
+  const slots = [];
+  Object.keys(buckets).forEach(bucketDay => {
+    (buckets[bucketDay] || []).forEach(slot => {
+      if (slot.prodId === prodId && (slot.prodDay || bucketDay) === day) slots.push(slot);
+    });
+  });
+  if (!slots.length) {
+    const prod = produtos.find(p => p.id === prodId);
+    if (prod && value > 0) addProdToVitrineDay(prod, value, day);
+  } else {
+    const total = slots.reduce((s, x) => s + (Number(x.producedQty ?? x.qty) || 0), 0);
+    const delta = value - total;
+    const first = slots[0];
+    first.producedQty = Math.max(0, (Number(first.producedQty ?? first.qty) || 0) + delta);
+    first.qty = Math.max(0, (Number(first.qty) || 0) + delta);
+    logProducao(prodId, delta, itemFabDate(first));
+  }
+}
+
+// Gera a produção do dia a partir do padrão: joga os produtos de vitrine
+// (com quantidade > 0 no padrão) na vitrine do dia -> aparece no Pedido.
+function gerarProducaoDoDia(day) {
+  const vitrineProds = produtos.filter(p => getProdutoSegmento(p) === 'vitrine');
+  const alvos = vitrineProds
+    .map(p => ({ prodId: p.id, qty: padraoQty(p.id, day) }))
+    .filter(t => t.qty > 0);
+  if (!alvos.length) {
+    showToast(`Nenhuma quantidade no padrão de ${dayNames[day]}`, 'error');
+    return;
+  }
+  if (!confirm(`Gerar a produção de ${dayNames[day]} a partir do padrão da vitrine?\n\nIsso ajusta as quantidades desses ${alvos.length} produto(s) na vitrine do dia (fonte do Pedido de Produção).`)) return;
+  alvos.forEach(t => setProducedQtyForDay(t.prodId, t.qty, day));
+  saveAll();
+  showToast('Produção do dia gerada ✓ — confira no Pedido de Produção', 'success');
+  renderVitrinePadrao();
+}
+
+function copiarPadraoDeDia() {
+  const nomes = dayOrder.map(d => `${dayShort[d]}`).join(', ');
+  const resp = prompt(`Copiar o padrão de qual dia para ${dayNames[currentPadraoDay]}?\nDigite: ${nomes}`);
+  if (!resp) return;
+  const origem = dayOrder.find(d => dayShort[d].toLowerCase() === resp.trim().toLowerCase() || d === resp.trim().toLowerCase());
+  if (!origem) { showToast('Dia não reconhecido', 'error'); return; }
+  if (origem === currentPadraoDay) { showToast('Escolha um dia diferente', 'error'); return; }
+  const plano = getPlanoSemanal();
+  produtos.forEach(p => {
+    const q = padraoQty(p.id, origem);
+    if (!plano[p.id]) plano[p.id] = {};
+    if (q > 0) plano[p.id][currentPadraoDay] = q;
+    else delete plano[p.id][currentPadraoDay];
+  });
+  saveAll();
+  renderVitrinePadrao();
+  showToast(`Padrão de ${dayShort[origem]} copiado para ${dayShort[currentPadraoDay]} ✓`, 'success');
+}
+
+function limparPadraoDoDia() {
+  if (!confirm(`Limpar todas as quantidades do padrão de ${dayNames[currentPadraoDay]}?`)) return;
+  const plano = getPlanoSemanal();
+  Object.keys(plano).forEach(pid => { if (plano[pid]) delete plano[pid][currentPadraoDay]; });
+  saveAll();
+  renderVitrinePadrao();
+  showToast('Padrão do dia limpo', 'success');
 }
 
 function renderVitrine() {
@@ -8487,6 +8726,10 @@ loadFromSupabase().then(() => {
     <button class="mob-nav-item" data-page="vitrine" onclick="showPage('vitrine')" aria-label="Vitrine">
       <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
       <span>Vitrine</span>
+    </button>
+    <button class="mob-nav-item" data-page="vitrine-padrao" onclick="showPage('vitrine-padrao')" aria-label="Vitrine Padrão">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg>
+      <span>Padrão</span>
     </button>
     <button class="mob-nav-item" data-page="cronograma" onclick="showPage('cronograma')" aria-label="Cronograma">
       <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
