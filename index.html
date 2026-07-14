@@ -1814,7 +1814,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
   <div style="margin-top:32px;">
     <h2 class="section-title" style="font-size:18px;">Plano de Produção Semanal</h2>
-    <p class="section-sub">Somente itens da vitrine — quantidade padrão por dia da semana, separada por unidade. Entra automaticamente no Pedido de Produção do dia.</p>
+    <p class="section-sub">Somente itens da vitrine — quantidade padrão da semana por unidade (Matriz e Vila Nova).</p>
     <div id="plano-units"></div>
   </div>
 </div>
@@ -3641,10 +3641,9 @@ async function syncToSupabase() {
     }
     const allPlano = [];
     Object.entries(planoSemanal || {}).forEach(([unit, prods]) => {
-      Object.entries(prods || {}).forEach(([prodId, days]) => {
-        Object.entries(days || {}).forEach(([dia, qty]) => {
-          if (Number(qty) > 0) allPlano.push({ unit, dia, prod_id: parseInt(prodId), qty: Number(qty) });
-        });
+      Object.keys(prods || {}).forEach(prodId => {
+        const qty = getPlanoQty(unit, prodId);
+        if (qty > 0) allPlano.push({ unit, dia: 'semana', prod_id: parseInt(prodId), qty });
       });
     });
     if (allPlano.length) await db.from('plano_semanal').insert(allPlano);
@@ -3874,11 +3873,12 @@ async function loadFromSupabase() {
         id: a.id, prodId: a.prod_id, nome: a.nome, qty: a.qty, prodDay: a.prod_day || a.dia
       });
     });
+    // Plano semanal agora é uma quantidade única por unidade/produto.
+    // Soma qualquer linha (inclui dados antigos gravados por dia).
     planoSemanal = {};
     (planoData || []).forEach(r => {
       if (!planoSemanal[r.unit]) planoSemanal[r.unit] = {};
-      if (!planoSemanal[r.unit][r.prod_id]) planoSemanal[r.unit][r.prod_id] = {};
-      planoSemanal[r.unit][r.prod_id][r.dia] = r.qty;
+      planoSemanal[r.unit][r.prod_id] = (Number(planoSemanal[r.unit][r.prod_id]) || 0) + (Number(r.qty) || 0);
     });
     vitrinePadrao = {};
     (padraoData || []).forEach(r => {
@@ -5055,6 +5055,15 @@ function getPlanoSemanal(unit = currentUnit) {
   return planoSemanal[unit];
 }
 
+// Quantidade semanal padrão do produto na unidade.
+// Aceita o formato novo (número) e o antigo (objeto por dia — soma os dias).
+function getPlanoQty(unit, prodId) {
+  const v = (planoSemanal[unit] || {})[prodId];
+  if (v == null) return 0;
+  if (typeof v === 'object') return dayOrder.reduce((s, d) => s + (Number(v[d]) || 0), 0);
+  return Number(v) || 0;
+}
+
 function renderPlanoSemanal() {
   const wrap = document.getElementById('plano-units');
   if (!wrap) return;
@@ -5066,43 +5075,39 @@ function renderPlanoSemanal() {
     wrap.innerHTML = '<div class="sheet-card"><div style="text-align:center;padding:30px;color:var(--text-light);">Nenhum item de vitrine cadastrado</div></div>';
     return;
   }
-  wrap.innerHTML = planoUnits.map(u => {
-    const plano = getPlanoSemanal(u.id);
-    const rows = prods.map(p => {
-      const days = plano[p.id] || {};
-      const total = dayOrder.reduce((sum, d) => sum + (Number(days[d]) || 0), 0);
-      return `<tr>
-        <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span><span class="sheet-readonly" style="padding-top:0;font-size:11px;color:var(--text-light);">${p.resp || ''}</span></td>
-        ${dayOrder.map(d => `<td><input class="sheet-input" type="number" min="0" step="1" style="min-width:52px;text-align:center;" value="${days[d] || ''}" placeholder="—" onchange="updatePlanoQty(${p.id}, '${d}', this.value, '${u.id}')"></td>`).join('')}
-        <td><span class="sheet-readonly" style="font-family:var(--font-mono);font-weight:700;text-align:right;">${total || '—'}</span></td>
-      </tr>`;
+  const rows = prods.map(p => {
+    const cols = planoUnits.map(u => {
+      const qty = getPlanoQty(u.id, p.id);
+      return `<td><input class="sheet-input" type="number" min="0" step="1" style="min-width:64px;text-align:center;" value="${qty || ''}" placeholder="—" onchange="updatePlanoQty(${p.id}, this.value, '${u.id}')"></td>`;
     }).join('');
-    return `<div style="margin-bottom:24px;">
-      <h3 class="section-title" style="font-size:15px;margin-bottom:8px;">${u.label}</h3>
-      <div class="sheet-card">
-        <div class="table-wrap">
-          <table class="sheet-table">
-            <thead>
-              <tr>
-                <th>Produto</th>
-                <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th>
-                <th>Total</th>
-              </tr>
-            </thead>
-            <tbody>${rows}</tbody>
-          </table>
-        </div>
-      </div>
-    </div>`;
+    const total = planoUnits.reduce((s, u) => s + getPlanoQty(u.id, p.id), 0);
+    return `<tr>
+      <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span><span class="sheet-readonly" style="padding-top:0;font-size:11px;color:var(--text-light);">${p.resp || ''}</span></td>
+      ${cols}
+      <td><span class="sheet-readonly" style="font-family:var(--font-mono);font-weight:700;text-align:right;">${total || '—'}</span></td>
+    </tr>`;
   }).join('');
+  wrap.innerHTML = `<div class="sheet-card">
+    <div class="table-wrap">
+      <table class="sheet-table">
+        <thead>
+          <tr>
+            <th>Produto</th>
+            ${planoUnits.map(u => `<th style="text-align:center;">${u.label}</th>`).join('')}
+            <th style="text-align:right;">Total</th>
+          </tr>
+        </thead>
+        <tbody>${rows}</tbody>
+      </table>
+    </div>
+  </div>`;
 }
 
-function updatePlanoQty(prodId, day, value, unit = currentUnit) {
+function updatePlanoQty(prodId, value, unit = currentUnit) {
   const plano = getPlanoSemanal(unit);
-  if (!plano[prodId]) plano[prodId] = {};
   const qty = parseInt(value) || 0;
-  if (qty > 0) plano[prodId][day] = qty;
-  else delete plano[prodId][day];
+  if (qty > 0) plano[prodId] = qty;
+  else delete plano[prodId];
   saveAll();
   renderPlanoSemanal();
 }
@@ -8521,7 +8526,7 @@ function renderHistorico() {
     tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma produção registrada para esta data</td></tr>';
   } else {
     tbody.innerHTML = rows.map(({ data, p }) => {
-      const planejado = dayOfWeek ? (Number((planoSemanal[currentUnit]?.[p.id] || {})[dayOfWeek]) || 0) : 0;
+      const planejado = getPlanoQty(currentUnit, p.id);
       return `<tr>
         <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span></td>
         <td style="text-align:center;">${p.curva ? `<span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span>` : '<span style="color:var(--text-light)">—</span>'}</td>
