@@ -2925,6 +2925,21 @@ function todayISO() {
   return d.toISOString().slice(0, 10);
 }
 
+// Data (AAAA-MM-DD) do dia da semana escolhido (seg..dom) dentro da semana
+// atual (segunda a domingo). Assim, ao lançar a produção de segunda estando
+// numa terça, a fabricação é gravada na data da segunda, e não na de hoje.
+function fabDateForDay(day) {
+  const idx = dayOrder.indexOf(day);
+  if (idx < 0) return todayISO();
+  const now = new Date();
+  const todayIdx = (now.getDay() + 6) % 7; // seg=0, ter=1, ... dom=6
+  const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() + (idx - todayIdx));
+  const yyyy = d.getFullYear();
+  const mm = String(d.getMonth() + 1).padStart(2, '0');
+  const dd = String(d.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
 // Data de fabricação de um item da vitrine (cai para a data de entrada em
 // dados antigos que ainda não têm fabDate)
 function itemFabDate(item) {
@@ -4542,7 +4557,7 @@ function addToVitrineAuto(prod, qty, prodDay) {
     for (let i = 0; i < section.count; i++) {
       const slotNum = section.start + i;
       if (!vitrine.some(v => v.slot === slotNum)) {
-        const fabDate = todayISO();
+        const fabDate = fabDateForDay(prodDay || currentDay);
         vitrine.push({
           prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
           entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: slotNum,
@@ -8233,7 +8248,7 @@ function addProdToVitrineDay(prod, qty, day) {
     for (let i = 0; i < section.count; i++) {
       const slotNum = section.start + i;
       if (!vitrine.some(v => v.slot === slotNum)) {
-        const fabDate = todayISO();
+        const fabDate = fabDateForDay(day);
         vitrine.push({
           prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
           entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: slotNum,
