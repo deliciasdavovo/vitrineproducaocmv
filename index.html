@@ -4591,6 +4591,10 @@ function handleApoioKey(event, field) {
   addApoioRow();
 }
 
+// Guarda o que estava sendo lançado na lista de apoio quando o produto não
+// existia, para adicionar automaticamente assim que ele for cadastrado.
+let apoioPendingAdd = null;
+
 function addApoioRow() {
   const produtoInput = document.getElementById('apoio-produto');
   const qtyInput = document.getElementById('apoio-qty');
@@ -4605,8 +4609,29 @@ function addApoioRow() {
     p.nome.toLowerCase() === nome.toLowerCase()
   );
   if (!prod) {
-    showToast('Produto nao encontrado no cadastro (ou está sem curva ABC)', 'error');
-    produtoInput.focus();
+    // Produto já cadastrado, mas sem elegibilidade para a vitrine (revenda ou
+    // sem curva ABC): oferece abrir o cadastro para ajustar.
+    const existente = produtos.find(p => p.nome.toLowerCase() === nome.toLowerCase());
+    if (existente) {
+      if (!confirm(`"${existente.nome}" está cadastrado, mas ainda não pode ir para a vitrine (precisa ser do tipo Fabricação e ter Curva ABC).\n\nAbrir o cadastro para ajustar?`)) {
+        produtoInput.focus();
+        return;
+      }
+      openProdModal(existente);
+      apoioPendingAdd = { qty, prodDay };
+    } else {
+      // Produto inexistente: oferece cadastrar agora, já com o nome preenchido.
+      if (!confirm(`"${nome}" não está cadastrado.\n\nDeseja cadastrar agora e adicionar à lista?`)) {
+        produtoInput.focus();
+        return;
+      }
+      openProdModal();
+      document.getElementById('p-nome').value = nome;
+      document.getElementById('p-nome').focus();
+      apoioPendingAdd = { qty, prodDay };
+    }
+    produtoInput.value = '';
+    qtyInput.value = '';
     return;
   }
 
@@ -5310,6 +5335,9 @@ function updateProdutoCell(id, field, value) {
 }
 
 function openProdModal(prod) {
+  // Qualquer abertura do modal (que não seja pelo fluxo da lista de apoio)
+  // cancela um add pendente. O fluxo de apoio re-define logo após abrir.
+  apoioPendingAdd = null;
   document.getElementById('p-id').value = prod ? prod.id : '';
   document.getElementById('p-nome').value = prod ? prod.nome : '';
   document.getElementById('p-curva').value = prod ? prod.curva : 'A';
@@ -5449,6 +5477,21 @@ function saveProduto() {
   renderProdutos();
   renderCMV();
   showToast('Produto salvo', 'success');
+
+  // Se este cadastro veio da lista de apoio, adiciona o produto à vitrine
+  // automaticamente assim que ele estiver elegível.
+  if (apoioPendingAdd) {
+    const pend = apoioPendingAdd;
+    apoioPendingAdd = null;
+    const savedProd = id ? produtos.find(p => p.id == id) : produtos[produtos.length - 1];
+    if (savedProd && isProdutoVitrine(savedProd)) {
+      addToVitrineAuto(savedProd, pend.qty, pend.prodDay);
+      saveAll();
+      renderVitrine();
+    } else {
+      showToast('Produto salvo, mas ainda não pode ir à vitrine (defina o tipo Fabricação e a Curva ABC).', 'error');
+    }
+  }
 }
 
 // ============================================================
