@@ -29,9 +29,10 @@
   --surface: #FFFFFF;
   --surface-soft: #F8FAFC;
   --ink: #0F172A;
-  --shadow: 0 4px 24px rgba(15,23,42,0.08);
-  --shadow-soft: 0 1px 3px rgba(15,23,42,0.06);
-  --radius: 8px;
+  --shadow: 0 1px 2px rgba(15,23,42,0.04);
+  --shadow-soft: 0 1px 2px rgba(15,23,42,0.04);
+  --radius: 6px;
+  --sidebar-w: 244px;
   --font-sans: 'Manrope', -apple-system, BlinkMacSystemFont, 'Helvetica Neue', system-ui, sans-serif;
   --font-mono: 'Even Mono', ui-monospace, 'Menlo', 'Fira Code', monospace;
 }
@@ -182,6 +183,101 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 }
 .nav-btn:hover:not(.active) { color: var(--text); background: var(--surface-soft); }
 
+/* ============================================================
+   SIDEBAR (desktop) — navegação lateral estilo painel
+   ============================================================ */
+.sidebar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: var(--sidebar-w);
+  background: var(--surface);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  padding: 20px 14px 16px;
+  z-index: 120;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+.sidebar-brand {
+  display: flex;
+  flex-direction: column;
+  padding: 4px 10px 18px;
+  margin-bottom: 6px;
+  border-bottom: 1px solid var(--border);
+}
+.sidebar-brand-name {
+  font-family: var(--font-sans);
+  font-size: 16px;
+  font-weight: 800;
+  color: var(--text);
+  letter-spacing: -0.02em;
+  line-height: 1.1;
+}
+.sidebar-brand-sub {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-light);
+  margin-top: 3px;
+  letter-spacing: 0;
+}
+.sidebar-section { margin-top: 14px; }
+.sidebar-section-label {
+  font-size: 10.5px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--text-light);
+  padding: 0 10px 6px;
+}
+.side-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  text-align: left;
+  background: transparent;
+  border: none;
+  border-radius: 7px;
+  padding: 9px 10px;
+  font-size: 13.5px;
+  font-weight: 600;
+  color: var(--text-mid);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: background .12s, color .12s;
+  margin-bottom: 1px;
+}
+.side-nav-btn svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  stroke-width: 1.9;
+  fill: none;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  flex-shrink: 0;
+}
+.side-nav-btn:hover:not(.active) { background: var(--surface-soft); color: var(--text); }
+.side-nav-btn.active {
+  background: var(--brown);
+  color: #fff;
+}
+.sidebar-spacer { flex: 1; }
+
+/* Desktop: usa a sidebar, esconde header e navs horizontais */
+@media (min-width: 641px) {
+  body { padding-left: var(--sidebar-w); }
+  .header { display: none !important; }
+  .nav { display: none !important; }
+}
+/* Mobile: sem sidebar (usa header + bottom nav existentes) */
+@media (max-width: 640px) {
+  .sidebar { display: none; }
+}
+
 /* PAGES */
 .page { display: none; padding: 20px 24px 48px; max-width: 1280px; margin: 0 auto; }
 .page.active { display: block; }
@@ -246,7 +342,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   align-items: center;
   gap: 6px;
 }
-.btn:hover { transform: translateY(-1px); box-shadow: var(--shadow-soft); }
+.btn:hover { filter: brightness(0.97); }
 .btn-primary { background: var(--brown); color: #fff; }
 .btn-primary:hover { background: var(--brown-mid); }
 .btn-gold { background: var(--gold-light); color: #92400E; border: 1px solid rgba(245,158,11,0.25); }
@@ -321,7 +417,7 @@ tr:hover td { background: var(--surface-soft); }
   transition: all .15s;
   font-family: var(--font-sans);
 }
-.day-tab.active { background: var(--brown); border-color: var(--brown); color: #fff; box-shadow: 0 8px 18px rgba(30,41,59,0.15); }
+.day-tab.active { background: var(--brown); border-color: var(--brown); color: #fff; }
 .day-tab:hover:not(.active) { border-color: var(--brown); color: var(--brown); background: var(--warm); }
 /* VITRINE FILTER TABS (navegação por vitrine) */
 .vitrine-filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
@@ -338,7 +434,7 @@ tr:hover td { background: var(--surface-soft); }
   transition: all .15s;
   font-family: var(--font-sans);
 }
-.vitrine-filter-tab.active { background: var(--blue); border-color: var(--blue); color: #fff; box-shadow: 0 8px 18px rgba(37,99,235,0.18); }
+.vitrine-filter-tab.active { background: var(--blue); border-color: var(--blue); color: #fff; }
 .vitrine-filter-tab:hover:not(.active) { border-color: var(--blue); color: var(--blue); background: #EFF6FF; }
 .apoio-entry select { border: 0; padding: 10px 8px; font-size: 13px; font-family: var(--font-sans); background: #FFFFFF; color: var(--text-mid); outline: none; cursor: pointer; }
 .apoio-entry select:focus { background: #EFF6FF; box-shadow: inset 0 0 0 2px rgba(30,41,59,0.20); }
@@ -465,11 +561,9 @@ tr:hover td { background: var(--surface-soft); }
   min-height: 78px;
   margin-bottom: 10px;
   padding: 8px 10px 12px;
-  border-radius: 8px;
-  background: linear-gradient(180deg, rgba(255,255,255,0.7), rgba(226,232,240,0.55));
-  border: 1px solid rgba(148,163,184,0.45);
-  border-bottom: 5px solid rgba(51,65,85,0.24);
-  box-shadow: inset 0 1px 0 rgba(255,255,255,0.9);
+  border-radius: var(--radius);
+  background: var(--surface-soft);
+  border: 1px solid var(--border);
 }
 .vitrine-shelf:last-child { margin-bottom: 0; }
 .shelf-label {
@@ -488,34 +582,12 @@ tr:hover td { background: var(--surface-soft); }
   padding-right: 4px;
 }
 .vitrine-category {
-  background: linear-gradient(180deg, #F8FAFC, #EDF2F7);
-  border: 1px solid #CBD5E1;
-  border-radius: 14px 14px 10px 10px;
-  padding: 14px 14px 18px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 16px 16px 18px;
   margin-bottom: 16px;
-  box-shadow: 0 14px 32px rgba(15, 23, 42, 0.10);
   position: relative;
-  overflow: hidden;
-}
-.vitrine-category::before {
-  content: "";
-  position: absolute;
-  inset: 48px 10px 10px;
-  border-radius: 10px;
-  background: linear-gradient(115deg, rgba(255,255,255,0.62), rgba(255,255,255,0.12) 38%, rgba(37,99,235,0.10));
-  border: 1px solid rgba(148,163,184,0.32);
-  pointer-events: none;
-}
-.vitrine-category::after {
-  content: "";
-  position: absolute;
-  left: 12px;
-  right: 12px;
-  bottom: 8px;
-  height: 8px;
-  border-radius: 999px;
-  background: #334155;
-  opacity: 0.18;
 }
 .vitrine-category-head {
   display: flex;
@@ -548,19 +620,18 @@ tr:hover td { background: var(--surface-soft); }
 }
 .vitrine-slot {
   background: #FFFFFF;
-  border: 1px solid #D8DEE9;
-  border-radius: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   min-height: 104px;
   padding: 26px 11px 9px;
   cursor: pointer;
-  transition: border-color .15s, box-shadow .15s, transform .15s;
+  transition: border-color .15s, background .15s;
   position: relative;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 2px 6px rgba(15,23,42,0.06);
   min-width: 0;
 }
-.vitrine-slot:hover { border-color: var(--blue); box-shadow: 0 7px 16px rgba(37,99,235,0.15); transform: translateY(-1px); }
+.vitrine-slot:hover { border-color: var(--blue); background: #F8FBFF; }
 .vitrine-slot.empty {
   border-style: dashed;
   border-color: #CBD5E1;
@@ -571,17 +642,17 @@ tr:hover td { background: var(--surface-soft); }
 }
 .vitrine-slot.empty:hover { background: #EFF6FF; }
 .vitrine-slot.filled { border-color: rgba(37,99,235,0.30); }
-.vitrine-slot.low { border-color: var(--gold); background: #FFFBEB; box-shadow: 0 2px 8px rgba(245,158,11,0.20); }
+.vitrine-slot.low { border-color: var(--gold); background: #FFFBEB; }
 .vitrine-slot.low:hover { border-color: var(--gold); }
 .vitrine-slot.out { border-color: var(--red); background: #FEF2F2; }
 .vitrine-slot.out:hover { border-color: var(--red); }
 .vitrine-slot.sold {
   border-color: rgba(22,163,74,0.55);
-  background: linear-gradient(180deg, #F0FDF4, #DCFCE7);
+  background: #F0FDF4;
 }
 .vitrine-slot.loss {
   border-color: rgba(220,38,38,0.45);
-  background: linear-gradient(180deg, #FEF2F2, #FEE2E2);
+  background: #FEF2F2;
 }
 .vitrine-slot.expired {
   border-color: var(--red);
@@ -733,9 +804,9 @@ tr:hover td { background: var(--surface-soft); }
 
 /* PEDIDO DE PRODUÇÃO */
 .pedido-header {
-  background: linear-gradient(135deg, var(--brown), var(--gold));
+  background: var(--brown);
   color: #fff;
-  border-radius: 10px;
+  border-radius: var(--radius);
   border: 0;
   padding: 16px 20px;
   margin-bottom: 16px;
@@ -791,7 +862,7 @@ tr:hover td { background: var(--surface-soft); }
   padding: 24px;
   width: 100%;
   max-width: 420px;
-  box-shadow: 0 24px 70px rgba(17,24,39,0.24);
+  box-shadow: 0 10px 30px rgba(17,24,39,0.12);
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -827,7 +898,7 @@ tr:hover td { background: var(--surface-soft); }
   background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 10px;
-  box-shadow: 0 18px 45px rgba(17,24,39,0.18);
+  box-shadow: 0 10px 30px rgba(17,24,39,0.12);
   padding: 6px;
   display: none;
 }
@@ -1460,6 +1531,62 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
 <!-- Lista compartilhada de fornecedores já cadastrados (preenche os campos "Fornecedor") -->
 <datalist id="fornecedores-list"></datalist>
+
+<!-- SIDEBAR (desktop) -->
+<aside class="sidebar" aria-label="Navegação principal">
+  <div class="sidebar-brand">
+    <span class="sidebar-brand-name">Delícias da Vovó</span>
+    <span class="sidebar-brand-sub">Gestão de Vitrines</span>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">Vitrines</div>
+    <button class="nav-btn side-nav-btn" data-page="vitrine" onclick="showPage('vitrine')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+      <span>Vitrines</span>
+    </button>
+    <button class="nav-btn side-nav-btn" data-page="vitrine-padrao" onclick="showPage('vitrine-padrao')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M8 4v16"/></svg>
+      <span>Vitrine Padrão</span>
+    </button>
+    <button class="nav-btn side-nav-btn" data-page="cronograma" onclick="showPage('cronograma')">
+      <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="18" rx="2"/><path d="M16 2v4M8 2v4M3 10h18"/></svg>
+      <span>Cronograma</span>
+    </button>
+    <button class="nav-btn side-nav-btn" data-page="perdas" onclick="showPage('perdas')">
+      <svg viewBox="0 0 24 24"><polyline points="23 18 13.5 8.5 8.5 13.5 1 6"/><polyline points="17 18 23 18 23 12"/></svg>
+      <span>Perdas</span>
+    </button>
+    <button class="nav-btn side-nav-btn" data-page="pedido" onclick="showPage('pedido')">
+      <svg viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 0 0-2 2v12a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7a2 2 0 0 0-2-2h-2"/><rect x="9" y="3" width="6" height="4" rx="1"/><path d="M9 12h6M9 16h4"/></svg>
+      <span>Pedido de Produção</span>
+    </button>
+    <button class="nav-btn side-nav-btn" data-page="historico" onclick="showPage('historico')">
+      <svg viewBox="0 0 24 24"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5M12 7v5l4 2"/></svg>
+      <span>Histórico de Produção</span>
+    </button>
+  </div>
+
+  <div class="sidebar-section">
+    <div class="sidebar-section-label">CMV</div>
+    <button class="nav-btn side-nav-btn" data-page="insumos" onclick="showPage('insumos')">
+      <svg viewBox="0 0 24 24"><path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"/><path d="M3.27 6.96 12 12.01l8.73-5.05M12 22.08V12"/></svg>
+      <span>Insumos &amp; Fichas</span>
+    </button>
+    <button class="nav-btn side-nav-btn active" data-page="cmv" onclick="showPage('cmv')">
+      <svg viewBox="0 0 24 24"><path d="M18 20V10M12 20V4M6 20v-6"/></svg>
+      <span>CMV</span>
+    </button>
+    <button class="nav-btn side-nav-btn" data-page="fornecedores" onclick="showPage('fornecedores')">
+      <svg viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><path d="M9 22V12h6v10"/></svg>
+      <span>Fornecedores</span>
+    </button>
+    <button class="nav-btn side-nav-btn" data-page="banco" onclick="showPage('banco')">
+      <svg viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="9" ry="3"/><path d="M21 12c0 1.66-4 3-9 3s-9-1.34-9-3M3 5v14c0 1.66 4 3 9 3s9-1.34 9-3V5"/></svg>
+      <span>Banco de Dados</span>
+    </button>
+  </div>
+</aside>
 
 <!-- HEADER -->
 <div class="header">
