@@ -1814,40 +1814,8 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
   <div style="margin-top:32px;">
     <h2 class="section-title" style="font-size:18px;">Plano de Produção Semanal</h2>
-    <p class="section-sub">Quantidade padrão de cada produto por dia da semana — entra automaticamente no Pedido de Produção do dia.</p>
-    <div class="sheet-card">
-      <div class="table-wrap">
-        <table class="sheet-table">
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody id="plano-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-  </div>
-
-  <div style="margin-top:32px;">
-    <h2 class="section-title" style="font-size:18px;">Plano de Produção Semanal</h2>
-    <p class="section-sub">Quantidade padrão de cada produto por dia da semana — entra automaticamente no Pedido de Produção do dia.</p>
-    <div class="sheet-card">
-      <div class="table-wrap">
-        <table class="sheet-table">
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th>
-              <th>Total</th>
-            </tr>
-          </thead>
-          <tbody id="plano-tbody"></tbody>
-        </table>
-      </div>
-    </div>
+    <p class="section-sub">Somente itens da vitrine — quantidade padrão por dia da semana, separada por unidade. Entra automaticamente no Pedido de Produção do dia.</p>
+    <div id="plano-units"></div>
   </div>
 </div>
 
@@ -3651,12 +3619,17 @@ async function syncToSupabase() {
       });
     });
     if (allApoio.length) await db.from('apoio_producao').insert(allApoio);
-    // Plano semanal — delete e re-insere por unidade
-    await db.from('plano_semanal').delete().eq('unit', currentUnit);
+    // Plano semanal — delete e re-insere todas as unidades
+    // (o plano é editado por unidade na mesma tela, não só na unidade atual)
+    for (const unit of Object.keys(planoSemanal || {})) {
+      await db.from('plano_semanal').delete().eq('unit', unit);
+    }
     const allPlano = [];
-    Object.entries(planoSemanal[currentUnit] || {}).forEach(([prodId, days]) => {
-      Object.entries(days || {}).forEach(([dia, qty]) => {
-        if (Number(qty) > 0) allPlano.push({ unit: currentUnit, dia, prod_id: parseInt(prodId), qty: Number(qty) });
+    Object.entries(planoSemanal || {}).forEach(([unit, prods]) => {
+      Object.entries(prods || {}).forEach(([prodId, days]) => {
+        Object.entries(days || {}).forEach(([dia, qty]) => {
+          if (Number(qty) > 0) allPlano.push({ unit, dia, prod_id: parseInt(prodId), qty: Number(qty) });
+        });
       });
     });
     if (allPlano.length) await db.from('plano_semanal').insert(allPlano);
@@ -5031,33 +5004,61 @@ function removeCrono(idx) {
 // ============================================================
 // PLANO DE PRODUÇÃO SEMANAL
 // ============================================================
-function getPlanoSemanal() {
-  if (!planoSemanal[currentUnit]) planoSemanal[currentUnit] = {};
-  return planoSemanal[currentUnit];
+// Unidades do plano de produção (mesma ordem dos botões de unidade)
+const planoUnits = [
+  { id: 'matriz', label: 'Matriz' },
+  { id: 'vilanova', label: 'Vila Nova' }
+];
+
+function getPlanoSemanal(unit = currentUnit) {
+  if (!planoSemanal[unit]) planoSemanal[unit] = {};
+  return planoSemanal[unit];
 }
 
 function renderPlanoSemanal() {
-  const tbody = document.getElementById('plano-tbody');
-  if (!tbody) return;
-  const plano = getPlanoSemanal();
-  const prods = produtos.filter(p => (p.tipo || 'fabricacao') === 'fabricacao');
+  const wrap = document.getElementById('plano-units');
+  if (!wrap) return;
+  // Apenas produtos de fabricação que são itens de vitrine
+  const prods = produtos.filter(p =>
+    (p.tipo || 'fabricacao') === 'fabricacao' && getProdutoSegmento(p) === 'vitrine'
+  );
   if (!prods.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>';
+    wrap.innerHTML = '<div class="sheet-card"><div style="text-align:center;padding:30px;color:var(--text-light);">Nenhum item de vitrine cadastrado</div></div>';
     return;
   }
-  tbody.innerHTML = prods.map(p => {
-    const days = plano[p.id] || {};
-    const total = dayOrder.reduce((sum, d) => sum + (Number(days[d]) || 0), 0);
-    return `<tr>
-      <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span><span class="sheet-readonly" style="padding-top:0;font-size:11px;color:var(--text-light);">${p.resp || ''}</span></td>
-      ${dayOrder.map(d => `<td><input class="sheet-input" type="number" min="0" step="1" style="min-width:52px;text-align:center;" value="${days[d] || ''}" placeholder="—" onchange="updatePlanoQty(${p.id}, '${d}', this.value)"></td>`).join('')}
-      <td><span class="sheet-readonly" style="font-family:var(--font-mono);font-weight:700;text-align:right;">${total || '—'}</span></td>
-    </tr>`;
+  wrap.innerHTML = planoUnits.map(u => {
+    const plano = getPlanoSemanal(u.id);
+    const rows = prods.map(p => {
+      const days = plano[p.id] || {};
+      const total = dayOrder.reduce((sum, d) => sum + (Number(days[d]) || 0), 0);
+      return `<tr>
+        <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span><span class="sheet-readonly" style="padding-top:0;font-size:11px;color:var(--text-light);">${p.resp || ''}</span></td>
+        ${dayOrder.map(d => `<td><input class="sheet-input" type="number" min="0" step="1" style="min-width:52px;text-align:center;" value="${days[d] || ''}" placeholder="—" onchange="updatePlanoQty(${p.id}, '${d}', this.value, '${u.id}')"></td>`).join('')}
+        <td><span class="sheet-readonly" style="font-family:var(--font-mono);font-weight:700;text-align:right;">${total || '—'}</span></td>
+      </tr>`;
+    }).join('');
+    return `<div style="margin-bottom:24px;">
+      <h3 class="section-title" style="font-size:15px;margin-bottom:8px;">${u.label}</h3>
+      <div class="sheet-card">
+        <div class="table-wrap">
+          <table class="sheet-table">
+            <thead>
+              <tr>
+                <th>Produto</th>
+                <th>Seg</th><th>Ter</th><th>Qua</th><th>Qui</th><th>Sex</th><th>Sáb</th><th>Dom</th>
+                <th>Total</th>
+              </tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>
+    </div>`;
   }).join('');
 }
 
-function updatePlanoQty(prodId, day, value) {
-  const plano = getPlanoSemanal();
+function updatePlanoQty(prodId, day, value, unit = currentUnit) {
+  const plano = getPlanoSemanal(unit);
   if (!plano[prodId]) plano[prodId] = {};
   const qty = parseInt(value) || 0;
   if (qty > 0) plano[prodId][day] = qty;
