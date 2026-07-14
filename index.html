@@ -742,6 +742,47 @@ tr:hover td { background: var(--surface-soft); }
   margin: auto;
 }
 
+/* Slot com vários produtos */
+.vitrine-slot.multi { padding: 24px 8px 8px; gap: 6px; }
+.slot-prod-list { display: flex; flex-direction: column; gap: 6px; width: 100%; }
+.slot-prod {
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--surface);
+  padding: 6px 7px;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  cursor: pointer;
+  transition: border-color .12s, background .12s;
+}
+.slot-prod:hover { border-color: var(--brown); }
+.slot-prod.low { border-color: var(--gold); background: #F3EACF; }
+.slot-prod.out { border-color: var(--red); background: #EFDCD6; }
+.slot-prod.sold { border-color: rgba(76,122,84,0.60); background: #DFE7DA; }
+.slot-prod.loss, .slot-prod.expired { border-color: rgba(168,68,59,0.55); background: #EFDCD6; }
+.slot-prod-main { display: flex; align-items: center; gap: 6px; }
+.slot-prod-name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 700; color: var(--text); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot-prod-ctrl { display: flex; align-items: center; gap: 5px; }
+.slot-prod .slot-qtynum { font-size: 15px; min-width: 16px; }
+.slot-prod .slot-step { width: 22px; height: 22px; font-size: 15px; }
+.slot-prod .slot-remove { position: static; opacity: 1; margin-left: auto; font-size: 15px; padding: 0 2px; }
+.slot-add-prod {
+  margin-top: 2px;
+  width: 100%;
+  border: 1px dashed var(--border);
+  background: transparent;
+  border-radius: 7px;
+  padding: 5px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-mid);
+  cursor: pointer;
+  font-family: var(--font-sans);
+  transition: border-color .12s, color .12s, background .12s;
+}
+.slot-add-prod:hover { border-color: var(--brown); color: var(--brown); background: var(--surface-soft); }
+
 /* VITRINE LIST */
 .vitrine-list-item {
   display: flex;
@@ -3001,15 +3042,16 @@ function getSlotStock(item) {
 }
 
 // Ajuste rápido de quantidade direto no slot (+/-)
+// Recebe o índice do item na lista da vitrine (um slot pode ter vários produtos)
 // "-" = vendeu 1 unidade; quando chega a 0 remove da vitrine (vendeu tudo)
-function adjustSlotQty(slotNum, delta, e) {
+function adjustSlotQty(idx, delta, e) {
   if (e) e.stopPropagation();
   const vitrine = getVitrine();
-  const item = vitrine.find(v => v.slot === slotNum);
+  const item = vitrine[idx];
   if (!item) return;
   const novaQty = Math.max(0, (Number(item.qty) || 0) + delta);
   if (delta < 0 && novaQty === 0) {
-    vendeuTudo(slotNum);
+    vendeuTudo(idx);
     return;
   }
   item.qty = novaQty;
@@ -3017,18 +3059,17 @@ function adjustSlotQty(slotNum, delta, e) {
   renderVitrine();
 }
 
-function vendeuTudo(slotNum) {
+function vendeuTudo(idx) {
   const vitrine = getVitrine();
-  const idx = vitrine.findIndex(v => v.slot === slotNum);
-  if (idx >= 0) { ensureLogged(vitrine[idx]); vitrine.splice(idx, 1); }
+  if (vitrine[idx]) { ensureLogged(vitrine[idx]); vitrine.splice(idx, 1); }
   saveAll();
   renderVitrine();
   showToast('Vendeu tudo ✓', 'success');
 }
 
-function abrirPerdaDeSlot(slotNum) {
+function abrirPerdaDeSlot(idx) {
   const vitrine = getVitrine();
-  const item = vitrine.find(v => v.slot === slotNum);
+  const item = vitrine[idx];
   if (!item) return;
   // Adiciona linha de perda pré-preenchida com este produto
   const hoje = new Date().toISOString().split('T')[0];
@@ -4287,6 +4328,36 @@ function limparPadraoDoDia() {
   showToast('Padrão do dia limpo', 'success');
 }
 
+// Linha de um produto dentro de um slot (usada quando um slot tem 1+ produtos)
+function slotProdRowHTML(item, idx, prod) {
+  const expiration = getExpirationInfo(item, prod);
+  const stock = getSlotStock(item);
+  const stockClass = !expiration.expired ? (stock.level === 'out' ? 'out' : stock.level === 'low' ? 'low' : '') : '';
+  const statusClass = [
+    item.status === 'vendeu' ? 'sold' : '',
+    (item.status === 'perda' || item.status === 'validade') ? 'loss' : '',
+    expiration.expired ? 'expired' : '',
+    stockClass
+  ].filter(Boolean).join(' ');
+  const unitLabel = vitrineUnitLabel(item.unidadeMedida, item.qty);
+  const badge = expiration.expired
+    ? '<span class="slot-expired">Fora do prazo</span>'
+    : (stock.label ? `<span class="stock-badge ${stock.level}">${stock.label}</span>` : '');
+  return `<div class="slot-prod ${statusClass}" title="Clique para editar" onclick="openSlotModal(${item.slot}, ${idx})" oncontextmenu="openSlotContextMenu(event, ${idx})">
+    <div class="slot-prod-main">
+      <span class="slot-prod-name" title="${prod.nome}">${prod.nome}</span>
+      ${badge}
+      <span class="slot-remove" title="Remover" onclick="removeSlot(${idx}, event)">×</span>
+    </div>
+    <div class="slot-prod-ctrl">
+      <button class="slot-step minus" title="Diminuir" onclick="adjustSlotQty(${idx}, -1, event)">−</button>
+      <span class="slot-qtynum">${item.qty}</span>
+      <button class="slot-step plus" title="Aumentar" onclick="adjustSlotQty(${idx}, 1, event)">+</button>
+      <span class="slot-unit">${unitLabel}</span>
+    </div>
+  </div>`;
+}
+
 function renderVitrine() {
   const layout = vitrineLayouts[currentUnit];
   const vitrine = getVitrine();
@@ -4332,42 +4403,25 @@ function renderVitrine() {
         const offset = row.startOffset + shelfOffset;
         const slotNumber = section.start + offset;
         const role = section.roles?.[offset] || `Espaço ${offset + 1}`;
-        const item = vitrine.find(v => v.slot === slotNumber);
-        const prod = item ? produtos.find(p => p.id === item.prodId) : null;
-        const expiration = item && prod ? getExpirationInfo(item, prod) : { expired: false };
-        const stock = item ? getSlotStock(item) : null;
+        const entries = vitrine
+          .map((it, i) => ({ it, i }))
+          .filter(({ it }) => it.slot === slotNumber && produtos.some(p => p.id === it.prodId));
         const div = document.createElement('div');
-        const stockClass = stock && !expiration.expired ? (stock.level === 'out' ? 'out' : stock.level === 'low' ? 'low' : '') : '';
-        div.className = 'vitrine-slot ' + (item ? `filled ${item.status === 'vendeu' ? 'sold' : ''} ${item.status === 'perda' || item.status === 'validade' ? 'loss' : ''} ${expiration.expired ? 'expired' : ''} ${stockClass}` : 'empty');
+        div.className = 'vitrine-slot ' + (entries.length ? 'filled multi' : 'empty');
         div.dataset.slotNumber = slotNumber;
         div.innerHTML = `<span class="slot-num">${offset + 1}</span><span class="slot-role" title="${role}">${role}</span>`;
-        if (item && prod) {
-          const unitLabel = vitrineUnitLabel(item.unidadeMedida, item.qty);
-          const badge = expiration.expired
-            ? '<span class="slot-expired">Fora do prazo</span>'
-            : (stock.label ? `<span class="stock-badge ${stock.level}">${stock.label}</span>` : '');
-          const timeLabel = item.entryAt ? `há ${formatDisplayTime(item.entryAt)}` : '';
+        if (entries.length) {
+          const rowsHtml = entries.map(({ it, i }) => {
+            const prod = produtos.find(p => p.id === it.prodId);
+            return slotProdRowHTML(it, i, prod);
+          }).join('');
           div.innerHTML += `
-            <div class="slot-content">
-              <div class="slot-name" title="${prod.nome}">${prod.nome}</div>
-              <div class="slot-qtyline">
-                <button class="slot-step minus" title="Diminuir" onclick="adjustSlotQty(${slotNumber}, -1, event)">−</button>
-                <span class="slot-qtynum">${item.qty}</span>
-                <button class="slot-step plus" title="Aumentar" onclick="adjustSlotQty(${slotNumber}, 1, event)">+</button>
-                <span class="slot-unit">${unitLabel}</span>
-              </div>
-              <div class="slot-foot">
-                ${badge}
-                ${timeLabel ? `<span class="slot-time">${timeLabel}</span>` : ''}
-              </div>
-            </div>
-            <span class="slot-remove" onclick="removeSlot(${slotNumber}, event)">×</span>`;
+            <div class="slot-prod-list">${rowsHtml}</div>
+            <button class="slot-add-prod" onclick="openSlotModal(${slotNumber}); event.stopPropagation();" title="Adicionar outro produto neste espaço">+ produto</button>`;
         } else {
           div.innerHTML += `<span class="slot-plus" style="margin:auto;color:var(--border);font-size:20px;">+</span>`;
           div.onclick = () => openSlotModal(slotNumber);
         }
-        if (item && prod) div.onclick = () => openSlotModal(slotNumber, vitrine.indexOf(item));
-        if (item && prod) div.oncontextmenu = (event) => openSlotContextMenu(event, slotNumber);
         shelfEl.appendChild(div);
       }
       sectionGrid.appendChild(shelfEl);
@@ -4388,12 +4442,13 @@ function renderVitrineSlotList() {
     .map(section => {
     const rows = Array.from({ length: section.count }, (_, index) => {
       const slotNumber = section.start + index;
-      const item = vitrine.find(v => v.slot === slotNumber);
-      const prod = item ? produtos.find(p => p.id === item.prodId) : null;
       const role = section.roles?.[index] || `Espaco ${index + 1}`;
-      const expiration = item && prod ? getExpirationInfo(item, prod) : { expired: false };
       const num = String(index + 1).padStart(2, '0');
-      if (!item || !prod) {
+      const entries = vitrine
+        .map((it, i) => ({ it, i }))
+        .filter(({ it }) => it.slot === slotNumber && produtos.some(p => p.id === it.prodId));
+
+      if (!entries.length) {
         return `<div class="slot-list-row empty" onclick="openSlotModal(${slotNumber})">
           <div><div class="slot-list-code">${num}</div><div class="slot-list-meta" style="font-size:10px;margin-top:2px;">${role}</div></div>
           <div><div class="slot-list-name" style="color:var(--text-light);font-weight:400;">Livre</div></div>
@@ -4401,21 +4456,36 @@ function renderVitrineSlotList() {
           <button class="btn btn-ghost btn-sm" onclick="openSlotModal(${slotNumber});event.stopPropagation();">+</button>
         </div>`;
       }
-      const timeLabel = item.entryAt ? `ha ${formatDisplayTime(item.entryAt)}` : '&#8212;';
-      const statusClass = item.status === 'vendeu' ? 'sold' : (item.status === 'perda' || item.status === 'validade' ? 'loss' : '');
-      const stock = getSlotStock(item);
-      const stockBadge = !expiration.expired && stock.label && stock.level !== 'ok'
-        ? `<span class="stock-badge ${stock.level}" style="margin-left:6px;">${stock.label}</span>` : '';
-      const unitLabel = vitrineUnitLabel(item.unidadeMedida, item.qty);
-      return `<div class="slot-list-row ${statusClass} ${expiration.expired ? 'expired' : ''}" data-slot-number="${slotNumber}" onclick="openSlotModal(${slotNumber}, ${vitrine.indexOf(item)})" oncontextmenu="openSlotContextMenu(event, ${slotNumber})">
-        <div><div class="slot-list-code">${num}</div><div class="slot-list-meta" style="font-size:10px;margin-top:2px;">${role}</div></div>
+
+      const itemRows = entries.map(({ it, i }, pos) => {
+        const prod = produtos.find(p => p.id === it.prodId);
+        const expiration = getExpirationInfo(it, prod);
+        const timeLabel = it.entryAt ? `ha ${formatDisplayTime(it.entryAt)}` : '&#8212;';
+        const statusClass = it.status === 'vendeu' ? 'sold' : (it.status === 'perda' || it.status === 'validade' ? 'loss' : '');
+        const stock = getSlotStock(it);
+        const stockBadge = !expiration.expired && stock.label && stock.level !== 'ok'
+          ? `<span class="stock-badge ${stock.level}" style="margin-left:6px;">${stock.label}</span>` : '';
+        const unitLabel = vitrineUnitLabel(it.unidadeMedida, it.qty);
+        const codeCell = pos === 0
+          ? `<div class="slot-list-code">${num}</div><div class="slot-list-meta" style="font-size:10px;margin-top:2px;">${role}</div>`
+          : `<div class="slot-list-meta" style="font-size:10px;">↳</div>`;
+        return `<div class="slot-list-row ${statusClass} ${expiration.expired ? 'expired' : ''}" data-slot-number="${slotNumber}" onclick="openSlotModal(${slotNumber}, ${i})" oncontextmenu="openSlotContextMenu(event, ${i})">
+        <div>${codeCell}</div>
         <div>
           <div class="slot-list-name">${prod.nome}${stockBadge}</div>
           <div class="slot-list-meta">${timeLabel}${expiration.expired ? ' &middot; Fora do prazo' : ''}${stock.min !== null ? ` &middot; mín ${stock.min}` : ''}</div>
         </div>
-        <div class="slot-list-qty">${item.qty} ${unitLabel}</div>
-        <button class="btn btn-ghost btn-sm" onclick="removeSlot(${slotNumber}, event)">&#215;</button>
+        <div class="slot-list-qty">${it.qty} ${unitLabel}</div>
+        <button class="btn btn-ghost btn-sm" onclick="removeSlot(${i}, event)">&#215;</button>
       </div>`;
+      }).join('');
+
+      const addRow = `<div class="slot-list-row slot-list-add" onclick="openSlotModal(${slotNumber})" title="Adicionar outro produto neste espaço" style="cursor:pointer;">
+        <div><div class="slot-list-meta" style="font-size:10px;">&nbsp;</div></div>
+        <div><div class="slot-list-name" style="color:var(--text-mid);font-weight:600;font-size:12px;">+ produto</div></div>
+        <div class="slot-list-qty"></div><div></div>
+      </div>`;
+      return itemRows + addRow;
     }).join('');
     return `<div style="margin-bottom:14px;">
       <div class="vitrine-section-label" style="margin-bottom:6px;">${section.title}</div>
@@ -4475,7 +4545,7 @@ function renderApoioProducao() {
     return;
   }
 
-  tbody.innerHTML = entries.map(({ item }, pos) => {
+  tbody.innerHTML = entries.map(({ item, index }, pos) => {
     const prod = produtos.find(p => p.id === item.prodId);
     const fabLabel = formatFabDate(itemFabDate(item));
     const prodQty = item.producedQty ?? item.qty;
@@ -4487,9 +4557,9 @@ function renderApoioProducao() {
       <td style="text-align:center;">${prodQty}</td>
       <td style="text-align:center;">${vitrineQty}</td>
       <td style="text-align:right;white-space:nowrap;">
-        <button class="btn btn-ghost btn-sm" onclick="vendeuTudo(${item.slot})" title="Vendeu tudo" style="color:var(--green,#16a34a);">✓</button>
-        <button class="btn btn-ghost btn-sm" onclick="abrirPerdaDeSlot(${item.slot})" title="Registrar perda" style="color:var(--red);">!</button>
-        <button class="btn btn-ghost btn-sm" onclick="removeSlot(${item.slot}, event)" title="Remover" aria-label="Remover">&#215;</button>
+        <button class="btn btn-ghost btn-sm" onclick="vendeuTudo(${index})" title="Vendeu tudo" style="color:var(--green,#16a34a);">✓</button>
+        <button class="btn btn-ghost btn-sm" onclick="abrirPerdaDeSlot(${index})" title="Registrar perda" style="color:var(--red);">!</button>
+        <button class="btn btn-ghost btn-sm" onclick="removeSlot(${index}, event)" title="Remover" aria-label="Remover">&#215;</button>
       </td>
     </tr>`;
   }).join('');
@@ -4580,7 +4650,9 @@ function handleApoioPaste(event) {
 }
 
 function removeApoioRow(slotNum) {
-  removeSlot(slotNum);
+  const vitrine = getVitrine();
+  const idx = vitrine.findIndex(v => v.slot === slotNum);
+  if (idx >= 0) removeSlot(idx);
 }
 
 function openSlotModal(slotNum, editIdx) {
@@ -4590,9 +4662,10 @@ function openSlotModal(slotNum, editIdx) {
   const layoutSlots = getLayoutSlots();
   const vitrine = getVitrine();
   posSelect.innerHTML = layoutSlots.map(meta => {
-    const used = vitrine.some((item, index) => item.slot === meta.slot && index !== editIdx);
-    const suffix = used ? ' — ocupado' : '';
-    return `<option value="${meta.slot}" ${used ? 'disabled' : ''}>${meta.sectionTitle} · ${meta.role}${suffix}</option>`;
+    // Quantos produtos já existem neste espaço (fora o que está sendo editado)
+    const count = vitrine.filter((item, index) => item.slot === meta.slot && index !== editIdx).length;
+    const suffix = count ? ` — ${count} produto${count > 1 ? 's' : ''}` : '';
+    return `<option value="${meta.slot}">${meta.sectionTitle} · ${meta.role}${suffix}</option>`;
   }).join('');
 
   const firstEmpty = layoutSlots.find(meta => !vitrine.some(item => item.slot === meta.slot));
@@ -4665,14 +4738,10 @@ function saveSlot() {
   const oldFab = editing ? itemFabDate(editing) : '';
   const oldProdId = editing ? editing.prodId : null;
 
+  // Ao editar, remove o item antigo; ao adicionar, apenas acrescenta.
+  // Um mesmo espaço (slot) pode conter vários produtos.
   if (editIdx !== '') {
     vitrine.splice(Number(editIdx), 1);
-  }
-
-  // Remove existing at this slot, if any
-  const existingIdx = vitrine.findIndex(v => v.slot === pos);
-  if (existingIdx >= 0) {
-    vitrine.splice(existingIdx, 1);
   }
 
   const diaSel = document.getElementById('apoio-dia');
@@ -4686,14 +4755,14 @@ function saveSlot() {
   saveAll();
   closeModal('modal-slot');
   renderVitrine();
-  showToast('Produto adicionado à vitrine', 'success');
+  showToast(editIdx !== '' ? 'Produto atualizado' : 'Produto adicionado ao espaço', 'success');
 }
 
-function removeSlot(slotNum, e) {
+// Remove um item da vitrine pelo seu índice (um slot pode ter vários produtos)
+function removeSlot(idx, e) {
   if (e) e.stopPropagation();
   const vitrine = getVitrine();
-  const idx = vitrine.findIndex(v => v.slot === slotNum);
-  if (idx >= 0) { ensureLogged(vitrine[idx]); vitrine.splice(idx, 1); }
+  if (vitrine[idx]) { ensureLogged(vitrine[idx]); vitrine.splice(idx, 1); }
   saveAll();
   renderVitrine();
 }
@@ -4710,15 +4779,14 @@ function openAddSlotModal() {
   openSlotModal(null);
 }
 
-let contextSlotNumber = null;
+let contextItemIdx = null;
 
-function openSlotContextMenu(event, slotNumber) {
+function openSlotContextMenu(event, idx) {
   event.preventDefault();
   event.stopPropagation();
-  contextSlotNumber = slotNumber;
+  contextItemIdx = idx;
   const vitrine = getVitrine();
-  const idx = vitrine.findIndex(v => v.slot === slotNumber);
-  const item = idx >= 0 ? vitrine[idx] : null;
+  const item = vitrine[idx];
   const prod = item ? produtos.find(p => p.id === item.prodId) : null;
   if (!item || !prod) return;
 
@@ -4734,18 +4802,15 @@ function closeSlotContextMenu() {
 }
 
 function getContextSlotItem() {
-  const vitrine = getVitrine();
-  return vitrine.find(v => v.slot === contextSlotNumber);
+  return getVitrine()[contextItemIdx];
 }
 
 function markContextSlotSold() {
-  const item = getContextSlotItem();
-  if (!item) return;
-  const slotNumber = contextSlotNumber;
   const vitrine = getVitrine();
-  const idx = vitrine.findIndex(v => v.slot === slotNumber);
-  burstHeartsAtSlot(slotNumber);
-  if (idx >= 0) vitrine.splice(idx, 1);
+  const item = vitrine[contextItemIdx];
+  if (!item) return;
+  burstHeartsAtSlot(item.slot);
+  vitrine.splice(contextItemIdx, 1);
   saveAll();
   closeSlotContextMenu();
   renderVitrine();
@@ -4777,7 +4842,7 @@ function openContextSlotLoss() {
   const prod = produtos.find(p => p.id === item.prodId);
   const expiration = getExpirationInfo(item, prod);
   document.getElementById('slot-loss-title').textContent = prod ? `Perda · ${prod.nome}` : 'Anotar perda';
-  document.getElementById('slot-loss-slot').value = contextSlotNumber;
+  document.getElementById('slot-loss-slot').value = contextItemIdx;
   document.getElementById('slot-loss-qty').value = item.qty || 1;
   document.getElementById('slot-loss-type').value = expiration.expired ? 'vencimento' : 'outro';
   document.getElementById('slot-loss-obs').value = expiration.expired ? 'Produto fora do prazo de vencimento na vitrine' : '';
@@ -4786,10 +4851,9 @@ function openContextSlotLoss() {
 }
 
 function saveSlotLoss() {
-  const slotNumber = parseInt(document.getElementById('slot-loss-slot').value);
+  const idx = parseInt(document.getElementById('slot-loss-slot').value);
   const vitrine = getVitrine();
-  const idx = vitrine.findIndex(v => v.slot === slotNumber);
-  const item = idx >= 0 ? vitrine[idx] : null;
+  const item = vitrine[idx];
   if (!item) return;
   const qty = parseInt(document.getElementById('slot-loss-qty').value) || 1;
   const tipo = document.getElementById('slot-loss-type').value;
@@ -4800,9 +4864,9 @@ function saveSlotLoss() {
     qty,
     tipo,
     data: new Date().toISOString().split('T')[0],
-    obs: obs || `Perda registrada no slot ${slotNumber} da vitrine`,
+    obs: obs || `Perda registrada no slot ${item.slot} da vitrine`,
     unit: currentUnit,
-    source: `slot-${currentUnit}-${currentDay}-${slotNumber}-${Date.now()}`
+    source: `slot-${currentUnit}-${currentDay}-${item.slot}-${Date.now()}`
   });
   vitrine.splice(idx, 1);
   saveAll();
