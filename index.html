@@ -1661,23 +1661,13 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
 <!-- ===================== PAGE: VITRINE ===================== -->
 <div class="page" id="page-vitrine">
-  <h2 class="section-title">Vitrine da Semana</h2>
+  <h2 class="section-title">Minha Vitrine</h2>
   <p class="section-sub" id="vitrine-unidade-label">Unidade: Matriz — clique em uma posição para adicionar produto</p>
 
   <div class="unit-switcher" title="Unidade usada na Vitrine e no Pedido de Produção" style="margin-bottom:16px;width:fit-content;">
     <span class="unit-switcher-label">Unidade</span>
     <button class="unit-btn active" onclick="setUnit('matriz')">Matriz</button>
     <button class="unit-btn" onclick="setUnit('vilanova')">Vila Nova</button>
-  </div>
-
-  <div class="day-tabs" id="day-tabs">
-    <button class="day-tab active" onclick="setDay('seg')">Seg</button>
-    <button class="day-tab" onclick="setDay('ter')">Ter</button>
-    <button class="day-tab" onclick="setDay('qua')">Qua</button>
-    <button class="day-tab" onclick="setDay('qui')">Qui</button>
-    <button class="day-tab" onclick="setDay('sex')">Sex</button>
-    <button class="day-tab" onclick="setDay('sab')">Sáb</button>
-    <button class="day-tab" onclick="setDay('dom')">Dom</button>
   </div>
 
   <div class="vitrine-filter-tabs" id="vitrine-filter-tabs"></div>
@@ -2901,6 +2891,21 @@ let currentVitrineFilter = 'todas';
 const dayNames = { seg:'Segunda-feira', ter:'Terça-feira', qua:'Quarta-feira', qui:'Quinta-feira', sex:'Sexta-feira', sab:'Sábado', dom:'Domingo' };
 const dayShort = { seg:'Seg', ter:'Ter', qua:'Qua', qui:'Qui', sex:'Sex', sab:'Sáb', dom:'Dom' };
 const dayOrder = ['seg', 'ter', 'qua', 'qui', 'sex', 'sab', 'dom'];
+// A vitrine real é UMA só e permanente: não muda por dia da semana. Todos os
+// itens ficam num único balde por unidade, sob esta chave. Cada item guarda o
+// próprio dia de produção (prodDay/fabDate), que alimenta o Pedido de Produção.
+const VITRINE_KEY = 'atual';
+// Dia da semana (seg..dom) de hoje.
+function todayWeekdayKey() {
+  return dayOrder[(new Date().getDay() + 6) % 7];
+}
+// Dia da semana (seg..dom) de uma data ISO (AAAA-MM-DD).
+function weekdayKeyFromISO(iso) {
+  if (!iso) return todayWeekdayKey();
+  const d = new Date(String(iso).slice(0, 10) + 'T12:00:00');
+  if (isNaN(d)) return todayWeekdayKey();
+  return dayOrder[(d.getDay() + 6) % 7];
+}
 
 // ============================================================
 // ÍCONES (carrinho de supermercado, insumo e garrafa PET)
@@ -3269,8 +3274,33 @@ let produtos = getStorage('ddv_produtos', []);
 let ingredientes = getStorage('ddv_ingredientes', []);
 let receitas = getStorage('ddv_receitas', []);
 
-// vitrines[unit][day] = [{prodId, qty, slot}]
+// vitrines[unit][VITRINE_KEY] = [{prodId, qty, slot, prodDay, fabDate}]
+// A vitrine real é única e permanente por unidade (não muda por dia da semana).
 let vitrines = getStorage('ddv_vitrines', {});
+migrarVitrineParaBaldeUnico();
+
+// Junta qualquer estrutura antiga (vitrines separadas por dia da semana) num
+// único balde permanente por unidade. Cada item preserva seu dia de produção.
+function migrarVitrineParaBaldeUnico() {
+  let mudou = false;
+  Object.keys(vitrines || {}).forEach(unit => {
+    const buckets = vitrines[unit] || {};
+    const outros = Object.keys(buckets).filter(k => k !== VITRINE_KEY);
+    if (!outros.length) return;
+    const alvo = buckets[VITRINE_KEY] = buckets[VITRINE_KEY] || [];
+    outros.forEach(dia => {
+      (buckets[dia] || []).forEach(item => {
+        alvo.push(Object.assign({}, item, {
+          prodDay: item.prodDay || dia,
+          fabDate: item.fabDate || (item.entryAt ? String(item.entryAt).slice(0, 10) : null)
+        }));
+      });
+      delete buckets[dia];
+      mudou = true;
+    });
+  });
+  if (mudou) setStorage('ddv_vitrines', vitrines);
+}
 // cronograma[unit][day] = [{hora, tarefa, resp, prodId, qty}]
 let cronograma = getStorage('ddv_cronograma', {});
 // perdas = [{id, prodId, qty, tipo, data, obs, unit}]
@@ -3604,16 +3634,21 @@ async function syncToSupabase() {
       await db.from('vitrine_slots').delete().eq('unit', unit);
     }
     const allSlots = [];
+    // A vitrine real é um balde único e permanente por unidade (VITRINE_KEY).
+    // Cada item carrega o próprio dia de produção (prod_day/fab_date), que é o
+    // que o Pedido de Produção usa para separar por dia. Salva todas as unidades
+    // (o Pedido edita a vitrine das duas na mesma tela).
     Object.entries(vitrines || {}).forEach(([unit, buckets]) => {
-      Object.entries(buckets || {}).forEach(([dia, slots]) => {
+      Object.values(buckets || {}).forEach(slots => {
         (slots || []).forEach(s => {
           if (!s.slot || !s.prodId) return;
           allSlots.push({
-            unit, dia, slot: s.slot, prod_id: s.prodId,
+            unit, dia: VITRINE_KEY, slot: s.slot, prod_id: s.prodId,
             qty: s.qty || 0, produced_qty: s.producedQty || 0,
             min_qty: (s.minQty === undefined || s.minQty === null || s.minQty === '') ? null : s.minQty,
             unidade_medida: s.unidadeMedida || 'un',
-            entry_at: s.entryAt || null, status: s.status || 'em_vitrine'
+            entry_at: s.entryAt || null, status: s.status || 'em_vitrine',
+            prod_day: s.prodDay || null, fab_date: s.fabDate || null
           });
         });
       });
@@ -3839,14 +3874,19 @@ async function loadFromSupabase() {
       console.warn('Itens de ficha duplicados removidos (custo estava sendo somado em dobro).');
     }
     vitrines = {};
+    // A vitrine real é única e permanente: junta qualquer balde antigo (dias da
+    // semana) no balde único VITRINE_KEY. Cada item preserva o próprio dia de
+    // produção (prod_day, com legado caindo no antigo s.dia) e a data de fab.
     (slotData || []).forEach(s => {
       if (!vitrines[s.unit]) vitrines[s.unit] = {};
-      if (!vitrines[s.unit][s.dia]) vitrines[s.unit][s.dia] = [];
-      vitrines[s.unit][s.dia].push({
+      if (!vitrines[s.unit][VITRINE_KEY]) vitrines[s.unit][VITRINE_KEY] = [];
+      const prodDay = s.prod_day || (s.dia && s.dia !== VITRINE_KEY ? s.dia : todayWeekdayKey());
+      vitrines[s.unit][VITRINE_KEY].push({
         prodId: s.prod_id, qty: s.qty, producedQty: s.produced_qty,
         minQty: (s.min_qty === undefined || s.min_qty === null) ? null : Number(s.min_qty),
         unidadeMedida: s.unidade_medida || 'un',
-        entryAt: s.entry_at, status: s.status, slot: s.slot
+        entryAt: s.entry_at, status: s.status, slot: s.slot,
+        prodDay, fabDate: s.fab_date || (s.entry_at ? String(s.entry_at).slice(0, 10) : null)
       });
     });
     cronograma = {};
@@ -3978,15 +4018,6 @@ function setUnit(unit) {
 // ============================================================
 // VITRINE
 // ============================================================
-function setDay(day) {
-  currentDay = day;
-  document.querySelectorAll('#day-tabs .day-tab').forEach(b => b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
-  const diaSel = document.getElementById('apoio-dia');
-  if (diaSel) diaSel.value = day;
-  renderVitrine();
-}
-
 function setVitrineFilter(filter) {
   currentVitrineFilter = filter;
   renderVitrine();
@@ -4018,8 +4049,8 @@ function setVitrineMode(mode) {
 
 function getVitrine() {
   if (!vitrines[currentUnit]) vitrines[currentUnit] = {};
-  if (!vitrines[currentUnit][currentDay]) vitrines[currentUnit][currentDay] = [];
-  return vitrines[currentUnit][currentDay];
+  if (!vitrines[currentUnit][VITRINE_KEY]) vitrines[currentUnit][VITRINE_KEY] = [];
+  return vitrines[currentUnit][VITRINE_KEY];
 }
 
 // ============================================================
@@ -4583,7 +4614,7 @@ function addApoioRow() {
   const diaSel = document.getElementById('apoio-dia');
   const nome = produtoInput.value.trim();
   const qty = parseInt(qtyInput.value) || 1;
-  const prodDay = diaSel && diaSel.value ? diaSel.value : currentDay;
+  const prodDay = diaSel && diaSel.value ? diaSel.value : todayWeekdayKey();
   if (!nome) { produtoInput.focus(); return; }
 
   const prod = produtos.find(p =>
@@ -4634,12 +4665,13 @@ function addToVitrineAuto(prod, qty, prodDay) {
     for (let i = 0; i < section.count; i++) {
       const slotNum = section.start + i;
       if (!vitrine.some(v => v.slot === slotNum)) {
-        const fabDate = fabDateForDay(prodDay || currentDay);
+        const day = prodDay || todayWeekdayKey();
+        const fabDate = fabDateForDay(day);
         const entryAt = nowLocalInputValue();
         vitrine.push({
           prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
           entryAt, status: 'em_vitrine', slot: slotNum,
-          prodDay: prodDay || currentDay, fabDate
+          prodDay: day, fabDate
         });
         logProducao(prod.id, qty, fabDate);
         stampHistEntry(prod.id, fabDate, { entryAt });
@@ -4659,7 +4691,7 @@ function handleApoioPaste(event) {
     .filter(Boolean)
     .map(row => row.split(/\t|;|,/).map(cell => cell.trim()));
   const diaSel = document.getElementById('apoio-dia');
-  const prodDay = diaSel && diaSel.value ? diaSel.value : currentDay;
+  const prodDay = diaSel && diaSel.value ? diaSel.value : todayWeekdayKey();
   rows.forEach(cells => {
     const nome = cells[0];
     const qty = parseInt(cells[1]) || 1;
@@ -4768,9 +4800,9 @@ function saveSlot() {
     vitrine.splice(Number(editIdx), 1);
   }
 
-  const diaSel = document.getElementById('apoio-dia');
   const fabDate = String(entryAt).slice(0, 10) || todayISO();
-  vitrine.push({ prodId, qty, producedQty, minQty, unidadeMedida, entryAt, status: 'em_vitrine', slot: pos, prodDay: diaSel ? diaSel.value : currentDay, fabDate });
+  // O dia de produção acompanha a data de fabricação do próprio item.
+  vitrine.push({ prodId, qty, producedQty, minQty, unidadeMedida, entryAt, status: 'em_vitrine', slot: pos, prodDay: weekdayKeyFromISO(fabDate), fabDate });
 
   // Atualiza o histórico de produção: tira a produção antiga e soma a nova
   if (editing && oldFab) logProducao(oldProdId, -oldProduced, oldFab);
@@ -4897,7 +4929,7 @@ function saveSlotLoss() {
     obs: obs || `Perda registrada no slot ${item.slot} da vitrine`,
     unit: currentUnit,
     fabDate: itemFabDate(item),
-    source: `slot-${currentUnit}-${currentDay}-${item.slot}-${Date.now()}`
+    source: `slot-${currentUnit}-${VITRINE_KEY}-${item.slot}-${Date.now()}`
   });
   ensureLogged(item);
   stampHistEntry(item.prodId, itemFabDate(item), { entryAt: item.entryAt, exitAt: nowLocalInputValue() });
@@ -4908,7 +4940,7 @@ function saveSlotLoss() {
   showToast('Perda registrada no slot', 'error');
 }
 
-function getFechamento(unit = currentUnit, day = currentDay) {
+function getFechamento(unit = currentUnit, day = VITRINE_KEY) {
   return (fechamentos[unit] && fechamentos[unit][day]) || [];
 }
 
@@ -4917,7 +4949,7 @@ function openFechamentoModal() {
   const tbody = document.getElementById('fechamento-tbody');
   const saved = getFechamento();
   document.getElementById('fechamento-sub').textContent =
-    `${currentUnit === 'matriz' ? 'Matriz' : 'Vila Nova'} · ${dayNames[currentDay]} · informe a sobra real no final do dia`;
+    `${currentUnit === 'matriz' ? 'Matriz' : 'Vila Nova'} · ${dayNames[todayWeekdayKey()]} · informe a sobra real no final do dia`;
 
   if (!vitrine.length) {
     tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum item planejado para fechar neste dia</td></tr>';
@@ -4955,7 +4987,7 @@ function openFechamentoModal() {
 function saveFechamento() {
   const rows = Array.from(document.querySelectorAll('#fechamento-tbody tr[data-prod-id]'));
   if (!fechamentos[currentUnit]) fechamentos[currentUnit] = {};
-  fechamentos[currentUnit][currentDay] = rows.map(row => ({
+  fechamentos[currentUnit][VITRINE_KEY] = rows.map(row => ({
     prodId: parseInt(row.dataset.prodId),
     slot: parseInt(row.dataset.slot),
     plannedQty: parseInt(row.dataset.planned) || 0,
@@ -4972,7 +5004,7 @@ function saveFechamento() {
 }
 
 function syncValidadePerdasFromFechamento() {
-  const source = `fechamento-${currentUnit}-${currentDay}`;
+  const source = `fechamento-${currentUnit}-${VITRINE_KEY}`;
   // Remove perdas antigas com esta source do Supabase
   dbDelete('remover perdas do fechamento', db.from('perdas').delete().eq('source', source));
   perdas = perdas.filter(p => p.source !== source);
@@ -4987,7 +5019,7 @@ function syncValidadePerdasFromFechamento() {
         qty,
         tipo: 'vencimento',
         data: new Date().toISOString().split('T')[0],
-        obs: `Fora da validade no fechamento da vitrine (${dayNames[currentDay]})`,
+        obs: `Fora da validade no fechamento da vitrine (${dayNames[todayWeekdayKey()]})`,
         unit: currentUnit,
         fabDate: item.entryAt ? String(item.entryAt).slice(0, 10) : new Date().toISOString().split('T')[0],
         source
@@ -5331,6 +5363,9 @@ document.addEventListener('DOMContentLoaded', () => {
     }
   });
   mo.observe(document.body, { childList: true, subtree: true });
+  // A Lista de Apoio lança produção do dia: começa em hoje.
+  const diaSel = document.getElementById('apoio-dia');
+  if (diaSel) diaSel.value = todayWeekdayKey();
 });
 
 function addProdutoRow() {
@@ -8369,12 +8404,12 @@ function producaoPorDia(day, unit = currentUnit) {
   return byProd;
 }
 
-// Adiciona um produto à vitrine de um dia específico (balde por dia da semana),
-// ocupando o primeiro slot livre da seção correspondente.
+// Adiciona um produto à vitrine (balde único e permanente) da unidade indicada,
+// marcando o dia de produção informado, e ocupando o primeiro slot livre.
 function addProdToVitrineDay(prod, qty, day, unit = currentUnit) {
   if (!vitrines[unit]) vitrines[unit] = {};
-  if (!vitrines[unit][day]) vitrines[unit][day] = [];
-  const vitrine = vitrines[unit][day];
+  if (!vitrines[unit][VITRINE_KEY]) vitrines[unit][VITRINE_KEY] = [];
+  const vitrine = vitrines[unit][VITRINE_KEY];
   const layout = vitrineLayouts[unit];
   const prodVitrine = inferProductVitrine(prod);
   const sections = layout.sections.filter(s => prodVitrine === 'todas' || s.id === prodVitrine);
