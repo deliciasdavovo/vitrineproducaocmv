@@ -4488,7 +4488,8 @@ function renderVitrineSlotList() {
       const itemRows = entries.map(({ it, i }, pos) => {
         const prod = produtos.find(p => p.id === it.prodId);
         const expiration = getExpirationInfo(it, prod);
-        const timeLabel = it.entryAt ? `ha ${formatDisplayTime(it.entryAt)}` : '&#8212;';
+        const diasVitrine = diasEntreDatas(itemFabDate(it), null);
+        const timeLabel = diasVitrine == null ? '&#8212;' : labelDiasVitrine(diasVitrine);
         const statusClass = it.status === 'vendeu' ? 'sold' : (it.status === 'perda' || it.status === 'validade' ? 'loss' : '');
         const stock = getSlotStock(it);
         const stockBadge = !expiration.expired && stock.label && stock.level !== 'ok'
@@ -8641,21 +8642,34 @@ function producaoBreakdownPorData(date) {
   return result;
 }
 
-// Formata a duração na vitrine a partir da entrada/saída. Se o item ainda
-// está na vitrine, mostra o tempo decorrido até agora.
-function formatTempoVitrine(entryAt, exitAt, aindaNaVitrine) {
-  if (!entryAt) return '—';
-  const start = new Date(entryAt).getTime();
-  if (Number.isNaN(start)) return '—';
-  const end = aindaNaVitrine ? Date.now() : (exitAt ? new Date(exitAt).getTime() : null);
-  if (end == null || Number.isNaN(end)) return '—';
-  let min = Math.floor(Math.max(0, end - start) / 60000);
-  const dias = Math.floor(min / 1440); min -= dias * 1440;
-  const horas = Math.floor(min / 60); min -= horas * 60;
-  let label;
-  if (dias > 0) label = `${dias}d ${horas}h`;
-  else if (horas > 0) label = `${horas}h ${min}min`;
-  else label = `${min}min`;
+// Diferença em DIAS de calendário (ignora horas) entre a data de fabricação e
+// uma data final (padrão: agora). Retorna null se a data for inválida.
+function diasEntreDatas(fabDate, fim) {
+  if (!fabDate) return null;
+  const inicio = new Date(String(fabDate).slice(0, 10) + 'T12:00:00');
+  if (Number.isNaN(inicio.getTime())) return null;
+  const f = fim || new Date();
+  if (Number.isNaN(f.getTime())) return null;
+  const a = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
+  const b = new Date(f.getFullYear(), f.getMonth(), f.getDate());
+  return Math.max(0, Math.round((b - a) / 86400000));
+}
+
+// Rótulo em dias: "hoje", "1 dia", "3 dias".
+function labelDiasVitrine(dias) {
+  if (dias == null) return '—';
+  return dias === 0 ? 'hoje' : (dias === 1 ? '1 dia' : `${dias} dias`);
+}
+
+// Tempo na vitrine contado em DIAS de calendário, da data de fabricação até
+// hoje (se ainda está na vitrine) ou até a data de saída. Ex.: "hoje", "1 dia",
+// "3 dias". Não depende da hora em que o item foi adicionado.
+function formatTempoVitrine(fabDate, exitAt, aindaNaVitrine) {
+  const fim = aindaNaVitrine ? new Date() : (exitAt ? new Date(exitAt) : null);
+  if (!aindaNaVitrine && !exitAt) return '—';
+  const dias = diasEntreDatas(fabDate, fim);
+  if (dias == null) return '—';
+  const label = labelDiasVitrine(dias);
   return aindaNaVitrine ? `${label} · na vitrine` : label;
 }
 
@@ -8699,7 +8713,7 @@ function renderHistorico() {
   } else {
     tbody.innerHTML = rows.map(({ data, p }) => {
       const planejado = getPlanoQty(currentUnit, p.id);
-      const tempo = formatTempoVitrine(data.entryAt, data.exitAt, data.naVitrineAtiva);
+      const tempo = formatTempoVitrine(date, data.exitAt, data.naVitrineAtiva);
       const vendidoCel = data.vendido > 0
         ? `<span style="color:var(--green);font-weight:700;">${data.vendido}</span>`
         : '<span style="color:var(--text-light)">0</span>';
@@ -8774,7 +8788,7 @@ function renderHistoricoAnteriores() {
       .filter(x => x.p && (x.data.produced > 0 || x.data.obs))
       .sort((a, b) => (curvaOrder[a.p.curva] ?? 3) - (curvaOrder[b.p.curva] ?? 3) || a.p.nome.localeCompare(b.p.nome));
     const rows = items.map(({ data, p }) => {
-      const tempo = formatTempoVitrine(data.entryAt, data.exitAt, data.naVitrineAtiva);
+      const tempo = formatTempoVitrine(date, data.exitAt, data.naVitrineAtiva);
       const vendidoCel = data.vendido > 0 ? `<span style="color:var(--green);font-weight:700;">${data.vendido}</span>` : '<span style="color:var(--text-light)">0</span>';
       const perdaCel = data.perda > 0 ? `<span style="color:var(--red);font-weight:700;">${data.perda}</span>` : '<span style="color:var(--text-light)">0</span>';
       return `<tr>
