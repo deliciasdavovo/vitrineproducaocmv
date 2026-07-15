@@ -420,6 +420,10 @@ tr:hover td { background: var(--surface-soft); }
 }
 .day-tab.active { background: var(--brown); border-color: var(--brown); color: #fff; }
 .day-tab:hover:not(.active) { border-color: var(--brown); color: var(--brown); background: var(--warm); }
+/* WEEK NAV (navegação por semana no cronograma de produção) */
+.week-nav { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+.week-nav-label { font-weight: 700; font-size: 14px; color: var(--brown); font-family: var(--font-mono); white-space: nowrap; }
+.crono-cell-today { background: var(--warm); }
 /* VITRINE FILTER TABS (navegação por vitrine) */
 .vitrine-filter-tabs { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
 .vitrine-filter-tabs .vf-label { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .04em; color: var(--text-light); margin-right: 4px; }
@@ -1760,44 +1764,25 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
 <!-- ===================== PAGE: CRONOGRAMA ===================== -->
 <div class="page" id="page-cronograma">
-  <h2 class="section-title">Cronograma do Dia</h2>
-  <p class="section-sub">Horários de produção e responsáveis por tarefa</p>
+  <h2 class="section-title">Cronograma de Produção</h2>
+  <p class="section-sub">Quantidade produzida por produto em cada dia da semana — navegue pelo histórico de semanas.</p>
 
-  <div class="day-tabs" id="crono-day-tabs">
-    <button class="day-tab active" onclick="setCronoDay('seg')">Seg</button>
-    <button class="day-tab" onclick="setCronoDay('ter')">Ter</button>
-    <button class="day-tab" onclick="setCronoDay('qua')">Qua</button>
-    <button class="day-tab" onclick="setCronoDay('qui')">Qui</button>
-    <button class="day-tab" onclick="setCronoDay('sex')">Sex</button>
-    <button class="day-tab" onclick="setCronoDay('sab')">Sáb</button>
-    <button class="day-tab" onclick="setCronoDay('dom')">Dom</button>
+  <div class="week-nav" id="crono-week-nav">
+    <button class="btn btn-ghost btn-sm" onclick="cronoWeekShift(-1)">‹ Semana anterior</button>
+    <div class="week-nav-label" id="crono-week-label">—</div>
+    <button class="btn btn-ghost btn-sm" onclick="cronoWeekShift(1)">Próxima semana ›</button>
+    <button class="btn btn-ghost btn-sm" onclick="cronoWeekToday()" style="margin-left:auto;">Semana atual</button>
   </div>
 
   <div class="sheet-card">
     <div class="table-wrap">
-      <table class="sheet-table">
-        <thead>
-          <tr>
-            <th>Hora</th>
-            <th>Tarefa</th>
-            <th>Responsável</th>
-            <th>Produto</th>
-            <th>Qtd</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="cronograma-list"></tbody>
+      <table class="sheet-table" id="crono-matrix-table">
+        <thead id="crono-matrix-head"></thead>
+        <tbody id="crono-matrix-list"></tbody>
       </table>
-      <button class="btn-add-row" onclick="addCronoRow()">+ Adicionar linha</button>
     </div>
     <div class="sheet-hint">
-      <kbd>Enter</kbd> próxima coluna
-      <span class="hint-sep">·</span>
-      <kbd>Shift+Enter</kbd> voltar
-      <span class="hint-sep">·</span>
-      última coluna → nova linha
-      <span class="hint-sep">·</span>
-      <kbd>alça</kbd> arraste para copiar valor
+      Digite a quantidade produzida em cada dia. Os valores ficam gravados no histórico de produção por data.
     </div>
   </div>
 
@@ -2883,7 +2868,8 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 // ============================================================
 let currentUnit = 'matriz';
 let currentDay = 'seg';
-let currentCronoDay = 'seg';
+// Início (domingo, AAAA-MM-DD) da semana exibida no Cronograma de Produção.
+let currentCronoWeekStart = null;
 let currentPedidoDay = 'seg';
 let currentVitrineMode = 'slots';
 let currentVitrineFilter = 'todas';
@@ -5031,68 +5017,144 @@ function syncValidadePerdasFromFechamento() {
 // ============================================================
 // CRONOGRAMA
 // ============================================================
-function setCronoDay(day) {
-  currentCronoDay = day;
-  document.querySelectorAll('#crono-day-tabs .day-tab').forEach(b => b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+// ============================================================
+// CRONOGRAMA DE PRODUÇÃO — matriz produto × dia, navegável por semana.
+// As quantidades são lidas/gravadas no histórico de produção por data
+// (historicoProducao), o mesmo usado na página Histórico.
+// A semana vai de domingo a sábado (ex.: 12–18/07).
+// ============================================================
+const cronoDayLabels = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+
+// Domingo (Date) da semana que contém a data d.
+function cronoSundayOf(d) {
+  const x = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  x.setDate(x.getDate() - x.getDay()); // getDay(): 0 = domingo
+  return x;
+}
+
+// As 7 datas (Date) da semana exibida, de domingo a sábado.
+function cronoWeekDates() {
+  const start = new Date(currentCronoWeekStart + 'T12:00:00');
+  const out = [];
+  for (let i = 0; i < 7; i++) {
+    out.push(new Date(start.getFullYear(), start.getMonth(), start.getDate() + i));
+  }
+  return out;
+}
+
+function cronoWeekShift(delta) {
+  const base = new Date(currentCronoWeekStart + 'T12:00:00');
+  base.setDate(base.getDate() + delta * 7);
+  currentCronoWeekStart = resumoIso(base);
   renderCronograma();
 }
 
-function getCrono() {
-  if (!cronograma[currentUnit]) cronograma[currentUnit] = {};
-  if (!cronograma[currentUnit][currentCronoDay]) cronograma[currentUnit][currentCronoDay] = [];
-  return cronograma[currentUnit][currentCronoDay];
+function cronoWeekToday() {
+  currentCronoWeekStart = resumoIso(cronoSundayOf(new Date()));
+  renderCronograma();
+}
+
+// Grava a quantidade produzida de um produto numa data no histórico de produção.
+function setCronoProducao(prodId, date, value) {
+  const qty = Math.max(0, parseInt(value) || 0);
+  if (!historicoProducao[currentUnit]) historicoProducao[currentUnit] = {};
+  if (!historicoProducao[currentUnit][date]) historicoProducao[currentUnit][date] = [];
+  const arr = historicoProducao[currentUnit][date];
+  const ex = arr.find(it => it.prodId === prodId);
+  if (qty > 0) {
+    if (ex) ex.qty = qty;
+    else arr.push({ prodId, qty, obs: '' });
+  } else if (ex) {
+    arr.splice(arr.indexOf(ex), 1);
+    if (!arr.length) delete historicoProducao[currentUnit][date];
+  }
+  saveAll();
+  renderCronograma();
 }
 
 function renderCronograma() {
-  const crono = getCrono();
-  const list = document.getElementById('cronograma-list');
   renderPlanoSemanal();
+  const head = document.getElementById('crono-matrix-head');
+  const list = document.getElementById('crono-matrix-list');
+  if (!head || !list) return;
 
-  const respOptions = ['Alexandre','Tiago','Anderson','Lucas','Todos'].map(r => `<option value="${r}">${r}</option>`).join('');
-  const prodOptions = '<option value="">— nenhum —</option>' + produtos.map(p => `<option value="${p.id}">${p.nome}</option>`).join('');
+  if (!currentCronoWeekStart) currentCronoWeekStart = resumoIso(cronoSundayOf(new Date()));
+  const dates = cronoWeekDates();
+  const isoDates = dates.map(resumoIso);
+  const todayIso = resumoIso(new Date());
+  const pad = n => String(n).padStart(2, '0');
 
-  const sorted = [...crono].sort((a, b) => (a.hora||'').localeCompare(b.hora||''));
-  const realIdx = (t) => crono.indexOf(t);
+  const d0 = dates[0], d6 = dates[6];
+  const lbl = document.getElementById('crono-week-label');
+  if (lbl) lbl.textContent = `${pad(d0.getDate())}/${pad(d0.getMonth() + 1)} – ${pad(d6.getDate())}/${pad(d6.getMonth() + 1)} · ${d6.getFullYear()}`;
 
-  list.innerHTML = sorted.map(t => {
-    const idx = realIdx(t);
+  // Produção registrada em cada dia da semana (produtos com qtd > 0)
+  const weekQty = {}; // isoDate -> { prodId: qty }
+  const producedIds = new Set();
+  isoDates.forEach(iso => {
+    const byProd = producaoRegistradaPorData(iso);
+    weekQty[iso] = {};
+    Object.keys(byProd).forEach(pid => {
+      const q = Number(byProd[pid].qty) || 0;
+      weekQty[iso][pid] = q;
+      if (q > 0) producedIds.add(Number(pid));
+    });
+  });
+
+  head.innerHTML = `<tr>
+    <th style="min-width:150px;">Produto</th>
+    ${dates.map((d, i) => `<th style="text-align:center;${isoDates[i] === todayIso ? 'color:var(--brown);' : ''}">${cronoDayLabels[i]}<br><span style="font-weight:400;font-size:11px;color:var(--text-light);">${pad(d.getDate())}/${pad(d.getMonth() + 1)}</span></th>`).join('')}
+    <th style="text-align:right;">Total</th>
+  </tr>`;
+
+  // Linhas: itens de vitrine (fabricação) + qualquer produto produzido na semana
+  const curvaOrder = { A: 0, B: 1, C: 2 };
+  const rowIds = new Set();
+  produtos.forEach(p => {
+    if ((p.tipo || 'fabricacao') === 'fabricacao' && getProdutoSegmento(p) === 'vitrine') rowIds.add(p.id);
+  });
+  producedIds.forEach(id => rowIds.add(id));
+
+  const rows = Array.from(rowIds)
+    .map(id => produtos.find(p => p.id === id))
+    .filter(Boolean)
+    .sort((a, b) => (curvaOrder[a.curva] ?? 3) - (curvaOrder[b.curva] ?? 3) || a.nome.localeCompare(b.nome));
+
+  if (!rows.length) {
+    list.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>`;
+    return;
+  }
+
+  const colTotals = isoDates.map(() => 0);
+  let grand = 0;
+
+  const body = rows.map(p => {
+    let rowTotal = 0;
+    const cells = isoDates.map((iso, i) => {
+      const q = weekQty[iso][p.id] || 0;
+      rowTotal += q;
+      colTotals[i] += q;
+      const cls = iso === todayIso ? ' class="crono-cell-today"' : '';
+      return `<td${cls} style="text-align:center;">
+        <input class="sheet-input" type="number" min="0" style="min-width:54px;text-align:center;" value="${q || ''}" placeholder="—" onchange="setCronoProducao(${p.id}, '${iso}', this.value)">
+      </td>`;
+    }).join('');
+    grand += rowTotal;
+    const badge = p.curva ? ` <span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span>` : '';
     return `<tr>
-      <td><input class="sheet-input" type="time" value="${t.hora||''}" onchange="updateCronoCell(${idx},'hora',this.value)" style="min-width:80px;"></td>
-      <td><input class="sheet-input" value="${escHtml(t.tarefa||'')}" onblur="updateCronoCell(${idx},'tarefa',this.value)" placeholder="ex: Assar pão de queijo" style="min-width:200px;"></td>
-      <td><select class="sheet-select" onchange="updateCronoCell(${idx},'resp',this.value)">${respOptions.replace(`value="${t.resp||'Alexandre'}"`,`value="${t.resp||'Alexandre'}" selected`)}</select></td>
-      <td><select class="sheet-select" onchange="updateCronoCell(${idx},'prodId',this.value)">${prodOptions.replace(`value="${t.prodId||''}"`,`value="${t.prodId||''}" selected`)}</select></td>
-      <td><input class="sheet-input" type="number" min="0" value="${t.qty||''}" onblur="updateCronoCell(${idx},'qty',this.value)" placeholder="0" style="min-width:60px;text-align:center;"></td>
-      <td><button class="btn btn-ghost btn-sm" onclick="removeCrono(${idx})" style="color:var(--red)">×</button></td>
+      <td><span class="sheet-readonly" style="font-weight:600;">${escHtml(p.nome)}${badge}</span></td>
+      ${cells}
+      <td><span class="sheet-readonly" style="font-family:var(--font-mono);font-weight:700;text-align:right;">${rowTotal || '—'}</span></td>
     </tr>`;
-  }).join('') || `<tr><td colspan="6" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma tarefa — clique em "+ Adicionar linha"</td></tr>`;
-}
+  }).join('');
 
-function addCronoRow() {
-  getCrono().push({ hora: '', tarefa: '', resp: 'Alexandre', prodId: null, qty: 0 });
-  saveAll();
-  renderCronograma();
-  setTimeout(() => {
-    const list = document.getElementById('cronograma-list');
-    const lastRow = list.querySelector('tr:last-child');
-    if (lastRow) { const first = lastRow.querySelector('.sheet-input'); if (first) first.focus(); }
-  }, 50);
-}
+  const footer = `<tr style="background:var(--warm);">
+    <td style="font-weight:700;">Total do dia</td>
+    ${colTotals.map(t => `<td style="text-align:center;font-family:var(--font-mono);font-weight:700;">${t || '—'}</td>`).join('')}
+    <td style="text-align:right;font-family:var(--font-mono);font-weight:800;">${grand || '—'}</td>
+  </tr>`;
 
-function updateCronoCell(idx, field, value) {
-  const crono = getCrono();
-  if (!crono[idx]) return;
-  if (field === 'prodId') crono[idx][field] = value ? parseInt(value) : null;
-  else if (field === 'qty') crono[idx][field] = parseInt(value) || 0;
-  else crono[idx][field] = value;
-  saveAll();
-  if (field === 'hora') renderCronograma();
-}
-
-function removeCrono(idx) {
-  getCrono().splice(idx, 1);
-  saveAll();
-  renderCronograma();
+  list.innerHTML = body + footer;
 }
 
 // ============================================================
@@ -8827,7 +8889,6 @@ const sheetRowAdders = {
   'insumos-fabricacao-tbody': () => addFabricacaoProduto(),
   'categorias-tbody': () => addCategoriaRow(),
   'vitrines-tbody': () => addVitrineTipoRow(),
-  'cronograma-list': () => addCronoRow(),
   'perdas-list': () => addPerdaRow(),
 };
 
