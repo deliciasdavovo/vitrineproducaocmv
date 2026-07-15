@@ -750,6 +750,7 @@ tr:hover td { background: var(--surface-soft); }
 .vitrine-slot.multi { padding: 24px 8px 8px; gap: 6px; }
 .slot-prod-list { display: flex; flex-direction: column; gap: 6px; width: 100%; }
 .slot-prod {
+  position: relative;
   border: 1px solid var(--border);
   border-radius: 7px;
   background: var(--surface);
@@ -757,10 +758,58 @@ tr:hover td { background: var(--surface-soft); }
   display: flex;
   flex-direction: column;
   gap: 5px;
-  cursor: pointer;
-  transition: border-color .12s, background .12s;
+  cursor: grab;
+  transition: border-color .12s, background .12s, opacity .12s;
 }
+.slot-prod:active { cursor: grabbing; }
+.slot-prod.dragging { opacity: .45; }
 .slot-prod:hover { border-color: var(--brown); }
+/* Capa vermelha que cobre o produto inteiro quando está fora do prazo */
+.slot-prod-cover {
+  position: absolute;
+  inset: 0;
+  z-index: 4;
+  border-radius: 7px;
+  background: rgba(168,68,59,0.94);
+  color: #FFFFFF;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  text-align: center;
+  padding: 4px;
+  cursor: pointer;
+}
+.slot-prod-cover .cover-tag {
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+}
+.slot-prod-cover .cover-name {
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1.1;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.slot-prod-cover .cover-remove {
+  position: absolute;
+  top: 3px;
+  right: 5px;
+  color: #FFFFFF;
+  font-size: 15px;
+  line-height: 1;
+}
+/* Espaço da vitrine recebendo um produto arrastado */
+.vitrine-slot.drop-target {
+  border-color: var(--brown);
+  background: #F3EACF;
+  box-shadow: inset 0 0 0 2px var(--brown);
+}
 .slot-prod.low { border-color: var(--gold); background: #F3EACF; }
 .slot-prod.out { border-color: var(--red); background: #EFDCD6; }
 .slot-prod.sold { border-color: rgba(76,122,84,0.60); background: #DFE7DA; }
@@ -2979,8 +3028,14 @@ function formatDisplayTime(value) {
 
 function getExpirationInfo(item, prod) {
   if (item?.status && item.status !== 'em_vitrine') return { expired: false, label: '' };
-  if (!item?.entryAt || !prod?.validade) return { expired: false, label: '' };
-  const start = new Date(item.entryAt);
+  if (!prod?.validade) return { expired: false, label: '' };
+  // Produto que acabou (quantidade 0) não está mais na vitrine: não vence.
+  if ((Number(item?.qty) || 0) <= 0) return { expired: false, label: '' };
+  // A validade é contada a partir da DATA DE FABRICAÇÃO (não da hora de entrada
+  // na vitrine): vence ao completar "validade" dias após o dia de fabricação.
+  const fab = itemFabDate(item);
+  if (!fab) return { expired: false, label: '' };
+  const start = new Date(String(fab).slice(0, 10) + 'T00:00:00');
   if (Number.isNaN(start.getTime())) return { expired: false, label: '' };
   const expiresAt = new Date(start.getTime() + Number(prod.validade) * 24 * 60 * 60 * 1000);
   const expired = Date.now() > expiresAt.getTime();
@@ -3031,6 +3086,7 @@ function adjustSlotQty(idx, delta, e) {
     return;
   }
   item.qty = novaQty;
+  if (novaQty > 0) item.emptyAt = null; // voltou a ter produto: tempo volta a correr
   saveAll();
   renderVitrine();
 }
@@ -3632,7 +3688,8 @@ async function syncToSupabase() {
             min_qty: (s.minQty === undefined || s.minQty === null || s.minQty === '') ? null : s.minQty,
             unidade_medida: s.unidadeMedida || 'un',
             entry_at: s.entryAt || null, status: s.status || 'em_vitrine',
-            prod_day: s.prodDay || null, fab_date: s.fabDate || null
+            prod_day: s.prodDay || null, fab_date: s.fabDate || null,
+            empty_at: s.emptyAt || null
           });
         });
       });
@@ -3870,7 +3927,8 @@ async function loadFromSupabase() {
         minQty: (s.min_qty === undefined || s.min_qty === null) ? null : Number(s.min_qty),
         unidadeMedida: s.unidade_medida || 'un',
         entryAt: s.entry_at, status: s.status, slot: s.slot,
-        prodDay, fabDate: s.fab_date || (s.entry_at ? String(s.entry_at).slice(0, 10) : null)
+        prodDay, fabDate: s.fab_date || (s.entry_at ? String(s.entry_at).slice(0, 10) : null),
+        emptyAt: s.empty_at || null
       });
     });
     cronograma = {};
@@ -4355,7 +4413,15 @@ function slotProdRowHTML(item, idx, prod) {
   const badge = expiration.expired
     ? '<span class="slot-expired">Fora do prazo</span>'
     : (stock.label ? `<span class="stock-badge ${stock.level}">${stock.label}</span>` : '');
-  return `<div class="slot-prod ${statusClass}" title="Clique para editar" onclick="openSlotModal(${item.slot}, ${idx})" oncontextmenu="openSlotContextMenu(event, ${idx})">
+  // Quando está fora do prazo, cobre o card inteiro com um aviso vermelho.
+  const cover = expiration.expired
+    ? `<div class="slot-prod-cover" title="Fora do prazo — clique para tratar" onclick="openSlotModal(${item.slot}, ${idx}); event.stopPropagation();">
+        <span class="cover-tag">Fora do prazo</span>
+        <span class="cover-name">${prod.nome}</span>
+        <span class="slot-remove cover-remove" title="Remover" onclick="removeSlot(${idx}, event)">×</span>
+      </div>`
+    : '';
+  return `<div class="slot-prod ${statusClass}" title="Clique para editar" draggable="true" ondragstart="slotDragStart(event, ${idx})" ondragend="slotDragEnd(event)" onclick="openSlotModal(${item.slot}, ${idx})" oncontextmenu="openSlotContextMenu(event, ${idx})">
     <div class="slot-prod-main">
       <span class="slot-prod-name" title="${prod.nome}">${prod.nome}</span>
       ${badge}
@@ -4367,7 +4433,53 @@ function slotProdRowHTML(item, idx, prod) {
       <button class="slot-step plus" title="Aumentar" onclick="adjustSlotQty(${idx}, 1, event)">+</button>
       <span class="slot-unit">${unitLabel}</span>
     </div>
+    ${cover}
   </div>`;
+}
+
+// --- Arrastar produto para mudar de lugar na vitrine ---
+let dragItemIdx = null;
+
+function slotDragStart(ev, idx) {
+  dragItemIdx = idx;
+  if (ev.dataTransfer) {
+    ev.dataTransfer.effectAllowed = 'move';
+    try { ev.dataTransfer.setData('text/plain', String(idx)); } catch (_) {}
+  }
+  ev.currentTarget.classList.add('dragging');
+}
+
+function slotDragEnd(ev) {
+  if (ev.currentTarget) ev.currentTarget.classList.remove('dragging');
+  document.querySelectorAll('.vitrine-slot.drop-target').forEach(el => el.classList.remove('drop-target'));
+  dragItemIdx = null;
+}
+
+function slotDragOver(ev) {
+  if (dragItemIdx === null) return;
+  ev.preventDefault();
+  if (ev.dataTransfer) ev.dataTransfer.dropEffect = 'move';
+  ev.currentTarget.classList.add('drop-target');
+}
+
+function slotDragLeave(ev) {
+  ev.currentTarget.classList.remove('drop-target');
+}
+
+function slotDrop(ev, targetSlot) {
+  ev.preventDefault();
+  ev.currentTarget.classList.remove('drop-target');
+  const idx = dragItemIdx;
+  dragItemIdx = null;
+  if (idx === null) return;
+  const vitrine = getVitrine();
+  const item = vitrine[idx];
+  if (!item || !getSlotMeta(targetSlot)) return;
+  if (item.slot === targetSlot) return;
+  item.slot = targetSlot;
+  saveAll();
+  renderVitrine();
+  showToast('Produto movido de lugar ✓', 'success');
 }
 
 function renderVitrine() {
@@ -4421,6 +4533,10 @@ function renderVitrine() {
         const div = document.createElement('div');
         div.className = 'vitrine-slot ' + (entries.length ? 'filled multi' : 'empty');
         div.dataset.slotNumber = slotNumber;
+        // Alvo para soltar um produto arrastado (mudar de lugar).
+        div.ondragover = slotDragOver;
+        div.ondragleave = slotDragLeave;
+        div.ondrop = (ev) => slotDrop(ev, slotNumber);
         div.innerHTML = `<span class="slot-num">${offset + 1}</span><span class="slot-role" title="${role}">${role}</span>`;
         if (entries.length) {
           const rowsHtml = entries.map(({ it, i }) => {
@@ -4472,8 +4588,12 @@ function renderVitrineSlotList() {
       const itemRows = entries.map(({ it, i }, pos) => {
         const prod = produtos.find(p => p.id === it.prodId);
         const expiration = getExpirationInfo(it, prod);
-        const diasVitrine = diasEntreDatas(itemFabDate(it), null);
-        const timeLabel = diasVitrine == null ? '&#8212;' : labelDiasVitrine(diasVitrine);
+        // Produto que acabou (qtd 0) congela o tempo no momento em que acabou.
+        const aindaNaVitrine = (Number(it.qty) || 0) > 0;
+        const fimTempo = aindaNaVitrine ? null : (it.emptyAt ? new Date(it.emptyAt) : new Date());
+        const diasVitrine = diasEntreDatas(itemFabDate(it), fimTempo);
+        const timeLabel = diasVitrine == null ? '&#8212;'
+          : labelDiasVitrine(diasVitrine) + (aindaNaVitrine ? '' : ' &middot; acabou');
         const statusClass = it.status === 'vendeu' ? 'sold' : (it.status === 'perda' || it.status === 'validade' ? 'loss' : '');
         const stock = getSlotStock(it);
         const stockBadge = !expiration.expired && stock.label && stock.level !== 'ok'
@@ -4787,7 +4907,10 @@ function saveSlot() {
 
   const fabDate = String(entryAt).slice(0, 10) || todayISO();
   // O dia de produção acompanha a data de fabricação do próprio item.
-  vitrine.push({ prodId, qty, producedQty, minQty, unidadeMedida, entryAt, status: 'em_vitrine', slot: pos, prodDay: weekdayKeyFromISO(fabDate), fabDate });
+  // emptyAt: momento em que o produto acabou (qtd 0). Enquanto tiver quantidade,
+  // fica null; ele congela o tempo de vitrine quando o produto acaba.
+  const emptyAt = qty <= 0 ? nowLocalInputValue() : null;
+  vitrine.push({ prodId, qty, producedQty, minQty, unidadeMedida, entryAt, status: 'em_vitrine', slot: pos, prodDay: weekdayKeyFromISO(fabDate), fabDate, emptyAt });
 
   // Atualiza o histórico de produção: tira a produção antiga e soma a nova
   if (editing && oldFab) logProducao(oldProdId, -oldProduced, oldFab);
