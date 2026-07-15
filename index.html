@@ -2405,21 +2405,18 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <!-- ===================== PAGE: PEDIDO ===================== -->
 <div class="page" id="page-pedido">
   <h2 class="section-title">Pedido de Produção</h2>
-  <p class="section-sub">Espelha a vitrine do dia — os produtos e quantidades são exatamente os que estão na vitrine</p>
+  <p class="section-sub">Espelha a vitrine da data escolhida — os produtos e quantidades são exatamente os que estão na vitrine naquele dia</p>
 
-  <div class="day-tabs" id="pedido-day-tabs">
-    <button class="day-tab active" onclick="setPedidoDay('seg')">Seg</button>
-    <button class="day-tab" onclick="setPedidoDay('ter')">Ter</button>
-    <button class="day-tab" onclick="setPedidoDay('qua')">Qua</button>
-    <button class="day-tab" onclick="setPedidoDay('qui')">Qui</button>
-    <button class="day-tab" onclick="setPedidoDay('sex')">Sex</button>
-    <button class="day-tab" onclick="setPedidoDay('sab')">Sáb</button>
-    <button class="day-tab" onclick="setPedidoDay('dom')">Dom</button>
+  <div class="week-nav" id="pedido-date-nav">
+    <button class="btn btn-ghost btn-sm" onclick="pedidoDateShift(-1)">‹ Dia anterior</button>
+    <input type="date" id="pedido-date" class="sheet-input" style="min-width:150px;" onchange="setPedidoDate(this.value)">
+    <button class="btn btn-ghost btn-sm" onclick="pedidoDateShift(1)">Próximo dia ›</button>
+    <button class="btn btn-ghost btn-sm" onclick="pedidoDateToday()" style="margin-left:auto;">Hoje</button>
   </div>
 
   <div class="pedido-header">
     <div>
-      <div class="pedido-title" id="pedido-title">Segunda-feira</div>
+      <div class="pedido-title" id="pedido-title">—</div>
       <div class="pedido-sub" id="pedido-unidade">Matriz e Vila Nova</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
@@ -2870,7 +2867,8 @@ let currentUnit = 'matriz';
 let currentDay = 'seg';
 // Início (domingo, AAAA-MM-DD) da semana exibida no Cronograma de Produção.
 let currentCronoWeekStart = null;
-let currentPedidoDay = 'seg';
+// Data (AAAA-MM-DD) exibida no Pedido de Produção. Inicializada em renderPedido.
+let currentPedidoDate = null;
 let currentVitrineMode = 'slots';
 let currentVitrineFilter = 'todas';
 
@@ -8441,27 +8439,46 @@ function removePerda(idx) {
 // ============================================================
 // PEDIDO DE PRODUÇÃO
 // ============================================================
-function setPedidoDay(day) {
-  currentPedidoDay = day;
-  document.querySelectorAll('#pedido-day-tabs .day-tab').forEach(b => b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+// Dia da semana (seg..dom) correspondente a uma data ISO.
+function weekdayFromDate(dateIso) {
+  const d = new Date(dateIso + 'T12:00:00');
+  return dayOrder[(d.getDay() + 6) % 7];
+}
+
+function ensurePedidoDate() {
+  if (!currentPedidoDate) currentPedidoDate = resumoIso(new Date());
+}
+
+function setPedidoDate(dateIso) {
+  if (!dateIso) return;
+  currentPedidoDate = dateIso;
   renderPedido();
 }
 
-// Agrega a produção de um dia a partir da vitrine (fonte da verdade).
-// Varre todos os dias da vitrine e soma, por produto, os itens cujo dia de
-// produção (prodDay, ou o próprio balde) corresponde ao dia pedido.
-function producaoPorDia(day, unit = currentUnit) {
+function pedidoDateShift(delta) {
+  ensurePedidoDate();
+  const d = new Date(currentPedidoDate + 'T12:00:00');
+  d.setDate(d.getDate() + delta);
+  currentPedidoDate = resumoIso(d);
+  renderPedido();
+}
+
+function pedidoDateToday() {
+  currentPedidoDate = resumoIso(new Date());
+  renderPedido();
+}
+
+// Agrega a produção de uma DATA a partir da vitrine (fonte da verdade).
+// Soma, por produto, os itens cuja data de fabricação é a data pedida.
+function producaoPorDataUnit(dateIso, unit = currentUnit) {
   const buckets = vitrines[unit] || {};
   const byProd = {};
   Object.keys(buckets).forEach(bucketDay => {
     (buckets[bucketDay] || []).forEach(slot => {
-      const d = slot.prodDay || bucketDay;
-      if (d !== day) return;
+      if (itemFabDate(slot) !== dateIso) return;
       const produced = Number(slot.producedQty ?? slot.qty) || 0;
-      if (!byProd[slot.prodId]) byProd[slot.prodId] = { prodId: slot.prodId, produced: 0, slots: [] };
+      if (!byProd[slot.prodId]) byProd[slot.prodId] = { prodId: slot.prodId, produced: 0 };
       byProd[slot.prodId].produced += produced;
-      byProd[slot.prodId].slots.push({ slot, bucketDay });
     });
   });
   return byProd;
@@ -8469,7 +8486,7 @@ function producaoPorDia(day, unit = currentUnit) {
 
 // Adiciona um produto à vitrine (balde único e permanente) da unidade indicada,
 // marcando o dia de produção informado, e ocupando o primeiro slot livre.
-function addProdToVitrineDay(prod, qty, day, unit = currentUnit) {
+function addProdToVitrineDay(prod, qty, day, unit = currentUnit, fabDateOverride = null) {
   if (!vitrines[unit]) vitrines[unit] = {};
   if (!vitrines[unit][VITRINE_KEY]) vitrines[unit][VITRINE_KEY] = [];
   const vitrine = vitrines[unit][VITRINE_KEY];
@@ -8480,7 +8497,7 @@ function addProdToVitrineDay(prod, qty, day, unit = currentUnit) {
     for (let i = 0; i < section.count; i++) {
       const slotNum = section.start + i;
       if (!vitrine.some(v => v.slot === slotNum)) {
-        const fabDate = fabDateForDay(day);
+        const fabDate = fabDateOverride || fabDateForDay(day);
         vitrine.push({
           prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
           entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: slotNum,
@@ -8496,12 +8513,19 @@ function addProdToVitrineDay(prod, qty, day, unit = currentUnit) {
 }
 
 function renderPedido() {
-  document.getElementById('pedido-title').textContent = dayNames[currentPedidoDay];
+  ensurePedidoDate();
+  const dateInput = document.getElementById('pedido-date');
+  if (dateInput && dateInput.value !== currentPedidoDate) dateInput.value = currentPedidoDate;
+
+  const dObj = new Date(currentPedidoDate + 'T12:00:00');
+  const wd = dObj.toLocaleDateString('pt-BR', { weekday: 'long' });
+  document.getElementById('pedido-title').textContent =
+    `${wd.charAt(0).toUpperCase()}${wd.slice(1)} · ${dObj.toLocaleDateString('pt-BR')}`;
   document.getElementById('pedido-unidade').textContent = 'Matriz e Vila Nova';
 
-  // Fonte da verdade: a própria vitrine do dia selecionado, por unidade
+  // Fonte da verdade: a própria vitrine da data selecionada, por unidade
   const byUnit = {};
-  planoUnits.forEach(u => { byUnit[u.id] = producaoPorDia(currentPedidoDay, u.id); });
+  planoUnits.forEach(u => { byUnit[u.id] = producaoPorDataUnit(currentPedidoDate, u.id); });
 
   // União dos produtos presentes em qualquer unidade
   const prodIds = new Set();
@@ -8516,7 +8540,7 @@ function renderPedido() {
   const list = document.getElementById('pedido-list');
   if (!rows.length) {
     list.innerHTML = `<div class="empty-state" style="padding:30px;">
-      <p>Nenhum produto na vitrine de ${dayNames[currentPedidoDay]}.<br>
+      <p>Nenhum produto na vitrine de ${dObj.toLocaleDateString('pt-BR')}.<br>
       Adicione produtos na aba Vitrine ou clique em "+ Adicionar produto".</p>
     </div>`;
     return;
@@ -8550,18 +8574,19 @@ function imprimirPedido() {
 
 // Ajusta a quantidade produzida de um produto no dia, escrevendo na vitrine.
 function setPedidoQty(prodId, value, unit = currentUnit) {
-  const day = currentPedidoDay;
+  ensurePedidoDate();
+  const date = currentPedidoDate;
   if (!vitrines[unit]) vitrines[unit] = {};
   const buckets = vitrines[unit];
   const slots = [];
   Object.keys(buckets).forEach(bucketDay => {
     (buckets[bucketDay] || []).forEach(slot => {
-      if (slot.prodId === prodId && (slot.prodDay || bucketDay) === day) slots.push(slot);
+      if (slot.prodId === prodId && itemFabDate(slot) === date) slots.push(slot);
     });
   });
   if (!slots.length) {
     const prod = produtos.find(p => p.id === prodId);
-    if (prod && value > 0) addProdToVitrineDay(prod, value, day, unit);
+    if (prod && value > 0) addProdToVitrineDay(prod, value, weekdayFromDate(date), unit, date);
   } else {
     const total = slots.reduce((s, x) => s + (Number(x.producedQty ?? x.qty) || 0), 0);
     const delta = value - total;
@@ -8582,7 +8607,8 @@ function adicionarLinhaPedido() {
   if (!nome) return;
   const prod = produtos.find(p => p.nome.toLowerCase() === nome.toLowerCase() && isProdutoVitrine(p));
   if (!prod) { showToast('Produto não encontrado no cadastro', 'error'); return; }
-  addProdToVitrineDay(prod, 1, currentPedidoDay);
+  ensurePedidoDate();
+  addProdToVitrineDay(prod, 1, weekdayFromDate(currentPedidoDate), currentUnit, currentPedidoDate);
   saveAll();
   renderPedido();
 }
