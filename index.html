@@ -5105,21 +5105,15 @@ function renderCronograma() {
     <th style="text-align:right;">Total</th>
   </tr>`;
 
-  // Linhas: itens de vitrine (fabricação) + qualquer produto produzido na semana
+  // Linhas: apenas os produtos que foram produzidos na semana exibida.
   const curvaOrder = { A: 0, B: 1, C: 2 };
-  const rowIds = new Set();
-  produtos.forEach(p => {
-    if ((p.tipo || 'fabricacao') === 'fabricacao' && getProdutoSegmento(p) === 'vitrine') rowIds.add(p.id);
-  });
-  producedIds.forEach(id => rowIds.add(id));
-
-  const rows = Array.from(rowIds)
+  const rows = Array.from(producedIds)
     .map(id => produtos.find(p => p.id === id))
     .filter(Boolean)
     .sort((a, b) => (curvaOrder[a.curva] ?? 3) - (curvaOrder[b.curva] ?? 3) || a.nome.localeCompare(b.nome));
 
   if (!rows.length) {
-    list.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum produto de fabricação cadastrado</td></tr>`;
+    list.innerHTML = `<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma produção registrada nesta semana</td></tr>`;
     return;
   }
 
