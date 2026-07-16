@@ -4,6 +4,9 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Vitrines · Delícias da Vovó</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
@@ -20,19 +23,24 @@
   --red: #FF3B30;          /* vermelho iOS */
   --red-light: #FFE0DE;
   --blue: #007AFF;         /* azul do sistema — destaque / ativo / links */
-  --text: #1D1D1F;
-  --text-mid: #6E6E73;     /* rótulo secundário */
-  --text-light: #8E8E93;   /* rótulo terciário / cinza */
-  --border: rgba(60,60,67,0.14);   /* separador iOS */
+  --text: #2A2A2E;         /* tinta principal (grafite suave, menos contraste) */
+  --text-mid: #6B6B70;     /* rótulo secundário */
+  --text-light: #98989E;   /* rótulo terciário / cinza */
+  --border: rgba(60,60,67,0.12);   /* separador iOS */
   --surface: #FFFFFF;      /* cards / painéis */
-  --surface-soft: #F5F5F7;
-  --ink: #1D1D1F;
+  --surface-soft: #F6F6F8;
+  --ink: #2A2A2E;
   --shadow: 0 1px 3px rgba(0,0,0,0.06);
   --shadow-soft: 0 1px 2px rgba(0,0,0,0.05);
   --radius: 10px;
   --sidebar-w: 244px;
-  --font-sans: -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'SF Pro Display', 'Segoe UI', system-ui, 'Helvetica Neue', Arial, sans-serif;
+  --font-sans: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --font-mono: ui-monospace, 'SF Mono', 'SFMono-Regular', 'Menlo', 'Cascadia Code', monospace;
+  /* Tons de status suaves (fundo pastel + texto sóbrio) — baixo contraste */
+  --red-soft: #FBEDEC;   --red-ink: #B4453C;
+  --amber-soft: #FBF3E4; --amber-ink: #96702A;
+  --green-soft: #EAF5EC; --green-ink: #3B7A48;
+  --blue-soft: #EAF2FE;  --blue-ink: #0A6CD6;
 }
 
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -209,7 +217,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .sidebar-brand-name {
   font-family: var(--font-sans);
   font-size: 16px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--text);
   letter-spacing: -0.02em;
   line-height: 1.1;
@@ -224,7 +232,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .sidebar-section { margin-top: 14px; }
 .sidebar-section-label {
   font-size: 10.5px;
-  font-weight: 800;
+  font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.07em;
   color: var(--text-light);
@@ -283,14 +291,14 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 /* SECTION TITLE */
 .section-title {
   font-family: var(--font-sans);
-  font-size: 22px;
-  font-weight: 700;
-  line-height: 1.15;
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.2;
   color: var(--text);
-  margin-bottom: 6px;
-  letter-spacing: -0.3px;
+  margin-bottom: 5px;
+  letter-spacing: -0.2px;
 }
-.section-sub { font-size: 14px; color: var(--text-light); margin-bottom: 24px; }
+.section-sub { font-size: 13px; color: var(--text-light); margin-bottom: 20px; }
 
 /* CARD */
 .card {
@@ -377,7 +385,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
   border-radius: 999px;
   border: 1px solid transparent;
   font-size: 11px;
-  font-weight: 800;
+  font-weight: 700;
   box-shadow: inset 0 -1px 0 rgba(0,0,0,0.04);
 }
 .badge-a { background: #DCFCE7; color: #166534; }
@@ -474,7 +482,7 @@ tr:hover td { background: var(--surface-soft); }
 }
 .slot-list-row:hover { border-color: rgba(0,122,255,0.35); background: var(--warm); }
 .slot-list-row.empty { color: var(--text-light); background: var(--surface-soft); }
-.slot-list-row.expired { border-color: rgba(220,38,38,0.35); background: #FFE5E3; }
+.slot-list-row.expired { border-color: rgba(180,69,60,0.28); background: var(--red-soft); }
 .slot-list-code,
 .sheet-row-code {
   font-family: var(--font-mono);
@@ -577,7 +585,7 @@ tr:hover td { background: var(--surface-soft); }
   transform: rotate(180deg);
   color: var(--text-light);
   font-size: 10px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: 0.6px;
   text-transform: uppercase;
   border-right: 1px solid rgba(148,163,184,0.35);
@@ -614,11 +622,12 @@ tr:hover td { background: var(--surface-soft); }
 .vitrine-category-count {
   flex-shrink: 0;
   border-radius: 999px;
-  background: var(--gold-light);
-  color: var(--brown);
+  background: var(--surface-soft);
+  color: var(--text-mid);
   font-size: 11px;
-  font-weight: 700;
-  padding: 4px 9px;
+  font-weight: 600;
+  padding: 4px 10px;
+  border: 1px solid var(--border);
 }
 .vitrine-slot {
   background: var(--surface);
@@ -644,33 +653,34 @@ tr:hover td { background: var(--surface-soft); }
 }
 .vitrine-slot.empty:hover { background: #EDEDF0; }
 .vitrine-slot.filled { border-color: rgba(41,53,76,0.35); }
-.vitrine-slot.low { border-color: var(--gold); background: #FFF3E0; }
-.vitrine-slot.low:hover { border-color: var(--gold); }
-.vitrine-slot.out { border-color: var(--red); background: #FFE5E3; }
-.vitrine-slot.out:hover { border-color: var(--red); }
+.vitrine-slot.low { border-color: rgba(255,159,10,0.30); background: var(--amber-soft); }
+.vitrine-slot.low:hover { border-color: rgba(255,159,10,0.45); }
+.vitrine-slot.out { border-color: rgba(180,69,60,0.28); background: var(--red-soft); }
+.vitrine-slot.out:hover { border-color: rgba(180,69,60,0.45); }
 .vitrine-slot.sold {
-  border-color: rgba(76,122,84,0.60);
-  background: #DFE7DA;
+  border-color: rgba(59,122,72,0.30);
+  background: var(--green-soft);
 }
 .vitrine-slot.loss {
-  border-color: rgba(168,68,59,0.55);
-  background: #FFE5E3;
+  border-color: rgba(180,69,60,0.28);
+  background: var(--red-soft);
 }
 .vitrine-slot.expired {
-  border-color: var(--red);
-  background: #FFE5E3;
+  border-color: rgba(180,69,60,0.28);
+  background: var(--red-soft);
 }
 .slot-expired {
   display: inline-flex;
+  align-items: center;
   margin-top: 2px;
-  padding: 2px 6px;
-  border-radius: 999px;
-  background: var(--red);
-  color: #FFFFFF;
-  font-size: 9px;
-  font-weight: 800;
-  letter-spacing: .3px;
-  text-transform: uppercase;
+  padding: 1px 6px;
+  border-radius: 5px;
+  background: rgba(180,69,60,0.12);
+  color: var(--red-ink);
+  font-size: 9.5px;
+  font-weight: 600;
+  letter-spacing: .1px;
+  white-space: nowrap;
 }
 .vitrine-slot .slot-num {
   position: absolute;
@@ -682,11 +692,11 @@ tr:hover td { background: var(--surface-soft); }
   color: var(--text-light);
 }
 .vitrine-slot .slot-content { width: 100%; display: flex; flex-direction: column; gap: 6px; flex: 1; }
-.vitrine-slot .slot-name { font-size: 13px; font-weight: 700; color: var(--text); line-height: 1.2; }
+.vitrine-slot .slot-name { font-size: 13px; font-weight: 600; color: var(--text); line-height: 1.2; }
 .vitrine-slot .slot-qty { font-size: 11px; color: var(--text-light); }
 /* Quantity stepper */
 .slot-qtyline { display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-.slot-qtynum { font-size: 19px; font-weight: 800; color: var(--text); font-family: var(--font-mono); min-width: 18px; text-align: center; line-height: 1; }
+.slot-qtynum { font-size: 16px; font-weight: 700; color: var(--text); font-family: var(--font-mono); min-width: 18px; text-align: center; line-height: 1; }
 .slot-unit { font-size: 11px; color: var(--text-light); font-weight: 600; }
 .slot-step {
   width: 24px; height: 24px; border-radius: 7px;
@@ -701,12 +711,13 @@ tr:hover td { background: var(--surface-soft); }
 .slot-time { font-size: 10px; color: var(--text-light); white-space: nowrap; }
 .stock-badge {
   display: inline-flex; align-items: center; gap: 3px;
-  font-size: 9px; font-weight: 800; padding: 3px 7px; border-radius: 999px;
+  font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 999px;
   text-transform: uppercase; letter-spacing: .3px; white-space: nowrap;
 }
-.stock-badge.ok { background: #E8E8ED; color: var(--text-light); }
-.stock-badge.low { background: var(--gold); color: #FFFFFF; }
-.stock-badge.out { background: var(--red); color: #FFFFFF; }
+.stock-badge { text-transform: none; letter-spacing: .1px; font-weight: 600; }
+.stock-badge.ok { background: #EEF0F3; color: var(--text-light); }
+.stock-badge.low { background: var(--amber-soft); color: var(--amber-ink); }
+.stock-badge.out { background: var(--red-soft); color: var(--red-ink); }
 .vitrine-slot .slot-role {
   position: absolute;
   top: 7px;
@@ -758,10 +769,10 @@ tr:hover td { background: var(--surface-soft); }
   transition: border-color .12s, background .12s;
 }
 .slot-prod:hover { border-color: var(--brown); }
-.slot-prod.low { border-color: var(--gold); background: #FFF3E0; }
-.slot-prod.out { border-color: var(--red); background: #FFE5E3; }
-.slot-prod.sold { border-color: rgba(76,122,84,0.60); background: #DFE7DA; }
-.slot-prod.loss, .slot-prod.expired { border-color: rgba(168,68,59,0.55); background: #FFE5E3; }
+.slot-prod.low { border-color: rgba(255,159,10,0.30); background: var(--amber-soft); }
+.slot-prod.out { border-color: rgba(180,69,60,0.28); background: var(--red-soft); }
+.slot-prod.sold { border-color: rgba(59,122,72,0.30); background: var(--green-soft); }
+.slot-prod.loss, .slot-prod.expired { border-color: rgba(180,69,60,0.28); background: var(--red-soft); }
 .slot-prod-main { display: flex; align-items: center; gap: 6px; }
 .slot-prod-name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 700; color: var(--text); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .slot-prod-ctrl { display: flex; align-items: center; gap: 5px; }
@@ -1248,7 +1259,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 }
 .cmv-pct {
   font-size: 13px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
   letter-spacing: 0;
@@ -1293,7 +1304,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   border-bottom: 1px solid var(--border); border-radius: 6px 6px 0 0;
 }
 .receita-cat-header {
-  font-size: 11px; font-weight: 800; text-transform: uppercase;
+  font-size: 11px; font-weight: 700; text-transform: uppercase;
   letter-spacing: 0.8px; color: var(--text-mid); padding: 8px 0;
   border-bottom: 2px solid var(--border); margin-bottom: 8px;
 }
@@ -4544,12 +4555,11 @@ function apoioValidadeLabel(item, prod) {
   const hoje = new Date(); hoje.setHours(12, 0, 0, 0);
   const restantes = Math.round((venc - hoje) / 86400000);
   const dataStr = venc.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
-  if (restantes < 0) return `<span style="color:var(--red);font-weight:700;">Vencido · ${dataStr}</span>`;
-  if (restantes === 0) return `<span style="color:var(--red);font-weight:700;">Vence hoje · ${dataStr}</span>`;
-  if (restantes === 1) return `<span style="color:var(--gold);font-weight:700;">1 dia · ${dataStr}</span>`;
-  const cor = restantes <= 2 ? 'var(--gold)' : 'var(--text)';
-  const peso = restantes <= 2 ? '700' : '600';
-  return `<span style="color:${cor};font-weight:${peso};">${restantes} dias · ${dataStr}</span>`;
+  const chip = (bg, ink, txt) => `<span style="display:inline-block;padding:2px 8px;border-radius:6px;background:${bg};color:${ink};font-weight:600;font-size:11px;">${txt}</span>`;
+  if (restantes < 0) return chip('var(--red-soft)', 'var(--red-ink)', `Vencido · ${dataStr}`);
+  if (restantes === 0) return chip('var(--red-soft)', 'var(--red-ink)', `Vence hoje · ${dataStr}`);
+  if (restantes <= 2) return chip('var(--amber-soft)', 'var(--amber-ink)', `${restantes} dia${restantes === 1 ? '' : 's'} · ${dataStr}`);
+  return `<span style="color:var(--text-mid);font-weight:500;">${restantes} dias · ${dataStr}</span>`;
 }
 
 function renderApoioProducao() {
