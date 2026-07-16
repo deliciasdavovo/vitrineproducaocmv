@@ -774,7 +774,8 @@ tr:hover td { background: var(--surface-soft); }
 .slot-prod.sold { border-color: rgba(59,122,72,0.30); background: var(--green-soft); }
 .slot-prod.loss, .slot-prod.expired { border-color: rgba(180,69,60,0.28); background: var(--red-soft); }
 .slot-prod-main { display: flex; align-items: center; gap: 6px; }
-.slot-prod-name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 700; color: var(--text); line-height: 1.15; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.slot-prod-name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--text); line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
+.slot-prod-badges { display: flex; flex-wrap: wrap; gap: 4px; }
 .slot-prod-ctrl { display: flex; align-items: center; gap: 5px; }
 .slot-prod .slot-qtynum { font-size: 15px; min-width: 16px; }
 .slot-prod .slot-step { width: 22px; height: 22px; font-size: 15px; }
@@ -4366,9 +4367,9 @@ function slotProdRowHTML(item, idx, prod) {
   return `<div class="slot-prod ${statusClass}" title="Clique para editar" onclick="openSlotModal(${item.slot}, ${idx})" oncontextmenu="openSlotContextMenu(event, ${idx})">
     <div class="slot-prod-main">
       <span class="slot-prod-name" title="${prod.nome}">${prod.nome}</span>
-      ${badge}
       <span class="slot-remove" title="Remover" onclick="removeSlot(${idx}, event)">×</span>
     </div>
+    ${badge ? `<div class="slot-prod-badges">${badge}</div>` : ''}
     <div class="slot-prod-ctrl">
       <button class="slot-step minus" title="Diminuir" onclick="adjustSlotQty(${idx}, -1, event)">−</button>
       <span class="slot-qtynum">${item.qty}</span>
