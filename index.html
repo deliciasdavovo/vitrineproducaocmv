@@ -3624,7 +3624,7 @@ async function syncToSupabase() {
     // Vitrine slots — delete e re-insere todas as unidades
     // (o Pedido de Produção edita a vitrine das duas unidades na mesma tela)
     for (const unit of Object.keys(vitrines || {})) {
-      await db.from('vitrine_slots').delete().eq('unit', unit);
+      await runSupabase('limpar vitrine', db.from('vitrine_slots').delete().eq('unit', unit), syncErrors);
     }
     const allSlots = [];
     // A vitrine real é um balde único e permanente por unidade (VITRINE_KEY).
@@ -3646,7 +3646,7 @@ async function syncToSupabase() {
         });
       });
     });
-    if (allSlots.length) await db.from('vitrine_slots').insert(allSlots);
+    if (allSlots.length) await runSupabase('salvar vitrine', db.from('vitrine_slots').insert(allSlots), syncErrors);
     // Cronograma — delete e re-insere por unidade
     await db.from('cronograma').delete().eq('unit', currentUnit);
     const allTasks = [];
