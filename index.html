@@ -3486,6 +3486,37 @@ async function salvarReceitaItens(receita, syncErrors) {
   await runSupabase('salvar itens da ficha', db.from('receita_itens').insert(itensSemUnidadeUso), syncErrors);
 }
 
+// Insere os slots da vitrine tolerando bancos com esquema antigo. Se a tabela
+// vitrine_slots do usuário ainda não tem alguma coluna nova (ex.: prod_day,
+// fab_date), o PostgREST recusa o INSERT inteiro. Como o DELETE que replica a
+// vitrine já rodou antes, um insert falho deixaria a vitrine VAZIA na nuvem — e,
+// como a produção continua registrada, o Histórico passa a contar tudo como
+// venda. Aqui detectamos a coluna que falta, removemos das linhas e tentamos de
+// novo, preservando o máximo de informação possível.
+async function insertVitrineSlots(rows, syncErrors) {
+  const essenciais = ['unit', 'slot', 'prod_id'];
+  let payload = rows;
+  for (let tentativa = 0; tentativa < 8; tentativa++) {
+    const res = await db.from('vitrine_slots').insert(payload);
+    if (!res?.error) return true;
+    const msg = [res.error.message, res.error.details, res.error.hint]
+      .filter(Boolean).join(' ');
+    // PostgREST: "Could not find the 'X' column ..." / Postgres: column "X" ...
+    const m = msg.match(/'([a-z_]+)'\s+column/i) || msg.match(/column\s+"?([a-z_]+)"?/i);
+    const col = m && m[1];
+    if (col && !essenciais.includes(col) && payload.some(r => col in r)) {
+      payload = payload.map(({ [col]: _drop, ...rest }) => rest);
+      console.warn(`vitrine_slots sem a coluna "${col}"; reenviando sem ela.`);
+      continue;
+    }
+    // Não é coluna faltando (ou é essencial): reporta e para.
+    syncErrors.push({ label: 'salvar vitrine', error: res.error });
+    console.error('Supabase: salvar vitrine', res.error);
+    return false;
+  }
+  return false;
+}
+
 async function syncToSupabase() {
   const syncErrors = [];
   try {
@@ -3645,7 +3676,7 @@ async function syncToSupabase() {
         });
       });
     });
-    if (allSlots.length) await runSupabase('salvar vitrine', db.from('vitrine_slots').insert(allSlots), syncErrors);
+    if (allSlots.length) await insertVitrineSlots(allSlots, syncErrors);
     // Cronograma — delete e re-insere por unidade
     await db.from('cronograma').delete().eq('unit', currentUnit);
     const allTasks = [];
