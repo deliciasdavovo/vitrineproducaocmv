@@ -2464,8 +2464,8 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
         <thead>
           <tr>
             <th rowspan="2" style="vertical-align:bottom;">Produto</th>
-            <th colspan="3" style="text-align:center;border-left:2px solid var(--border);background:var(--blue-soft);color:var(--blue-ink);">Vila Nova</th>
-            <th colspan="3" style="text-align:center;border-left:2px solid var(--border);background:var(--amber-soft);color:var(--amber-ink);">Matriz</th>
+            <th colspan="4" style="text-align:center;border-left:2px solid var(--border);background:var(--blue-soft);color:var(--blue-ink);">Vila Nova</th>
+            <th colspan="4" style="text-align:center;border-left:2px solid var(--border);background:var(--amber-soft);color:var(--amber-ink);">Matriz</th>
             <th rowspan="2" style="vertical-align:bottom;border-left:2px solid var(--border);">Observação</th>
             <th rowspan="2" style="text-align:center;vertical-align:bottom;">Excluir</th>
           </tr>
@@ -2473,9 +2473,11 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
             <th style="text-align:center;border-left:2px solid var(--border);">Produção</th>
             <th style="text-align:center;">Vendas</th>
             <th style="text-align:center;">Perdas</th>
+            <th style="text-align:center;">Tempo</th>
             <th style="text-align:center;border-left:2px solid var(--border);">Produção</th>
             <th style="text-align:center;">Vendas</th>
             <th style="text-align:center;">Perdas</th>
+            <th style="text-align:center;">Tempo</th>
           </tr>
         </thead>
         <tbody id="hist-tbody"></tbody>
@@ -8904,9 +8906,14 @@ function renderHistorico() {
     ? `<span style="color:${cor};font-weight:700;">${v}</span>`
     : '<span style="color:var(--text-light)">0</span>';
 
+  const tempoCel = (d) => {
+    if (!d || d.produced <= 0) return '<span style="color:var(--text-light)">—</span>';
+    return formatTempoVitrine(date, d.exitAt, d.naVitrineAtiva);
+  };
+
   const tbody = document.getElementById('hist-tbody');
   if (!rows.length) {
-    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma produção registrada para esta data</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="11" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma produção registrada para esta data</td></tr>';
   } else {
     tbody.innerHTML = rows.map(({ vn, mz, p }) => {
       const vnq = vn || { produced: 0, vendido: 0, perda: 0 };
@@ -8918,9 +8925,11 @@ function renderHistorico() {
         <td style="text-align:center;font-family:var(--font-mono);font-weight:700;border-left:2px solid var(--border);">${vnq.produced}</td>
         <td style="text-align:center;font-family:var(--font-mono);">${num(vnq.vendido, 'var(--green)')}</td>
         <td style="text-align:center;font-family:var(--font-mono);">${num(vnq.perda, 'var(--red)')}</td>
+        <td style="text-align:center;font-size:12px;color:var(--text-mid);white-space:nowrap;">${tempoCel(vn)}</td>
         <td style="text-align:center;font-family:var(--font-mono);font-weight:700;border-left:2px solid var(--border);">${mzq.produced}</td>
         <td style="text-align:center;font-family:var(--font-mono);">${num(mzq.vendido, 'var(--green)')}</td>
         <td style="text-align:center;font-family:var(--font-mono);">${num(mzq.perda, 'var(--red)')}</td>
+        <td style="text-align:center;font-size:12px;color:var(--text-mid);white-space:nowrap;">${tempoCel(mz)}</td>
         <td style="border-left:2px solid var(--border);"><input type="text" class="sheet-input hist-obs" style="min-width:160px;" data-prodid="${p.id}" value="${escHtml(obs)}" placeholder="obs..."></td>
         <td style="text-align:center;"><button class="btn btn-ghost btn-sm" onclick="excluirHistoricoProduto(${p.id})" title="Excluir do histórico" style="color:var(--red);">×</button></td>
       </tr>`;
@@ -8980,6 +8989,10 @@ function renderHistoricoAnteriores() {
       .map(pid => ({ vn: vnData[pid], mz: mzData[pid], p: produtos.find(p => p.id === Number(pid)) }))
       .filter(x => x.p && ((x.vn && (x.vn.produced > 0 || x.vn.obs)) || (x.mz && (x.mz.produced > 0 || x.mz.obs))))
       .sort((a, b) => (curvaOrder[a.p.curva] ?? 3) - (curvaOrder[b.p.curva] ?? 3) || a.p.nome.localeCompare(b.p.nome));
+    const tempoCel = (d) => {
+      if (!d || d.produced <= 0) return '<span style="color:var(--text-light)">—</span>';
+      return formatTempoVitrine(date, d.exitAt, d.naVitrineAtiva);
+    };
     const rows = items.map(({ vn, mz, p }) => {
       const vnq = vn || { produced: 0, vendido: 0, perda: 0 };
       const mzq = mz || { produced: 0, vendido: 0, perda: 0 };
@@ -8989,9 +9002,11 @@ function renderHistoricoAnteriores() {
         <td style="text-align:center;font-family:var(--font-mono);font-weight:700;border-left:2px solid var(--border);">${vnq.produced}</td>
         <td style="text-align:center;font-family:var(--font-mono);">${num(vnq.vendido, 'var(--green)')}</td>
         <td style="text-align:center;font-family:var(--font-mono);">${num(vnq.perda, 'var(--red)')}</td>
+        <td style="text-align:center;font-size:12px;color:var(--text-mid);white-space:nowrap;">${tempoCel(vn)}</td>
         <td style="text-align:center;font-family:var(--font-mono);font-weight:700;border-left:2px solid var(--border);">${mzq.produced}</td>
         <td style="text-align:center;font-family:var(--font-mono);">${num(mzq.vendido, 'var(--green)')}</td>
         <td style="text-align:center;font-family:var(--font-mono);">${num(mzq.perda, 'var(--red)')}</td>
+        <td style="text-align:center;font-size:12px;color:var(--text-mid);white-space:nowrap;">${tempoCel(mz)}</td>
         <td style="color:var(--text-light);font-size:12px;border-left:2px solid var(--border);">${escHtml(obs)}</td>
         <td style="text-align:center;"><button class="btn btn-ghost btn-sm" onclick="excluirHistoricoProduto(${p.id}, '${date}')" title="Excluir do histórico" style="color:var(--red);">×</button></td>
       </tr>`;
@@ -9004,8 +9019,8 @@ function renderHistoricoAnteriores() {
           <thead>
             <tr>
               <th rowspan="2" style="vertical-align:bottom;">Produto</th>
-              <th colspan="3" style="text-align:center;border-left:2px solid var(--border);background:var(--blue-soft);color:var(--blue-ink);">Vila Nova</th>
-              <th colspan="3" style="text-align:center;border-left:2px solid var(--border);background:var(--amber-soft);color:var(--amber-ink);">Matriz</th>
+              <th colspan="4" style="text-align:center;border-left:2px solid var(--border);background:var(--blue-soft);color:var(--blue-ink);">Vila Nova</th>
+              <th colspan="4" style="text-align:center;border-left:2px solid var(--border);background:var(--amber-soft);color:var(--amber-ink);">Matriz</th>
               <th rowspan="2" style="vertical-align:bottom;border-left:2px solid var(--border);">Obs</th>
               <th rowspan="2"></th>
             </tr>
@@ -9013,9 +9028,11 @@ function renderHistoricoAnteriores() {
               <th style="text-align:center;border-left:2px solid var(--border);">Produção</th>
               <th style="text-align:center;">Vendas</th>
               <th style="text-align:center;">Perdas</th>
+              <th style="text-align:center;">Tempo</th>
               <th style="text-align:center;border-left:2px solid var(--border);">Produção</th>
               <th style="text-align:center;">Vendas</th>
               <th style="text-align:center;">Perdas</th>
+              <th style="text-align:center;">Tempo</th>
             </tr>
           </thead>
           <tbody>${rows}</tbody>
