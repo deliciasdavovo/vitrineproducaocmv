@@ -2463,15 +2463,19 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <table class="sheet-table">
         <thead>
           <tr>
-            <th>Produto</th>
-            <th style="text-align:center;">Curva</th>
-            <th style="text-align:center;">Planejado</th>
-            <th style="text-align:center;">Produzido</th>
-            <th style="text-align:center;">Vendido</th>
-            <th style="text-align:center;">Perda</th>
-            <th style="text-align:center;">Tempo vitrine</th>
-            <th>Observação</th>
-            <th style="text-align:center;">Excluir</th>
+            <th rowspan="2" style="vertical-align:bottom;">Produto</th>
+            <th colspan="3" style="text-align:center;border-left:2px solid var(--border);background:var(--blue-soft);color:var(--blue-ink);">Vila Nova</th>
+            <th colspan="3" style="text-align:center;border-left:2px solid var(--border);background:var(--amber-soft);color:var(--amber-ink);">Matriz</th>
+            <th rowspan="2" style="vertical-align:bottom;border-left:2px solid var(--border);">Observação</th>
+            <th rowspan="2" style="text-align:center;vertical-align:bottom;">Excluir</th>
+          </tr>
+          <tr>
+            <th style="text-align:center;border-left:2px solid var(--border);">Produção</th>
+            <th style="text-align:center;">Vendas</th>
+            <th style="text-align:center;">Perdas</th>
+            <th style="text-align:center;border-left:2px solid var(--border);">Produção</th>
+            <th style="text-align:center;">Vendas</th>
+            <th style="text-align:center;">Perdas</th>
           </tr>
         </thead>
         <tbody id="hist-tbody"></tbody>
@@ -8745,12 +8749,12 @@ function ensureLogged(item) {
 // Produção de uma DATA: usa o log persistido (precedência) e completa com os
 // itens da vitrine cuja data de fabricação é essa e que ainda não foram logados
 // (cobre dados antigos sem prejudicar a contagem dos novos).
-function producaoRegistradaPorData(date) {
-  const logArr = (historicoProducao[currentUnit] && historicoProducao[currentUnit][date]) || [];
+function producaoRegistradaPorData(date, unit = currentUnit) {
+  const logArr = (historicoProducao[unit] && historicoProducao[unit][date]) || [];
   const logged = new Set(logArr.map(it => it.prodId));
   const byProd = {};
   logArr.forEach(it => { byProd[it.prodId] = { qty: Number(it.qty) || 0, obs: it.obs || '' }; });
-  Object.values(vitrines[currentUnit] || {}).forEach(arr => (arr || []).forEach(slot => {
+  Object.values(vitrines[unit] || {}).forEach(arr => (arr || []).forEach(slot => {
     if (itemFabDate(slot) !== date || logged.has(slot.prodId)) return;
     if (!byProd[slot.prodId]) byProd[slot.prodId] = { qty: 0, obs: '' };
     byProd[slot.prodId].qty += Number(slot.producedQty ?? slot.qty) || 0;
@@ -8782,14 +8786,14 @@ const STATUS_TERMINAL = ['vendeu', 'perda', 'validade', 'retirado'];
 
 // Detalha, por produto, quanto do que foi produzido numa DATA virou venda,
 // perda, e quanto ainda está na vitrine, além do tempo de vitrine.
-function producaoBreakdownPorData(date) {
-  const byProd = producaoRegistradaPorData(date);
-  const histArr = (historicoProducao[currentUnit] && historicoProducao[currentUnit][date]) || [];
+function producaoBreakdownPorData(date, unit = currentUnit) {
+  const byProd = producaoRegistradaPorData(date, unit);
+  const histArr = (historicoProducao[unit] && historicoProducao[unit][date]) || [];
 
   // Perdas registradas nessa data (mesma unidade)
   const perdaByProd = {};
   perdas.forEach(pd => {
-    if (pd.unit !== currentUnit) return;
+    if (pd.unit !== unit) return;
     if ((pd.fabDate || pd.data || '') !== date) return;
     perdaByProd[pd.prodId] = (perdaByProd[pd.prodId] || 0) + (Number(pd.qty) || 0);
   });
@@ -8798,7 +8802,7 @@ function producaoBreakdownPorData(date) {
   // entrada mais antiga na vitrine para o cálculo do tempo.
   const naVitrineByProd = {};
   const liveEntryByProd = {};
-  Object.values(vitrines[currentUnit] || {}).forEach(arr => (arr || []).forEach(slot => {
+  Object.values(vitrines[unit] || {}).forEach(arr => (arr || []).forEach(slot => {
     if (itemFabDate(slot) !== date) return;
     if (!STATUS_TERMINAL.includes(slot.status)) {
       naVitrineByProd[slot.prodId] = (naVitrineByProd[slot.prodId] || 0) + (Number(slot.producedQty ?? slot.qty) || 0);
@@ -8884,39 +8888,40 @@ function excluirHistoricoProduto(prodId, date) {
 function renderHistorico() {
   const date = document.getElementById('hist-date').value;
 
-  // Produção registrada da DATA, detalhada em vendido/perda/na vitrine
-  const byProd = date ? producaoBreakdownPorData(date) : {};
+  // Produção da DATA nas duas unidades, detalhada em vendido/perda por produto.
+  const vnData = date ? producaoBreakdownPorData(date, 'vilanova') : {};
+  const mzData = date ? producaoBreakdownPorData(date, 'matriz') : {};
+
+  // União dos produtos que aparecem em qualquer uma das unidades.
   const curvaOrder = { A: 0, B: 1, C: 2 };
-  const rows = Object.keys(byProd)
-    .map(pid => ({ data: byProd[pid], p: produtos.find(p => p.id === Number(pid)) }))
-    .filter(x => x.p && (x.data.produced > 0 || x.data.obs))
+  const pids = new Set([...Object.keys(vnData), ...Object.keys(mzData)]);
+  const rows = Array.from(pids)
+    .map(pid => ({ vn: vnData[pid], mz: mzData[pid], p: produtos.find(p => p.id === Number(pid)) }))
+    .filter(x => x.p && ((x.vn && (x.vn.produced > 0 || x.vn.obs)) || (x.mz && (x.mz.produced > 0 || x.mz.obs))))
     .sort((a, b) => (curvaOrder[a.p.curva] ?? 3) - (curvaOrder[b.p.curva] ?? 3) || a.p.nome.localeCompare(b.p.nome));
+
+  const num = (v, cor) => v > 0
+    ? `<span style="color:${cor};font-weight:700;">${v}</span>`
+    : '<span style="color:var(--text-light)">0</span>';
 
   const tbody = document.getElementById('hist-tbody');
   if (!rows.length) {
     tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:30px;color:var(--text-light);">Nenhuma produção registrada para esta data</td></tr>';
   } else {
-    tbody.innerHTML = rows.map(({ data, p }) => {
-      const planejado = getPlanoQty(currentUnit, p.id);
-      const tempo = formatTempoVitrine(date, data.exitAt, data.naVitrineAtiva);
-      const vendidoCel = data.vendido > 0
-        ? `<span style="color:var(--green);font-weight:700;">${data.vendido}</span>`
-        : '<span style="color:var(--text-light)">0</span>';
-      const perdaCel = data.perda > 0
-        ? `<span style="color:var(--red);font-weight:700;">${data.perda}</span>`
-        : '<span style="color:var(--text-light)">0</span>';
-      const naVitrineTag = data.naVitrine > 0
-        ? `<div style="font-size:10px;color:var(--text-light);margin-top:2px;">${data.naVitrine} na vitrine</div>`
-        : '';
+    tbody.innerHTML = rows.map(({ vn, mz, p }) => {
+      const vnq = vn || { produced: 0, vendido: 0, perda: 0 };
+      const mzq = mz || { produced: 0, vendido: 0, perda: 0 };
+      // Observação: prioriza a que estiver preenchida (Vila Nova, senão Matriz).
+      const obs = (vn && vn.obs) || (mz && mz.obs) || '';
       return `<tr>
         <td><span class="sheet-readonly" style="font-weight:600;">${p.nome}</span></td>
-        <td style="text-align:center;">${p.curva ? `<span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span>` : '<span style="color:var(--text-light)">—</span>'}</td>
-        <td style="text-align:center;font-family:var(--font-mono);">${planejado || '—'}</td>
-        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;">${data.produced}${naVitrineTag}</td>
-        <td style="text-align:center;font-family:var(--font-mono);">${vendidoCel}</td>
-        <td style="text-align:center;font-family:var(--font-mono);">${perdaCel}</td>
-        <td style="text-align:center;font-size:12px;color:var(--text-mid);white-space:nowrap;">${tempo}</td>
-        <td><input type="text" class="sheet-input hist-obs" style="min-width:160px;" data-prodid="${p.id}" value="${escHtml(data.obs || '')}" placeholder="obs..."></td>
+        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;border-left:2px solid var(--border);">${vnq.produced}</td>
+        <td style="text-align:center;font-family:var(--font-mono);">${num(vnq.vendido, 'var(--green)')}</td>
+        <td style="text-align:center;font-family:var(--font-mono);">${num(vnq.perda, 'var(--red)')}</td>
+        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;border-left:2px solid var(--border);">${mzq.produced}</td>
+        <td style="text-align:center;font-family:var(--font-mono);">${num(mzq.vendido, 'var(--green)')}</td>
+        <td style="text-align:center;font-family:var(--font-mono);">${num(mzq.perda, 'var(--red)')}</td>
+        <td style="border-left:2px solid var(--border);"><input type="text" class="sheet-input hist-obs" style="min-width:160px;" data-prodid="${p.id}" value="${escHtml(obs)}" placeholder="obs..."></td>
         <td style="text-align:center;"><button class="btn btn-ghost btn-sm" onclick="excluirHistoricoProduto(${p.id})" title="Excluir do histórico" style="color:var(--red);">×</button></td>
       </tr>`;
     }).join('');
@@ -8964,26 +8969,30 @@ function renderHistoricoAnteriores() {
     return;
   }
   const curvaOrder = { A: 0, B: 1, C: 2 };
+  const num = (v, cor) => v > 0 ? `<span style="color:${cor};font-weight:700;">${v}</span>` : '<span style="color:var(--text-light)">0</span>';
   el.innerHTML = dates.map(date => {
-    const byProd = producaoBreakdownPorData(date);
+    const vnData = producaoBreakdownPorData(date, 'vilanova');
+    const mzData = producaoBreakdownPorData(date, 'matriz');
     const d = new Date(date + 'T12:00:00');
     const label = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
-    const items = Object.keys(byProd)
-      .map(pid => ({ data: byProd[pid], p: produtos.find(p => p.id === Number(pid)) }))
-      .filter(x => x.p && (x.data.produced > 0 || x.data.obs))
+    const pids = new Set([...Object.keys(vnData), ...Object.keys(mzData)]);
+    const items = Array.from(pids)
+      .map(pid => ({ vn: vnData[pid], mz: mzData[pid], p: produtos.find(p => p.id === Number(pid)) }))
+      .filter(x => x.p && ((x.vn && (x.vn.produced > 0 || x.vn.obs)) || (x.mz && (x.mz.produced > 0 || x.mz.obs))))
       .sort((a, b) => (curvaOrder[a.p.curva] ?? 3) - (curvaOrder[b.p.curva] ?? 3) || a.p.nome.localeCompare(b.p.nome));
-    const rows = items.map(({ data, p }) => {
-      const tempo = formatTempoVitrine(date, data.exitAt, data.naVitrineAtiva);
-      const vendidoCel = data.vendido > 0 ? `<span style="color:var(--green);font-weight:700;">${data.vendido}</span>` : '<span style="color:var(--text-light)">0</span>';
-      const perdaCel = data.perda > 0 ? `<span style="color:var(--red);font-weight:700;">${data.perda}</span>` : '<span style="color:var(--text-light)">0</span>';
+    const rows = items.map(({ vn, mz, p }) => {
+      const vnq = vn || { produced: 0, vendido: 0, perda: 0 };
+      const mzq = mz || { produced: 0, vendido: 0, perda: 0 };
+      const obs = (vn && vn.obs) || (mz && mz.obs) || '';
       return `<tr>
         <td>${p.nome}</td>
-        <td style="text-align:center;">${p.curva ? `<span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span>` : '—'}</td>
-        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;">${data.produced}</td>
-        <td style="text-align:center;font-family:var(--font-mono);">${vendidoCel}</td>
-        <td style="text-align:center;font-family:var(--font-mono);">${perdaCel}</td>
-        <td style="text-align:center;font-size:12px;color:var(--text-mid);white-space:nowrap;">${tempo}</td>
-        <td style="color:var(--text-light);font-size:12px;">${escHtml(data.obs || '')}</td>
+        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;border-left:2px solid var(--border);">${vnq.produced}</td>
+        <td style="text-align:center;font-family:var(--font-mono);">${num(vnq.vendido, 'var(--green)')}</td>
+        <td style="text-align:center;font-family:var(--font-mono);">${num(vnq.perda, 'var(--red)')}</td>
+        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;border-left:2px solid var(--border);">${mzq.produced}</td>
+        <td style="text-align:center;font-family:var(--font-mono);">${num(mzq.vendido, 'var(--green)')}</td>
+        <td style="text-align:center;font-family:var(--font-mono);">${num(mzq.perda, 'var(--red)')}</td>
+        <td style="color:var(--text-light);font-size:12px;border-left:2px solid var(--border);">${escHtml(obs)}</td>
         <td style="text-align:center;"><button class="btn btn-ghost btn-sm" onclick="excluirHistoricoProduto(${p.id}, '${date}')" title="Excluir do histórico" style="color:var(--red);">×</button></td>
       </tr>`;
     }).join('');
@@ -8992,7 +9001,23 @@ function renderHistoricoAnteriores() {
       <div style="font-weight:700;font-size:13px;color:var(--brown);padding:12px 16px 0;text-transform:capitalize;">${label}</div>
       <div class="table-wrap">
         <table class="sheet-table">
-          <thead><tr><th>Produto</th><th style="text-align:center;">Curva</th><th style="text-align:center;">Produzido</th><th style="text-align:center;">Vendido</th><th style="text-align:center;">Perda</th><th style="text-align:center;">Tempo vitrine</th><th>Obs</th><th></th></tr></thead>
+          <thead>
+            <tr>
+              <th rowspan="2" style="vertical-align:bottom;">Produto</th>
+              <th colspan="3" style="text-align:center;border-left:2px solid var(--border);background:var(--blue-soft);color:var(--blue-ink);">Vila Nova</th>
+              <th colspan="3" style="text-align:center;border-left:2px solid var(--border);background:var(--amber-soft);color:var(--amber-ink);">Matriz</th>
+              <th rowspan="2" style="vertical-align:bottom;border-left:2px solid var(--border);">Obs</th>
+              <th rowspan="2"></th>
+            </tr>
+            <tr>
+              <th style="text-align:center;border-left:2px solid var(--border);">Produção</th>
+              <th style="text-align:center;">Vendas</th>
+              <th style="text-align:center;">Perdas</th>
+              <th style="text-align:center;border-left:2px solid var(--border);">Produção</th>
+              <th style="text-align:center;">Vendas</th>
+              <th style="text-align:center;">Perdas</th>
+            </tr>
+          </thead>
           <tbody>${rows}</tbody>
         </table>
       </div>
