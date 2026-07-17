@@ -1710,7 +1710,6 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
           <div class="vitrine-section-label" style="margin-bottom:0;" id="apoio-title">Lista de Apoio</div>
           <div class="vitrine-list-meta" id="apoio-subtitle">Produtos produzidos no dia</div>
         </div>
-        <button class="toggle-btn" onclick="openFechamentoModal()">Fechar dia</button>
       </div>
       <div class="apoio-card">
         <div class="apoio-entry">
@@ -2719,36 +2718,6 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   </div>
 </div>
 
-<!-- Modal: Fechamento da Vitrine -->
-<div class="modal-overlay" id="modal-fechamento">
-  <div class="modal" style="max-width:720px;">
-    <div class="modal-title">Fechamento da Vitrine</div>
-    <p class="section-sub" id="fechamento-sub" style="margin-bottom:14px;">Informe quanto ficou na vitrine no final do dia.</p>
-    <div class="sheet-card">
-      <div class="table-wrap">
-        <table class="sheet-table">
-          <thead>
-            <tr>
-              <th>Produto</th>
-              <th>Vitrine</th>
-              <th>Produzido</th>
-              <th>Entrada</th>
-              <th>Tempo</th>
-              <th>Planejado</th>
-              <th>Status</th>
-              <th>Sobra final</th>
-            </tr>
-          </thead>
-          <tbody id="fechamento-tbody"></tbody>
-        </table>
-      </div>
-    </div>
-    <div class="modal-actions">
-      <button class="btn btn-ghost" onclick="closeModal('modal-fechamento')">Cancelar</button>
-      <button class="btn btn-primary" onclick="saveFechamento()">Salvar fechamento</button>
-    </div>
-  </div>
-</div>
 
 <!-- Modal: Slot Vitrine -->
 <div class="modal-overlay" id="modal-slot">
@@ -3309,8 +3278,6 @@ function migrarVitrineParaBaldeUnico() {
 let cronograma = getStorage('ddv_cronograma', {});
 // perdas = [{id, prodId, qty, tipo, data, obs, unit}]
 let perdas = getStorage('ddv_perdas', []);
-// fechamentos[unit][day] = [{prodId, plannedQty, leftoverQty, slot}]
-let fechamentos = getStorage('ddv_fechamentos', {});
 // apoioProducao[unit][day] = [{id, prodId, nome, qty}]
 let apoioProducao = getStorage('ddv_apoio_producao', {});
 // planoSemanal[unit][prodId][day] = qty padrão a produzir
@@ -3386,7 +3353,6 @@ function saveAll() {
   setStorage('ddv_vitrines', vitrines);
   setStorage('ddv_cronograma', cronograma);
   setStorage('ddv_perdas', perdas);
-  setStorage('ddv_fechamentos', fechamentos);
   setStorage('ddv_apoio_producao', apoioProducao);
   setStorage('ddv_plano_semanal', planoSemanal);
   setStorage('ddv_vitrine_padrao', vitrinePadrao);
@@ -3705,20 +3671,6 @@ async function syncToSupabase() {
       });
     });
     if (allPadrao.length) await runSupabase('salvar vitrine padrão', db.from('vitrine_padrao').insert(allPadrao), syncErrors);
-    // Fechamentos — upsert (mantém histórico)
-    for (const [dia, items] of Object.entries(fechamentos[currentUnit] || {})) {
-      if (!items?.length) continue;
-      const today = new Date().toISOString().split('T')[0];
-      await db.from('fechamentos').delete()
-        .eq('unit', currentUnit).eq('dia', dia).eq('data_fechamento', today);
-      await db.from('fechamentos').insert(items.map(f => ({
-        unit: currentUnit, dia, data_fechamento: today,
-        prod_id: f.prodId, slot: f.slot,
-        planned_qty: f.plannedQty || 0, produced_qty: f.producedQty || 0,
-        entry_at: f.entryAt || null, status: f.status || 'em_vitrine',
-        leftover_qty: f.leftoverQty || 0
-      })));
-    }
     if (syncErrors.length) {
       const first = syncErrors[0];
       const now = Date.now();
@@ -3757,7 +3709,6 @@ async function loadFromSupabase() {
       { data: slotData },
       { data: cronoData },
       { data: perdasData },
-      { data: fechData },
       { data: apoioData },
       { data: planoData },
       { data: padraoData },
@@ -3773,7 +3724,6 @@ async function loadFromSupabase() {
       db.from('vitrine_slots').select('*'),
       db.from('cronograma').select('*').order('hora'),
       db.from('perdas').select('*').order('data', { ascending: false }),
-      db.from('fechamentos').select('*').order('data_fechamento', { ascending: false }),
       db.from('apoio_producao').select('*').order('created_at'),
       db.from('plano_semanal').select('*'),
       db.from('vitrine_padrao').select('*'),
@@ -3910,18 +3860,6 @@ async function loadFromSupabase() {
       id: p.id, prodId: p.prod_id, qty: p.qty, tipo: p.tipo,
       data: p.data, obs: p.obs || '', unit: p.unit, source: p.source || ''
     }));
-    fechamentos = {};
-    (fechData || []).forEach(f => {
-      if (!fechamentos[f.unit]) fechamentos[f.unit] = {};
-      if (!fechamentos[f.unit][f.dia]) fechamentos[f.unit][f.dia] = [];
-      if (!fechamentos[f.unit][f.dia].find(x => x.slot === f.slot)) {
-        fechamentos[f.unit][f.dia].push({
-          prodId: f.prod_id, slot: f.slot, plannedQty: f.planned_qty,
-          producedQty: f.produced_qty, entryAt: f.entry_at,
-          status: f.status, leftoverQty: f.leftover_qty
-        });
-      }
-    });
     apoioProducao = {};
     (apoioData || []).forEach(a => {
       if (!apoioProducao[a.unit]) apoioProducao[a.unit] = {};
@@ -5030,93 +4968,6 @@ function saveSlotLoss() {
   closeModal('modal-slot-loss');
   renderVitrine();
   showToast('Perda registrada no slot', 'error');
-}
-
-function getFechamento(unit = currentUnit, day = VITRINE_KEY) {
-  return (fechamentos[unit] && fechamentos[unit][day]) || [];
-}
-
-function openFechamentoModal() {
-  const vitrine = getVitrine().slice().sort((a, b) => a.slot - b.slot);
-  const tbody = document.getElementById('fechamento-tbody');
-  const saved = getFechamento();
-  document.getElementById('fechamento-sub').textContent =
-    `${currentUnit === 'matriz' ? 'Matriz' : 'Vila Nova'} · ${dayNames[todayWeekdayKey()]} · informe a sobra real no final do dia`;
-
-  if (!vitrine.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:30px;color:var(--text-light);">Nenhum item planejado para fechar neste dia</td></tr>';
-    openModal('modal-fechamento');
-    return;
-  }
-
-  tbody.innerHTML = vitrine.map(item => {
-    const prod = produtos.find(p => p.id === item.prodId);
-    const meta = getSlotMeta(item.slot);
-    const old = saved.find(f => f.slot === item.slot && f.prodId === item.prodId);
-    const oldStatus = old?.status || item.status || 'em_vitrine';
-    const leftoverDefault = item.status === 'vendeu' || item.status === 'validade' || item.status === 'perda' ? 0 : '';
-    return `<tr data-prod-id="${item.prodId}" data-slot="${item.slot}" data-planned="${item.qty}" data-entry="${item.entryAt || ''}">
-      <td><span class="sheet-readonly">${prod ? prod.nome : 'Produto removido'}</span></td>
-      <td><span class="sheet-readonly">${meta ? `${meta.sectionTitle} · ${meta.role}` : item.slot}</span></td>
-      <td><input class="sheet-input fechamento-produced" type="number" min="0" step="1" value="${old?.producedQty ?? item.producedQty ?? item.qty}" placeholder="0"></td>
-      <td><input class="sheet-input fechamento-entry" type="datetime-local" value="${old?.entryAt || item.entryAt || nowLocalInputValue()}"></td>
-      <td><span class="sheet-readonly">${formatDisplayTime(old?.entryAt || item.entryAt)}</span></td>
-      <td><span class="sheet-readonly">${item.qty} un.</span></td>
-      <td>
-        <select class="sheet-select fechamento-status">
-          <option value="em_vitrine" ${oldStatus === 'em_vitrine' ? 'selected' : ''}>Ainda na vitrine</option>
-          <option value="vendeu" ${oldStatus === 'vendeu' ? 'selected' : ''}>Vendeu tudo</option>
-          <option value="validade" ${oldStatus === 'validade' ? 'selected' : ''}>Fora da validade</option>
-          <option value="retirado" ${oldStatus === 'retirado' ? 'selected' : ''}>Retirado</option>
-        </select>
-      </td>
-      <td><input class="sheet-input fechamento-leftover" type="number" min="0" step="1" value="${old ? old.leftoverQty : leftoverDefault}" placeholder="0"></td>
-    </tr>`;
-  }).join('');
-  openModal('modal-fechamento');
-}
-
-function saveFechamento() {
-  const rows = Array.from(document.querySelectorAll('#fechamento-tbody tr[data-prod-id]'));
-  if (!fechamentos[currentUnit]) fechamentos[currentUnit] = {};
-  fechamentos[currentUnit][VITRINE_KEY] = rows.map(row => ({
-    prodId: parseInt(row.dataset.prodId),
-    slot: parseInt(row.dataset.slot),
-    plannedQty: parseInt(row.dataset.planned) || 0,
-    producedQty: parseInt(row.querySelector('.fechamento-produced').value) || 0,
-    entryAt: row.querySelector('.fechamento-entry').value || '',
-    status: row.querySelector('.fechamento-status').value,
-    leftoverQty: parseInt(row.querySelector('.fechamento-leftover').value) || 0
-  }));
-  syncValidadePerdasFromFechamento();
-  saveAll();
-  closeModal('modal-fechamento');
-  renderPedido();
-  showToast('Fechamento salvo e produção atualizada', 'success');
-}
-
-function syncValidadePerdasFromFechamento() {
-  const source = `fechamento-${currentUnit}-${VITRINE_KEY}`;
-  // Remove perdas antigas com esta source do Supabase
-  dbDelete('remover perdas do fechamento', db.from('perdas').delete().eq('source', source));
-  perdas = perdas.filter(p => p.source !== source);
-  const fechamento = getFechamento();
-  fechamento
-    .filter(item => item.status === 'validade')
-    .forEach(item => {
-      const qty = item.leftoverQty || item.plannedQty || item.producedQty || 1;
-      perdas.push({
-        id: ++nextId,
-        prodId: item.prodId,
-        qty,
-        tipo: 'vencimento',
-        data: new Date().toISOString().split('T')[0],
-        obs: `Fora da validade no fechamento da vitrine (${dayNames[todayWeekdayKey()]})`,
-        unit: currentUnit,
-        fabDate: item.entryAt ? String(item.entryAt).slice(0, 10) : new Date().toISOString().split('T')[0],
-        source
-      });
-    });
 }
 
 // ============================================================
