@@ -4366,7 +4366,6 @@ function slotProdRowHTML(item, idx, prod) {
   return `<div class="slot-prod ${statusClass}" title="Clique para editar" onclick="openSlotModal(${item.slot}, ${idx})" oncontextmenu="openSlotContextMenu(event, ${idx})">
     <div class="slot-prod-main">
       <span class="slot-prod-name" title="${prod.nome}">${prod.nome}</span>
-      <span class="slot-remove" title="Remover" onclick="removeSlot(${idx}, event)">×</span>
     </div>
     ${badge ? `<div class="slot-prod-badges">${badge}</div>` : ''}
     <div class="slot-prod-ctrl">
@@ -4507,7 +4506,7 @@ function renderVitrineSlotList() {
           <div class="slot-list-meta">${timeLabel}${expiration.expired ? ' &middot; Fora do prazo' : ''}${stock.min !== null ? ` &middot; mín ${stock.min}` : ''}</div>
         </div>
         <div class="slot-list-qty">${it.qty} ${unitLabel}</div>
-        <button class="btn btn-ghost btn-sm" onclick="removeSlot(${i}, event)">&#215;</button>
+        <div></div>
       </div>`;
       }).join('');
 
@@ -4621,7 +4620,6 @@ function renderApoioProducao() {
       <td style="text-align:right;white-space:nowrap;">
         <button class="btn btn-ghost btn-sm" onclick="vendeuTudo(${index})" title="Vendeu tudo" style="color:var(--green,#16a34a);">✓</button>
         <button class="btn btn-ghost btn-sm" onclick="abrirPerdaDeSlot(${index})" title="Registrar perda" style="color:var(--red);">!</button>
-        <button class="btn btn-ghost btn-sm" onclick="removeSlot(${index}, event)" title="Remover" aria-label="Remover">&#215;</button>
       </td>
     </tr>`;
   }).join('');
