@@ -3878,7 +3878,11 @@ async function loadFromSupabase() {
         prodId: s.prod_id, qty: s.qty, producedQty: s.produced_qty,
         minQty: (s.min_qty === undefined || s.min_qty === null) ? null : Number(s.min_qty),
         unidadeMedida: s.unidade_medida || 'un',
-        entryAt: s.entry_at, status: s.status, slot: s.slot,
+        entryAt: s.entry_at, status: s.status,
+        // A coluna slot é texto no banco; volta como string ("5") e a vitrine
+        // compara com === contra número (5). Sem converter, o item some da
+        // grade (mas continua no histórico/pedido, que usam prodId).
+        slot: (s.slot === null || s.slot === undefined) ? s.slot : Number(s.slot),
         prodDay, fabDate: s.fab_date || (s.entry_at ? String(s.entry_at).slice(0, 10) : null)
       });
     });
