@@ -5060,7 +5060,7 @@ function openFechamentoModal() {
       <td><span class="sheet-readonly">${meta ? `${meta.sectionTitle} · ${meta.role}` : item.slot}</span></td>
       <td><input class="sheet-input fechamento-produced" type="number" min="0" step="1" value="${old?.producedQty ?? item.producedQty ?? item.qty}" placeholder="0"></td>
       <td><input class="sheet-input fechamento-entry" type="datetime-local" value="${old?.entryAt || item.entryAt || nowLocalInputValue()}"></td>
-      <td><span class="sheet-readonly">${formatDisplayTime(old?.entryAt || item.entryAt)}</span></td>
+      <td><span class="sheet-readonly">${labelDiasVitrine(diasEntreDatas(itemFabDate(item)))}</span></td>
       <td><span class="sheet-readonly">${item.qty} un.</span></td>
       <td>
         <select class="sheet-select fechamento-status">
