@@ -4694,6 +4694,25 @@ function addApoioRow() {
   produtoInput.focus();
 }
 
+// Quando não há espaço vazio, escolhe o espaço com MENOS produtos entre as
+// seções compatíveis, para empilhar mais um produto ("+produto") de forma
+// equilibrada. Retorna o número do espaço, ou null se não houver espaços.
+function leastFilledSlot(vitrine, sections) {
+  const counts = new Map();
+  for (const section of sections) {
+    for (let i = 0; i < section.count; i++) counts.set(section.start + i, 0);
+  }
+  if (!counts.size) return null;
+  vitrine.forEach(v => {
+    if (counts.has(v.slot)) counts.set(v.slot, counts.get(v.slot) + 1);
+  });
+  let best = null, bestCount = Infinity;
+  for (const [slotNum, c] of counts) {
+    if (c < bestCount) { bestCount = c; best = slotNum; }
+  }
+  return best;
+}
+
 function addToVitrineAuto(prod, qty, prodDay) {
   const vitrine = getVitrine();
   const layout = vitrineLayouts[currentUnit];
@@ -4717,6 +4736,23 @@ function addToVitrineAuto(prod, qty, prodDay) {
         return;
       }
     }
+  }
+  // Vitrine cheia: em vez de recusar, empilha o produto no espaço menos
+  // ocupado (recurso de vários produtos por espaço que a vitrine já tem).
+  const stackSlot = leastFilledSlot(vitrine, sections);
+  if (stackSlot != null) {
+    const day = prodDay || todayWeekdayKey();
+    const fabDate = fabDateForDay(day);
+    const entryAt = nowLocalInputValue();
+    vitrine.push({
+      prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
+      entryAt, status: 'em_vitrine', slot: stackSlot,
+      prodDay: day, fabDate
+    });
+    logProducao(prod.id, qty, fabDate);
+    stampHistEntry(prod.id, fabDate, { entryAt });
+    showToast(`${prod.nome} empilhado no espaço cheio (+produto) &#10003;`, 'success');
+    return;
   }
   showToast(`Vitrine cheia para ${prod.nome}`, 'error');
 }
@@ -8554,6 +8590,18 @@ function addProdToVitrineDay(prod, qty, day, unit = currentUnit, fabDateOverride
         return true;
       }
     }
+  }
+  // Vitrine cheia: empilha no espaço menos ocupado (+produto) em vez de recusar.
+  const stackSlot = leastFilledSlot(vitrine, sections);
+  if (stackSlot != null) {
+    const fabDate = fabDateOverride || fabDateForDay(day);
+    vitrine.push({
+      prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
+      entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: stackSlot,
+      prodDay: day, fabDate
+    });
+    logProducao(prod.id, qty, fabDate, unit);
+    return true;
   }
   showToast(`Vitrine cheia para ${prod.nome}`, 'error');
   return false;
