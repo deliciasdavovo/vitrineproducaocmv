@@ -3363,9 +3363,31 @@ function saveAll() {
   setStorage('ddv_vitrine_tipos', vitrineTipos);
   setStorage('ddv_nextid', nextId);
   refreshFornecedoresDatalist();
+  // Marca (de forma síncrona) que há alterações locais ainda NÃO confirmadas na
+  // nuvem. Essa marca sobrevive a um reload: se a página for recarregada antes
+  // do sync assíncrono terminar (o setTimeout abaixo), o loadFromSupabase sabe
+  // que o localStorage é mais novo que a nuvem e NÃO deve descartá-lo — senão a
+  // vitrine "some" e, como a produção continua registrada, tudo vira venda.
+  setStorage('ddv_sync_pending', true);
   clearTimeout(_sbTimer);
   _sbTimer = setTimeout(syncToSupabase, 900);
 }
+
+// Dispara o sync pendente imediatamente (sem esperar o debounce). Usado quando a
+// página vai ser escondida/fechada, para reduzir a chance de perder a escrita.
+function flushSync() {
+  if (_sbTimer) {
+    clearTimeout(_sbTimer);
+    _sbTimer = null;
+    syncToSupabase();
+  }
+}
+// A troca de aba, o bloqueio do celular e o fechamento disparam 'visibilitychange'
+// (hidden) e 'pagehide' — o momento mais confiável para persistir antes de sair.
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushSync();
+});
+window.addEventListener('pagehide', flushSync);
 
 // Reúne todos os fornecedores já usados (produtos de revenda + insumos) e
 // preenche o <datalist> compartilhado, para o usuário selecionar em vez de digitar.
@@ -3680,6 +3702,8 @@ async function syncToSupabase() {
         _lastSyncErrorToast = now;
       }
     } else {
+      // Tudo confirmado na nuvem: não há mais alterações locais pendentes.
+      setStorage('ddv_sync_pending', false);
       showToast('Salvo na nuvem ✓', 'success');
     }
   } catch (err) {
@@ -3701,6 +3725,16 @@ async function loadFromSupabase() {
       ...r,
       itens: (r.itens || []).map(item => ({ ...item }))
     }));
+    // Se o último salvamento local ainda não confirmou na nuvem (ex.: a página
+    // foi recarregada dentro dos 900ms do debounce), o localStorage é a versão
+    // mais recente da vitrine. Guardamos essa cópia para não perdê-la ao carregar
+    // uma nuvem desatualizada — o que fazia a vitrine sumir e tudo virar "venda".
+    const syncPendente = getStorage('ddv_sync_pending', false);
+    const vitrinesLocalPendentes = syncPendente
+      ? JSON.parse(JSON.stringify(vitrines || {}))
+      : null;
+    const temItensLocais = vitrinesLocalPendentes && Object.values(vitrinesLocalPendentes)
+      .some(buckets => Object.values(buckets || {}).some(slots => (slots || []).length));
     const [
       { data: prodData },
       { data: ingData },
@@ -3827,26 +3861,34 @@ async function loadFromSupabase() {
     if (dedupeReceitaItens()) {
       console.warn('Itens de ficha duplicados removidos (custo estava sendo somado em dobro).');
     }
-    vitrines = {};
-    // A vitrine real é única e permanente: junta qualquer balde antigo (dias da
-    // semana) no balde único VITRINE_KEY. Cada item preserva o próprio dia de
-    // produção (prod_day, com legado caindo no antigo s.dia) e a data de fab.
-    (slotData || []).forEach(s => {
-      if (!vitrines[s.unit]) vitrines[s.unit] = {};
-      if (!vitrines[s.unit][VITRINE_KEY]) vitrines[s.unit][VITRINE_KEY] = [];
-      const prodDay = s.prod_day || (s.dia && s.dia !== VITRINE_KEY ? s.dia : todayWeekdayKey());
-      vitrines[s.unit][VITRINE_KEY].push({
-        prodId: s.prod_id, qty: s.qty, producedQty: s.produced_qty,
-        minQty: (s.min_qty === undefined || s.min_qty === null) ? null : Number(s.min_qty),
-        unidadeMedida: s.unidade_medida || 'un',
-        entryAt: s.entry_at, status: s.status,
-        // A coluna slot é texto no banco; volta como string ("5") e a vitrine
-        // compara com === contra número (5). Sem converter, o item some da
-        // grade (mas continua no histórico/pedido, que usam prodId).
-        slot: (s.slot === null || s.slot === undefined) ? s.slot : Number(s.slot),
-        prodDay, fabDate: s.fab_date || (s.entry_at ? String(s.entry_at).slice(0, 10) : null)
+    if (temItensLocais) {
+      // Há itens locais ainda não sincronizados: o localStorage é mais novo que a
+      // nuvem, então mantemos a vitrine local. O saveAll() no fim deste load
+      // reagenda o envio, empurrando esses itens para a nuvem.
+      vitrines = vitrinesLocalPendentes;
+      console.warn('Vitrine local não sincronizada preservada; empurrando para a nuvem.');
+    } else {
+      vitrines = {};
+      // A vitrine real é única e permanente: junta qualquer balde antigo (dias da
+      // semana) no balde único VITRINE_KEY. Cada item preserva o próprio dia de
+      // produção (prod_day, com legado caindo no antigo s.dia) e a data de fab.
+      (slotData || []).forEach(s => {
+        if (!vitrines[s.unit]) vitrines[s.unit] = {};
+        if (!vitrines[s.unit][VITRINE_KEY]) vitrines[s.unit][VITRINE_KEY] = [];
+        const prodDay = s.prod_day || (s.dia && s.dia !== VITRINE_KEY ? s.dia : todayWeekdayKey());
+        vitrines[s.unit][VITRINE_KEY].push({
+          prodId: s.prod_id, qty: s.qty, producedQty: s.produced_qty,
+          minQty: (s.min_qty === undefined || s.min_qty === null) ? null : Number(s.min_qty),
+          unidadeMedida: s.unidade_medida || 'un',
+          entryAt: s.entry_at, status: s.status,
+          // A coluna slot é texto no banco; volta como string ("5") e a vitrine
+          // compara com === contra número (5). Sem converter, o item some da
+          // grade (mas continua no histórico/pedido, que usam prodId).
+          slot: (s.slot === null || s.slot === undefined) ? s.slot : Number(s.slot),
+          prodDay, fabDate: s.fab_date || (s.entry_at ? String(s.entry_at).slice(0, 10) : null)
+        });
       });
-    });
+    }
     cronograma = {};
     (cronoData || []).forEach(c => {
       if (!cronograma[c.unit]) cronograma[c.unit] = {};
