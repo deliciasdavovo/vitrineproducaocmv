@@ -2935,6 +2935,16 @@ function nowLocalInputValue() {
   return d.toISOString().slice(0, 16);
 }
 
+// Entrada (datetime-local) no dia de fabricação. O lançamento pode ser feito
+// num dia diferente do que o produto foi produzido (ex.: lançar a produção de
+// quinta estando na sexta), e o horário em si não importa para o controle — o
+// que vale é o DIA produzido. Por isso a Entrada acompanha a data de
+// fabricação, mantendo a hora atual (mesmo dia = comportamento de antes).
+function entryAtForFabDate(fabDate) {
+  if (!fabDate) return nowLocalInputValue();
+  return `${fabDate}T${nowLocalInputValue().slice(11, 16)}`;
+}
+
 // Data (AAAA-MM-DD) local de hoje
 function todayISO() {
   const d = new Date();
@@ -4724,7 +4734,7 @@ function addToVitrineAuto(prod, qty, prodDay) {
       if (!vitrine.some(v => v.slot === slotNum)) {
         const day = prodDay || todayWeekdayKey();
         const fabDate = fabDateForDay(day);
-        const entryAt = nowLocalInputValue();
+        const entryAt = entryAtForFabDate(fabDate);
         vitrine.push({
           prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
           entryAt, status: 'em_vitrine', slot: slotNum,
@@ -4743,7 +4753,7 @@ function addToVitrineAuto(prod, qty, prodDay) {
   if (stackSlot != null) {
     const day = prodDay || todayWeekdayKey();
     const fabDate = fabDateForDay(day);
-    const entryAt = nowLocalInputValue();
+    const entryAt = entryAtForFabDate(fabDate);
     vitrine.push({
       prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
       entryAt, status: 'em_vitrine', slot: stackSlot,
@@ -8591,7 +8601,7 @@ function addProdToVitrineDay(prod, qty, day, unit = currentUnit, fabDateOverride
         const fabDate = fabDateOverride || fabDateForDay(day);
         vitrine.push({
           prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
-          entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: slotNum,
+          entryAt: entryAtForFabDate(fabDate), status: 'em_vitrine', slot: slotNum,
           prodDay: day, fabDate
         });
         logProducao(prod.id, qty, fabDate, unit);
@@ -8605,7 +8615,7 @@ function addProdToVitrineDay(prod, qty, day, unit = currentUnit, fabDateOverride
     const fabDate = fabDateOverride || fabDateForDay(day);
     vitrine.push({
       prodId: prod.id, qty, producedQty: qty, minQty: null, unidadeMedida: 'un',
-      entryAt: nowLocalInputValue(), status: 'em_vitrine', slot: stackSlot,
+      entryAt: entryAtForFabDate(fabDate), status: 'em_vitrine', slot: stackSlot,
       prodDay: day, fabDate
     });
     logProducao(prod.id, qty, fabDate, unit);
