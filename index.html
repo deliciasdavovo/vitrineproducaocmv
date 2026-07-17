@@ -3053,14 +3053,9 @@ function vendeuTudo(idx) {
 }
 
 function abrirPerdaDeSlot(idx) {
-  const vitrine = getVitrine();
-  const item = vitrine[idx];
-  if (!item) return;
-  // Adiciona linha de perda pré-preenchida com este produto
-  const hoje = new Date().toISOString().split('T')[0];
-  perdas.push({ id: ++nextId, prodId: item.prodId, qty: item.qty || 1, tipo: 'vencimento', data: hoje, obs: '', unit: currentUnit, fabDate: itemFabDate(item) });
-  saveAll();
-  showToast('Perda registrada — acesse a página Perdas para detalhar', 'success');
+  // Mesma janela (push-up) usada na vitrine, para registrar a perda com
+  // quantidade, motivo e observação — em vez de gravar direto sem detalhes.
+  openSlotLossModal(idx);
 }
 
 // Layouts de vitrine por unidade
@@ -4561,10 +4556,11 @@ function apoioValidadeLabel(item, prod) {
   const restantes = Math.round((venc - hoje) / 86400000);
   const dataStr = venc.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' });
   const chip = (bg, ink, txt) => `<span style="display:inline-block;padding:2px 8px;border-radius:6px;background:${bg};color:${ink};font-weight:600;font-size:11px;">${txt}</span>`;
+  // Vermelho: fora do prazo (já venceu). Amarelo: vence hoje (no dia da
+  // validade). Azul: ainda dentro da validade.
   if (restantes < 0) return chip('var(--red-soft)', 'var(--red-ink)', `Vencido · ${dataStr}`);
-  if (restantes === 0) return chip('var(--red-soft)', 'var(--red-ink)', `Vence hoje · ${dataStr}`);
-  if (restantes <= 2) return chip('var(--amber-soft)', 'var(--amber-ink)', `${restantes} dia${restantes === 1 ? '' : 's'} · ${dataStr}`);
-  return `<span style="color:var(--text-mid);font-weight:500;">${restantes} dias · ${dataStr}</span>`;
+  if (restantes === 0) return chip('var(--amber-soft)', 'var(--amber-ink)', `Vence hoje · ${dataStr}`);
+  return chip('var(--blue-soft)', 'var(--blue-ink)', `${restantes} dia${restantes === 1 ? '' : 's'} · ${dataStr}`);
 }
 
 function renderApoioProducao() {
@@ -4972,18 +4968,26 @@ function burstHeartsAtSlot(slotNumber) {
   }
 }
 
-function openContextSlotLoss() {
-  const item = getContextSlotItem();
+// Abre o modal (push-up) de perda pré-preenchido para um item da vitrine,
+// identificado pelo seu índice. Usado tanto pela vitrine quanto pela lista
+// de apoio, para que os dois lugares mostrem exatamente a mesma janela.
+function openSlotLossModal(idx) {
+  const item = getVitrine()[idx];
   if (!item) return;
   const prod = produtos.find(p => p.id === item.prodId);
   const expiration = getExpirationInfo(item, prod);
   document.getElementById('slot-loss-title').textContent = prod ? `Perda · ${prod.nome}` : 'Anotar perda';
-  document.getElementById('slot-loss-slot').value = contextItemIdx;
+  document.getElementById('slot-loss-slot').value = idx;
   document.getElementById('slot-loss-qty').value = item.qty || 1;
   document.getElementById('slot-loss-type').value = expiration.expired ? 'vencimento' : 'outro';
   document.getElementById('slot-loss-obs').value = expiration.expired ? 'Produto fora do prazo de vencimento na vitrine' : '';
-  closeSlotContextMenu();
   openModal('modal-slot-loss');
+}
+
+function openContextSlotLoss() {
+  if (getContextSlotItem() == null) return;
+  closeSlotContextMenu();
+  openSlotLossModal(contextItemIdx);
 }
 
 function saveSlotLoss() {
