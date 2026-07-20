@@ -3582,6 +3582,7 @@ function saveAll() {
   setStorage('ddv_vitrine_tipos', vitrineTipos);
   setStorage('ddv_nextid', nextId);
   refreshFornecedoresDatalist();
+  markSyncPending();
   clearTimeout(_sbTimer);
   _sbTimer = setTimeout(syncToSupabase, 900);
 }
@@ -3616,6 +3617,40 @@ const SUPABASE_KEY = 'sb_publishable__QMpYRBGv9q_D1x0WKpaQg_uA9EzrSG';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let _sbTimer;
 let _lastSyncErrorToast = 0;
+// Promessa da sincronização em andamento (evita rodar duas ao mesmo tempo e
+// permite dar "await" no flush antes de recarregar/ler da nuvem).
+let _sbSyncing = null;
+
+// "Há mudanças locais ainda não confirmadas na nuvem?" — persistido no
+// localStorage para sobreviver ao reload. Sem isso, quando o usuário recarrega
+// antes de o debounce (900ms) enviar a vitrine, o loadFromSupabase reconstrói a
+// vitrine a partir da nuvem (sem os itens novos) e eles "somem" da aba Vitrine —
+// mesmo continuando no Pedido/Histórico, que leem do historicoProducao (local).
+function isSyncPending() {
+  return localStorage.getItem('ddv_sync_pending') === '1';
+}
+function markSyncPending() {
+  localStorage.setItem('ddv_sync_pending', '1');
+}
+function clearSyncPending() {
+  localStorage.removeItem('ddv_sync_pending');
+}
+
+// Envia agora as mudanças pendentes (cancela o debounce). Usado ao sair da
+// página e antes de ler da nuvem, para não perder itens ainda não sincronizados.
+function flushSupabase() {
+  if (!isSyncPending()) return _sbSyncing || Promise.resolve();
+  clearTimeout(_sbTimer);
+  return syncToSupabase();
+}
+
+// Ao esconder/fechar a aba, tenta enviar o que estiver pendente imediatamente
+// (melhor esforço). Se o envio não terminar a tempo, o próximo load reenvia a
+// partir do localStorage, então nada é perdido de qualquer forma.
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushSupabase();
+});
+window.addEventListener('pagehide', flushSupabase);
 
 async function runSupabase(label, query, errors = []) {
   const result = await query;
@@ -3683,7 +3718,14 @@ async function salvarReceitaItens(receita, syncErrors) {
   await runSupabase('salvar itens da ficha', db.from('receita_itens').insert(itensSemUnidadeUso), syncErrors);
 }
 
-async function syncToSupabase() {
+function syncToSupabase() {
+  // Serializa: se já há uma sync rodando, encadeia a próxima ao fim dela para
+  // não disparar dois "delete + insert" concorrentes na mesma tabela.
+  _sbSyncing = (_sbSyncing || Promise.resolve()).then(_syncToSupabaseOnce, _syncToSupabaseOnce);
+  return _sbSyncing;
+}
+
+async function _syncToSupabaseOnce() {
   const syncErrors = [];
   try {
     dedupeIngredientesByName();
@@ -3899,6 +3941,9 @@ async function syncToSupabase() {
         _lastSyncErrorToast = now;
       }
     } else {
+      // Só limpa a marca de "pendente" quando TUDO subiu sem erro — assim, se
+      // algo falhou, o próximo load ainda tenta reenviar antes de ler da nuvem.
+      clearSyncPending();
       showToast('Salvo na nuvem ✓', 'success');
     }
   } catch (err) {
@@ -3915,6 +3960,12 @@ async function loadFromSupabase() {
   document.body.style.opacity = '0.55';
   document.body.style.pointerEvents = 'none';
   try {
+    // Se a sessão anterior recarregou antes de o debounce enviar as mudanças,
+    // sobe primeiro o que está no localStorage. Assim a vitrine reconstruída da
+    // nuvem já inclui os itens recém-adicionados, em vez de descartá-los.
+    if (isSyncPending()) {
+      try { await flushSupabase(); } catch (e) { console.error('flush pendente falhou', e); }
+    }
     const receitasBackup = getStorage('ddv_receitas_backup', []);
     const receitasLocalAntesLoad = (receitas || []).concat(receitasBackup || []).map(r => ({
       ...r,
