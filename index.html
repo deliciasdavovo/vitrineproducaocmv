@@ -544,6 +544,63 @@ tr:hover td { background: var(--surface-soft); }
   text-align: right;
   width: 82px;
 }
+/* Separador de grupo (por vitrine) na tabela de apoio */
+.apoio-group-row td {
+  background: var(--surface-soft);
+  padding: 7px 10px;
+  border-top: 2px solid var(--border);
+}
+.apoio-group-name {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.6px;
+  color: var(--text-mid);
+}
+.apoio-group-count {
+  font-size: 11px;
+  color: var(--text-light);
+  margin-left: 8px;
+  font-weight: 500;
+}
+/* Células editáveis da tabela de apoio */
+.apoio-cell-input {
+  width: 100%;
+  max-width: 74px;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 4px 6px;
+  font-size: 13px;
+  font-family: var(--font-mono);
+  text-align: center;
+  background: transparent;
+  color: var(--text);
+  outline: none;
+}
+.apoio-cell-input:hover { border-color: var(--border); background: #FFFFFF; }
+.apoio-cell-input:focus { border-color: var(--blue); background: #FFFFFF; box-shadow: 0 0 0 2px rgba(0,122,255,0.12); }
+/* Esconde as setinhas dos inputs numéricos para o dígito não ficar cortado */
+.apoio-cell-input[type="number"] { -moz-appearance: textfield; appearance: textfield; max-width: 56px; }
+.apoio-cell-input[type="number"]::-webkit-outer-spin-button,
+.apoio-cell-input[type="number"]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+.apoio-cell-date { max-width: 132px; font-size: 12px; }
+.apoio-prod-edit {
+  border: 0;
+  background: transparent;
+  padding: 2px 0;
+  font-size: 13px;
+  font-family: var(--font-sans);
+  color: var(--text);
+  text-align: left;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.apoio-prod-edit:hover { color: var(--blue); }
+.apoio-edit-ico { font-size: 11px; color: var(--text-light); opacity: 0; }
+.apoio-prod-edit:hover .apoio-edit-ico { opacity: 1; }
 .vitrine-section-label {
   font-family: var(--font-mono);
   font-size: 11px;
@@ -945,6 +1002,20 @@ tr:hover td { background: var(--surface-soft); }
 .toast.show { transform: translateY(0); opacity: 1; }
 .toast.toast-success { border-left: 4px solid var(--green); }
 .toast.toast-error { border-left: 4px solid var(--red); }
+.toast.toast-with-action { display: flex; align-items: center; gap: 14px; }
+.toast-undo {
+  border: 1px solid rgba(255,255,255,0.35);
+  background: rgba(255,255,255,0.10);
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+  padding: 5px 12px;
+  border-radius: 999px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.toast-undo:hover { background: rgba(255,255,255,0.22); }
 
 .slot-context-menu {
   position: fixed;
@@ -2843,6 +2914,14 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   <button class="loss-action" onclick="openContextSlotLoss()">Anotar perda</button>
 </div>
 
+<!-- Menu: baixa de 1 (venda ou perda) ao clicar em "−" num slot -->
+<div class="slot-context-menu" id="baixa-choice-menu">
+  <div class="slot-context-title" id="baixa-choice-title">Dar baixa</div>
+  <button class="sold-action" onclick="confirmBaixaVenda()">Venda −1</button>
+  <button class="loss-action" onclick="confirmBaixaPerda()">Perda −1</button>
+  <button class="loss-action" style="font-weight:600;opacity:.85;" onclick="confirmBaixaPerdaDetalhe()">Perda com detalhes…</button>
+</div>
+
 <script>
 // ============================================================
 // STATE
@@ -2939,7 +3018,13 @@ function fabDateForDay(day) {
 // Data de fabricação de um item da vitrine (cai para a data de entrada em
 // dados antigos que ainda não têm fabDate)
 function itemFabDate(item) {
-  return item.fabDate || (item.entryAt ? String(item.entryAt).slice(0, 10) : '');
+  if (!item) return '';
+  if (item.fabDate) return item.fabDate;
+  if (item.entryAt) return String(item.entryAt).slice(0, 10);
+  // Itens antigos/da nuvem podem não ter fabDate nem entryAt, mas quase sempre
+  // têm o dia da semana (prodDay): usamos ele para não deixar o tempo em "—".
+  if (item.prodDay) return fabDateForDay(item.prodDay);
+  return '';
 }
 
 function formatFabDate(iso) {
@@ -3014,27 +3099,161 @@ function getSlotStock(item) {
 // Ajuste rápido de quantidade direto no slot (+/-)
 // Recebe o índice do item na lista da vitrine (um slot pode ter vários produtos)
 // "-" = vendeu 1 unidade; quando chega a 0 remove da vitrine (vendeu tudo)
+// ============================================================
+// DESFAZER (undo) das ações da vitrine
+// Guarda um retrato do estado (vitrine + perdas + histórico) antes de
+// cada ação de +/-, venda ou perda, para poder reverter o último passo.
+// ============================================================
+let vitrineUndo = null;
+function snapshotVitrine(label) {
+  vitrineUndo = {
+    label,
+    unit: currentUnit,
+    vitrine: JSON.parse(JSON.stringify(getVitrine())),
+    perdas: JSON.parse(JSON.stringify(perdas)),
+    hist: JSON.parse(JSON.stringify(historicoProducao))
+  };
+}
+function undoVitrineAction() {
+  if (!vitrineUndo) return;
+  // Restaura no lugar para preservar as referências que outras telas usam
+  const alvo = currentUnit === vitrineUndo.unit;
+  if (alvo) {
+    const v = getVitrine();
+    v.length = 0;
+    vitrineUndo.vitrine.forEach(it => v.push(it));
+  } else if (vitrines[vitrineUndo.unit]) {
+    vitrines[vitrineUndo.unit][VITRINE_KEY] = vitrineUndo.vitrine;
+  }
+  perdas.length = 0;
+  vitrineUndo.perdas.forEach(p => perdas.push(p));
+  historicoProducao = vitrineUndo.hist;
+  vitrineUndo = null;
+  saveAll();
+  renderVitrine();
+  try { renderPerdas(); } catch (e) {}
+  showToast('Ação desfeita ✓', 'success');
+}
+
 function adjustSlotQty(idx, delta, e) {
   if (e) e.stopPropagation();
   const vitrine = getVitrine();
   const item = vitrine[idx];
   if (!item) return;
-  const novaQty = Math.max(0, (Number(item.qty) || 0) + delta);
-  if (delta < 0 && novaQty === 0) {
-    vendeuTudo(idx);
+  // No "−" a saída pode ser venda OU perda: pergunta antes de dar baixa.
+  if (delta < 0) {
+    openBaixaChoice(idx, e && e.currentTarget);
+    return;
+  }
+  snapshotVitrine('mais');
+  item.qty = Math.max(0, (Number(item.qty) || 0) + delta);
+  saveAll();
+  renderVitrine();
+  const prod = produtos.find(p => p.id === item.prodId);
+  showUndoToast(`+1 ${prod ? prod.nome : ''} · ${item.qty} na vitrine`, 'success');
+}
+
+// Baixa de 1 unidade como VENDA (some quando chega a zero = "vendeu tudo").
+function baixaVenda(idx) {
+  closeBaixaChoice();
+  const vitrine = getVitrine();
+  const item = vitrine[idx];
+  if (!item) return;
+  snapshotVitrine('venda');
+  const prod = produtos.find(p => p.id === item.prodId);
+  const novaQty = Math.max(0, (Number(item.qty) || 0) - 1);
+  if (novaQty === 0) {
+    ensureLogged(item);
+    stampHistEntry(item.prodId, itemFabDate(item), { entryAt: item.entryAt, exitAt: nowLocalInputValue() });
+    vitrine.splice(idx, 1);
+    saveAll();
+    renderVitrine();
+    showUndoToast(`Vendeu tudo · ${prod ? prod.nome : ''} ✓`, 'success');
     return;
   }
   item.qty = novaQty;
   saveAll();
   renderVitrine();
+  showUndoToast(`Venda −1 · ${prod ? prod.nome : ''} · ${novaQty} restam`, 'success');
+}
+
+// Baixa de 1 unidade como PERDA: registra em "perdas" e reduz a quantidade.
+function baixaPerda(idx) {
+  closeBaixaChoice();
+  const vitrine = getVitrine();
+  const item = vitrine[idx];
+  if (!item) return;
+  snapshotVitrine('perda');
+  const prod = produtos.find(p => p.id === item.prodId);
+  const expiration = getExpirationInfo(item, prod);
+  perdas.push({
+    id: ++nextId,
+    prodId: item.prodId,
+    qty: 1,
+    tipo: expiration.expired ? 'vencimento' : 'outro',
+    data: new Date().toISOString().split('T')[0],
+    obs: `Perda de 1 un. no slot ${item.slot} da vitrine`,
+    unit: currentUnit,
+    fabDate: itemFabDate(item),
+    source: `slot-${currentUnit}-${VITRINE_KEY}-${item.slot}-${Date.now()}`
+  });
+  const novaQty = Math.max(0, (Number(item.qty) || 0) - 1);
+  if (novaQty === 0) {
+    ensureLogged(item);
+    stampHistEntry(item.prodId, itemFabDate(item), { entryAt: item.entryAt, exitAt: nowLocalInputValue() });
+    vitrine.splice(idx, 1);
+  } else {
+    item.qty = novaQty;
+  }
+  saveAll();
+  renderVitrine();
+  try { renderPerdas(); } catch (e) {}
+  showUndoToast(`Perda −1 · ${prod ? prod.nome : ''} registrada`, 'error');
 }
 
 function vendeuTudo(idx) {
   const vitrine = getVitrine();
-  if (vitrine[idx]) { ensureLogged(vitrine[idx]); vitrine.splice(idx, 1); }
+  if (!vitrine[idx]) return;
+  snapshotVitrine('vendeu tudo');
+  const prod = produtos.find(p => p.id === vitrine[idx].prodId);
+  ensureLogged(vitrine[idx]);
+  vitrine.splice(idx, 1);
   saveAll();
   renderVitrine();
-  showToast('Vendeu tudo ✓', 'success');
+  showUndoToast(`Vendeu tudo · ${prod ? prod.nome : ''} ✓`, 'success');
+}
+
+// ============================================================
+// ESCOLHA DE BAIXA (venda ou perda) ao clicar em "−" num slot
+// ============================================================
+let baixaChoiceIdx = null;
+function openBaixaChoice(idx, anchorEl) {
+  baixaChoiceIdx = idx;
+  const vitrine = getVitrine();
+  const item = vitrine[idx];
+  const prod = item ? produtos.find(p => p.id === item.prodId) : null;
+  if (!item || !prod) return;
+  const menu = document.getElementById('baixa-choice-menu');
+  document.getElementById('baixa-choice-title').textContent = `${prod.nome} · dar baixa de 1`;
+  // Posiciona junto ao botão clicado (ou ao centro, como reserva)
+  const rect = anchorEl && anchorEl.getBoundingClientRect
+    ? anchorEl.getBoundingClientRect()
+    : { left: window.innerWidth / 2 - 90, bottom: window.innerHeight / 2 };
+  menu.style.left = `${Math.min(Math.max(8, rect.left), window.innerWidth - 196)}px`;
+  menu.style.top = `${Math.min(rect.bottom + 6, window.innerHeight - 150)}px`;
+  menu.classList.add('open');
+}
+function closeBaixaChoice() {
+  const menu = document.getElementById('baixa-choice-menu');
+  if (menu) menu.classList.remove('open');
+  baixaChoiceIdx = null;
+}
+function confirmBaixaVenda() { if (baixaChoiceIdx != null) baixaVenda(baixaChoiceIdx); }
+function confirmBaixaPerda() { if (baixaChoiceIdx != null) baixaPerda(baixaChoiceIdx); }
+function confirmBaixaPerdaDetalhe() {
+  const idx = baixaChoiceIdx;
+  closeBaixaChoice();
+  if (idx != null) openSlotLossModal(idx);
 }
 
 function abrirPerdaDeSlot(idx) {
@@ -4317,6 +4536,10 @@ function slotProdRowHTML(item, idx, prod) {
   const badge = expiration.expired
     ? '<span class="slot-expired">Fora do prazo</span>'
     : (stock.label ? `<span class="stock-badge ${stock.level}">${stock.label}</span>` : '');
+  // Tempo de vitrine (dias desde a fabricação). Antes só aparecia na visão de
+  // lista; agora também na grade, para todo item com data conhecida.
+  const diasVitrine = diasEntreDatas(itemFabDate(item), null);
+  const tempoLabel = diasVitrine == null ? '' : labelDiasVitrine(diasVitrine);
   return `<div class="slot-prod ${statusClass}" title="Clique para editar" onclick="openSlotModal(${item.slot}, ${idx})" oncontextmenu="openSlotContextMenu(event, ${idx})">
     <div class="slot-prod-main">
       <span class="slot-prod-name" title="${prod.nome}">${prod.nome}</span>
@@ -4328,6 +4551,7 @@ function slotProdRowHTML(item, idx, prod) {
       <button class="slot-step plus" title="Aumentar" onclick="adjustSlotQty(${idx}, 1, event)">+</button>
       <span class="slot-unit">${unitLabel}</span>
     </div>
+    ${tempoLabel ? `<div class="slot-foot"><span class="slot-time">⏱ ${tempoLabel} na vitrine</span></div>` : ''}
   </div>`;
 }
 
@@ -4559,24 +4783,77 @@ function renderApoioProducao() {
     return;
   }
 
-  tbody.innerHTML = entries.map(({ item, index }, pos) => {
-    const prod = produtos.find(p => p.id === item.prodId);
-    const fabLabel = formatFabDate(itemFabDate(item));
-    const prodQty = item.producedQty ?? item.qty;
-    const vitrineQty = item.qty;
-    return `
-    <tr>
-      <td><span class="sheet-row-code">${String(pos + 1).padStart(2, '0')}</span> ${prod ? prod.nome : '?'}</td>
-      <td style="text-align:center;">${fabLabel}</td>
-      <td style="text-align:center;">${prodQty}</td>
-      <td style="text-align:center;">${vitrineQty}</td>
-      <td style="text-align:center;white-space:nowrap;">${apoioValidadeLabel(item, prod)}</td>
-      <td style="text-align:right;white-space:nowrap;">
-        <button class="btn btn-ghost btn-sm" onclick="vendeuTudo(${index})" title="Vendeu tudo" style="color:var(--green,#16a34a);">✓</button>
-        <button class="btn btn-ghost btn-sm" onclick="abrirPerdaDeSlot(${index})" title="Registrar perda" style="color:var(--red);">!</button>
-      </td>
-    </tr>`;
-  }).join('');
+  // Agrupa por vitrine (salgada / doce / sobremesa / outras) para dar um
+  // separador visual na tabela, deixando a lista mais fácil de percorrer.
+  const grupoOrdem = ['salgada', 'doce', 'sobremesa', 'todas'];
+  const grupos = {};
+  entries.forEach(e => {
+    const g = apoioItemVitrine(e.item) || 'todas';
+    (grupos[g] = grupos[g] || []).push(e);
+  });
+  const ordem = [
+    ...grupoOrdem.filter(g => grupos[g]),
+    ...Object.keys(grupos).filter(g => !grupoOrdem.includes(g))
+  ];
+
+  const linhas = [];
+  ordem.forEach(gid => {
+    const label = gid === 'todas' ? 'Outras vitrines' : `Vitrine ${getVitrineLabel(gid)}`;
+    const totalVitrine = grupos[gid].reduce((s, { item }) => s + (Number(item.qty) || 0), 0);
+    linhas.push(`<tr class="apoio-group-row"><td colspan="6"><span class="apoio-group-name">${label}</span><span class="apoio-group-count">${grupos[gid].length} ${grupos[gid].length === 1 ? 'produto' : 'produtos'} · ${totalVitrine} na vitrine</span></td></tr>`);
+    grupos[gid].forEach(({ item, index }, pos) => {
+      const prod = produtos.find(p => p.id === item.prodId);
+      const fabIso = itemFabDate(item);
+      const prodQty = item.producedQty ?? item.qty;
+      const vitrineQty = item.qty;
+      linhas.push(`
+      <tr>
+        <td>
+          <button type="button" class="apoio-prod-edit" onclick="openSlotModal(${item.slot}, ${index})" title="Editar produto do espaço">
+            <span class="sheet-row-code">${String(pos + 1).padStart(2, '0')}</span> ${prod ? prod.nome : '?'} <span class="apoio-edit-ico">✎</span>
+          </button>
+        </td>
+        <td style="text-align:center;"><input type="date" class="apoio-cell-input apoio-cell-date" value="${fabIso}" onchange="updateApoioFab(${index}, this.value)" title="Data de fabricação"></td>
+        <td style="text-align:center;"><input type="number" min="0" class="apoio-cell-input" value="${prodQty}" onchange="updateApoioProduced(${index}, this.value)" title="Quantidade produzida"></td>
+        <td style="text-align:center;"><input type="number" min="0" class="apoio-cell-input" value="${vitrineQty}" onchange="updateApoioQty(${index}, this.value)" title="Quantidade na vitrine"></td>
+        <td style="text-align:center;white-space:nowrap;">${apoioValidadeLabel(item, prod)}</td>
+        <td style="text-align:right;white-space:nowrap;">
+          <button class="btn btn-ghost btn-sm" onclick="vendeuTudo(${index})" title="Vendeu tudo" style="color:var(--green,#16a34a);">✓</button>
+          <button class="btn btn-ghost btn-sm" onclick="abrirPerdaDeSlot(${index})" title="Registrar perda" style="color:var(--red);">!</button>
+        </td>
+      </tr>`);
+    });
+  });
+  tbody.innerHTML = linhas.join('');
+}
+
+// Edição inline da tabela de apoio (a mesma tabela que lista a vitrine).
+// Alteram o item da vitrine diretamente e re-renderizam a tela.
+function updateApoioFab(index, value) {
+  const item = getVitrine()[index];
+  if (!item || !value) return;
+  item.fabDate = value;
+  item.prodDay = weekdayKeyFromISO(value);
+  item.entryAt = entryAtForFabDate(value);
+  saveAll();
+  renderVitrine();
+}
+function updateApoioProduced(index, value) {
+  const item = getVitrine()[index];
+  if (!item) return;
+  const novo = Math.max(0, parseInt(value) || 0);
+  const antigo = Number(item.producedQty ?? item.qty) || 0;
+  item.producedQty = novo;
+  if (novo !== antigo) logProducao(item.prodId, novo - antigo, itemFabDate(item));
+  saveAll();
+  renderVitrine();
+}
+function updateApoioQty(index, value) {
+  const item = getVitrine()[index];
+  if (!item) return;
+  item.qty = Math.max(0, parseInt(value) || 0);
+  saveAll();
+  renderVitrine();
 }
 
 function handleApoioKey(event, field) {
@@ -4893,12 +5170,15 @@ function markContextSlotSold() {
   const vitrine = getVitrine();
   const item = vitrine[contextItemIdx];
   if (!item) return;
+  snapshotVitrine('vendeu tudo');
+  ensureLogged(item);
+  stampHistEntry(item.prodId, itemFabDate(item), { entryAt: item.entryAt, exitAt: nowLocalInputValue() });
   burstHeartsAtSlot(item.slot);
   vitrine.splice(contextItemIdx, 1);
   saveAll();
   closeSlotContextMenu();
   renderVitrine();
-  showToast('Vendeu tudo', 'success');
+  showUndoToast('Vendeu tudo', 'success');
 }
 
 function burstHeartsAtSlot(slotNumber) {
@@ -4950,6 +5230,7 @@ function saveSlotLoss() {
   const qty = parseInt(document.getElementById('slot-loss-qty').value) || 1;
   const tipo = document.getElementById('slot-loss-type').value;
   const obs = document.getElementById('slot-loss-obs').value.trim();
+  snapshotVitrine('perda');
   perdas.push({
     id: ++nextId,
     prodId: item.prodId,
@@ -4967,7 +5248,8 @@ function saveSlotLoss() {
   saveAll();
   closeModal('modal-slot-loss');
   renderVitrine();
-  showToast('Perda registrada no slot', 'error');
+  try { renderPerdas(); } catch (e) {}
+  showUndoToast('Perda registrada no slot', 'error');
 }
 
 // ============================================================
@@ -9223,9 +9505,10 @@ document.querySelectorAll('.modal-overlay').forEach(overlay => {
 
 document.addEventListener('click', function(e) {
   if (!e.target.closest('#slot-context-menu')) closeSlotContextMenu();
+  if (!e.target.closest('#baixa-choice-menu') && !e.target.closest('.slot-step.minus')) closeBaixaChoice();
 });
 document.addEventListener('keydown', function(e) {
-  if (e.key === 'Escape') closeSlotContextMenu();
+  if (e.key === 'Escape') { closeSlotContextMenu(); closeBaixaChoice(); }
 });
 
 // ============================================================
@@ -9238,6 +9521,16 @@ function showToast(msg, type = 'success') {
   t.className = `toast toast-${type} show`;
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2800);
+}
+
+// Toast com botão "Desfazer" — usado nas ações da vitrine (+/-, venda, perda)
+// para permitir reverter o último passo sem penalizar o clique errado.
+function showUndoToast(msg, type = 'success') {
+  const t = document.getElementById('toast');
+  t.innerHTML = `<span>${msg}</span><button type="button" class="toast-undo" onclick="undoVitrineAction()">Desfazer</button>`;
+  t.className = `toast toast-${type} toast-with-action show`;
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => t.classList.remove('show'), 6000);
 }
 
 // ============================================================
