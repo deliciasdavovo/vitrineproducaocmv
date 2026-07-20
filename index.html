@@ -1679,8 +1679,8 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
   <div class="unit-switcher" title="Unidade usada na Vitrine e no Pedido de Produção" style="margin-bottom:16px;width:fit-content;">
     <span class="unit-switcher-label">Unidade</span>
-    <button class="unit-btn active" onclick="setUnit('matriz')">Matriz</button>
-    <button class="unit-btn" onclick="setUnit('vilanova')">Vila Nova</button>
+    <button class="unit-btn active" id="unit-btn-matriz" onclick="setUnit('matriz')">Matriz</button>
+    <button class="unit-btn" id="unit-btn-vilanova" onclick="setUnit('vilanova')">Vila Nova</button>
   </div>
 
   <div class="vitrine-filter-tabs" id="vitrine-filter-tabs"></div>
@@ -4027,11 +4027,23 @@ function showPage(page) {
 
 function setUnit(unit) {
   currentUnit = unit;
-  document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  // Lembra a unidade escolhida: sem isso, ao recarregar a página o app voltava
+  // sempre para 'matriz' e a vitrine da outra unidade (Vila Nova) aparecia
+  // vazia, como se os itens tivessem sumido / vendido tudo.
+  setStorage('ddv_current_unit', unit);
+  applyUnitButtons(unit);
   renderVitrine();
   renderCronograma();
   renderPedido();
+}
+
+// Reflete a unidade ativa nos botões Matriz / Vila Nova (usado no clique e ao
+// restaurar a unidade salva no carregamento).
+function applyUnitButtons(unit) {
+  const mz = document.getElementById('unit-btn-matriz');
+  const vn = document.getElementById('unit-btn-vilanova');
+  if (mz) mz.classList.toggle('active', unit === 'matriz');
+  if (vn) vn.classList.toggle('active', unit === 'vilanova');
 }
 
 // ============================================================
@@ -9418,6 +9430,13 @@ function initAC(inputEl, getSuggestions, { nextFocusId, onSelect } = {}) {
 // INIT
 // ============================================================
 loadFromSupabase().then(() => {
+  // Restaura a última unidade usada (Matriz / Vila Nova). Sem isso, o app voltava
+  // sempre para 'matriz' no reload e a vitrine da outra unidade parecia vazia.
+  const savedUnit = getStorage('ddv_current_unit', 'matriz');
+  if (savedUnit === 'matriz' || savedUnit === 'vilanova') {
+    currentUnit = savedUnit;
+    applyUnitButtons(savedUnit);
+  }
   renderProdutos();
   renderVitrine();
   renderCMV();
