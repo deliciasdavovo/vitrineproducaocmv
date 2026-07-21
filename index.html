@@ -3875,7 +3875,7 @@ async function _syncToSupabaseOnce() {
           if (!s.slot || !s.prodId) return;
           allSlots.push({
             unit, dia: VITRINE_KEY, slot: s.slot, prod_id: s.prodId,
-            qty: s.qty || 0, produced_qty: s.producedQty || 0,
+            qty: s.qty || 0, produced_qty: Number(s.producedQty || s.qty) || 0,
             min_qty: (s.minQty === undefined || s.minQty === null || s.minQty === '') ? null : s.minQty,
             unidade_medida: s.unidadeMedida || 'un',
             entry_at: s.entryAt || null, status: s.status || 'em_vitrine',
@@ -4522,10 +4522,10 @@ function setProducedQtyForDay(prodId, value, day) {
     const prod = produtos.find(p => p.id === prodId);
     if (prod && value > 0) addProdToVitrineDay(prod, value, day);
   } else {
-    const total = slots.reduce((s, x) => s + (Number(x.producedQty ?? x.qty) || 0), 0);
+    const total = slots.reduce((s, x) => s + (Number(x.producedQty || x.qty) || 0), 0);
     const delta = value - total;
     const first = slots[0];
-    first.producedQty = Math.max(0, (Number(first.producedQty ?? first.qty) || 0) + delta);
+    first.producedQty = Math.max(0, (Number(first.producedQty || first.qty) || 0) + delta);
     first.qty = Math.max(0, (Number(first.qty) || 0) + delta);
     logProducao(prodId, delta, itemFabDate(first));
   }
@@ -4855,7 +4855,7 @@ function renderApoioProducao() {
     grupos[gid].forEach(({ item, index }, pos) => {
       const prod = produtos.find(p => p.id === item.prodId);
       const fabIso = itemFabDate(item);
-      const prodQty = item.producedQty ?? item.qty;
+      const prodQty = item.producedQty || item.qty;
       const vitrineQty = item.qty;
       linhas.push(`
       <tr>
@@ -4893,7 +4893,7 @@ function updateApoioProduced(index, value) {
   const item = getVitrine()[index];
   if (!item) return;
   const novo = Math.max(0, parseInt(value) || 0);
-  const antigo = Number(item.producedQty ?? item.qty) || 0;
+  const antigo = Number(item.producedQty || item.qty) || 0;
   item.producedQty = novo;
   if (novo !== antigo) logProducao(item.prodId, novo - antigo, itemFabDate(item));
   saveAll();
@@ -5140,7 +5140,7 @@ function saveSlot() {
 
   // Guarda a produção anterior do item sendo editado, para ajustar o histórico
   const editing = editIdx !== '' ? vitrine[Number(editIdx)] : null;
-  const oldProduced = editing ? (Number(editing.producedQty ?? editing.qty) || 0) : 0;
+  const oldProduced = editing ? (Number(editing.producedQty || editing.qty) || 0) : 0;
   const oldFab = editing ? itemFabDate(editing) : '';
   const oldProdId = editing ? editing.prodId : null;
 
@@ -8761,7 +8761,7 @@ function producaoPorDataUnit(dateIso, unit = currentUnit) {
   Object.keys(buckets).forEach(bucketDay => {
     (buckets[bucketDay] || []).forEach(slot => {
       if (itemFabDate(slot) !== dateIso) return;
-      const produced = Number(slot.producedQty ?? slot.qty) || 0;
+      const produced = Number(slot.producedQty || slot.qty) || 0;
       if (!byProd[slot.prodId]) byProd[slot.prodId] = { prodId: slot.prodId, produced: 0 };
       byProd[slot.prodId].produced += produced;
     });
@@ -8885,10 +8885,10 @@ function setPedidoQty(prodId, value, unit = currentUnit) {
     const prod = produtos.find(p => p.id === prodId);
     if (prod && value > 0) addProdToVitrineDay(prod, value, weekdayFromDate(date), unit, date);
   } else {
-    const total = slots.reduce((s, x) => s + (Number(x.producedQty ?? x.qty) || 0), 0);
+    const total = slots.reduce((s, x) => s + (Number(x.producedQty || x.qty) || 0), 0);
     const delta = value - total;
     const first = slots[0];
-    const curProduced = Number(first.producedQty ?? first.qty) || 0;
+    const curProduced = Number(first.producedQty || first.qty) || 0;
     const curQty = Number(first.qty) || 0;
     first.producedQty = Math.max(0, curProduced + delta);
     first.qty = Math.max(0, curQty + delta);
@@ -8938,7 +8938,7 @@ function ensureLogged(item) {
   if (!date) return;
   const arr = (historicoProducao[currentUnit] && historicoProducao[currentUnit][date]) || [];
   if (!arr.some(it => it.prodId === item.prodId)) {
-    logProducao(item.prodId, Number(item.producedQty ?? item.qty) || 0, date);
+    logProducao(item.prodId, Number(item.producedQty || item.qty) || 0, date);
   }
 }
 
@@ -8953,7 +8953,7 @@ function producaoRegistradaPorData(date, unit = currentUnit) {
   Object.values(vitrines[unit] || {}).forEach(arr => (arr || []).forEach(slot => {
     if (itemFabDate(slot) !== date || logged.has(slot.prodId)) return;
     if (!byProd[slot.prodId]) byProd[slot.prodId] = { qty: 0, obs: '' };
-    byProd[slot.prodId].qty += Number(slot.producedQty ?? slot.qty) || 0;
+    byProd[slot.prodId].qty += Number(slot.producedQty || slot.qty) || 0;
   }));
   return byProd;
 }
@@ -9001,7 +9001,7 @@ function producaoBreakdownPorData(date, unit = currentUnit) {
   Object.values(vitrines[unit] || {}).forEach(arr => (arr || []).forEach(slot => {
     if (itemFabDate(slot) !== date) return;
     if (!STATUS_TERMINAL.includes(slot.status)) {
-      naVitrineByProd[slot.prodId] = (naVitrineByProd[slot.prodId] || 0) + (Number(slot.producedQty ?? slot.qty) || 0);
+      naVitrineByProd[slot.prodId] = (naVitrineByProd[slot.prodId] || 0) + (Number(slot.producedQty || slot.qty) || 0);
     }
     if (slot.entryAt && (!liveEntryByProd[slot.prodId] || slot.entryAt < liveEntryByProd[slot.prodId])) {
       liveEntryByProd[slot.prodId] = slot.entryAt;
