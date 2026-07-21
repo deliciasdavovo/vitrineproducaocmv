@@ -2557,6 +2557,41 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
   <div style="margin-top:32px;">
     <h2 class="section-title" style="font-size:18px;">Registros anteriores</h2>
+    <p class="section-sub" style="margin-bottom:14px;">Busque por produto, filtre por período e unidade, e agrupe por dia ou por produto.</p>
+
+    <!-- Barra de busca avançada -->
+    <div class="hist-search-bar" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap;background:var(--warm);border:1px solid var(--border);border-radius:12px;padding:14px 16px;margin-bottom:18px;">
+      <div class="form-group" style="margin:0;flex:1;min-width:200px;">
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);display:block;margin-bottom:4px;">Buscar produto</label>
+        <input type="search" id="hist-busca" class="sheet-input" placeholder="Digite o nome do produto…" style="width:100%;" oninput="renderHistoricoAnteriores()">
+      </div>
+      <div class="form-group" style="margin:0;min-width:140px;">
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);display:block;margin-bottom:4px;">De</label>
+        <input type="date" id="hist-de" class="sheet-input" style="width:150px;" onchange="renderHistoricoAnteriores()">
+      </div>
+      <div class="form-group" style="margin:0;min-width:140px;">
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);display:block;margin-bottom:4px;">Até</label>
+        <input type="date" id="hist-ate" class="sheet-input" style="width:150px;" onchange="renderHistoricoAnteriores()">
+      </div>
+      <div class="form-group" style="margin:0;min-width:150px;">
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);display:block;margin-bottom:4px;">Unidade</label>
+        <select id="hist-unidade" class="sheet-input" style="width:100%;" onchange="renderHistoricoAnteriores()">
+          <option value="ambas">Ambas</option>
+          <option value="vilanova">Vila Nova</option>
+          <option value="matriz">Matriz</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin:0;">
+        <label style="font-size:11px;text-transform:uppercase;letter-spacing:0.5px;color:var(--text-light);display:block;margin-bottom:4px;">Agrupar por</label>
+        <div class="hist-seg" style="display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:#fff;">
+          <button type="button" id="hist-agrupar-dia" class="hist-seg-btn active" onclick="setHistAgrupamento('dia')" style="border:none;background:var(--brown);color:#fff;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;">Dia</button>
+          <button type="button" id="hist-agrupar-produto" class="hist-seg-btn" onclick="setHistAgrupamento('produto')" style="border:none;background:#fff;color:var(--brown);padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;">Produto</button>
+        </div>
+      </div>
+      <button class="btn btn-ghost" style="height:40px;" onclick="limparBuscaHistorico()">Limpar</button>
+    </div>
+
+    <div id="hist-resumo" style="margin-bottom:14px;"></div>
     <div id="hist-anteriores"></div>
   </div>
 </div>
@@ -9157,83 +9192,239 @@ function salvarHistorico() {
   alert('Registro salvo para ' + date + '!');
 }
 
-function renderHistoricoAnteriores() {
-  const el = document.getElementById('hist-anteriores');
-  if (!el) return;
-  // Datas: união das datas logadas e das datas de fabricação presentes na vitrine
+// Modo de agrupamento da busca do histórico: 'dia' ou 'produto'.
+let histAgrupamento = 'dia';
+
+// Normaliza texto para busca (minúsculas, sem acentos).
+function histNorm(s) {
+  return normalizeLookupName(s).trim();
+}
+
+// Unidades ativas conforme o filtro de unidade da busca.
+function histUnidadesFiltro() {
+  const u = (document.getElementById('hist-unidade') || {}).value || 'ambas';
+  const todas = [
+    { key: 'vilanova', label: 'Vila Nova', soft: 'var(--blue-soft)', ink: 'var(--blue-ink)' },
+    { key: 'matriz', label: 'Matriz', soft: 'var(--amber-soft)', ink: 'var(--amber-ink)' },
+  ];
+  return u === 'ambas' ? todas : todas.filter(x => x.key === u);
+}
+
+function setHistAgrupamento(modo) {
+  histAgrupamento = modo;
+  const dia = document.getElementById('hist-agrupar-dia');
+  const prod = document.getElementById('hist-agrupar-produto');
+  [['dia', dia], ['produto', prod]].forEach(([k, btn]) => {
+    if (!btn) return;
+    const on = k === modo;
+    btn.style.background = on ? 'var(--brown)' : '#fff';
+    btn.style.color = on ? '#fff' : 'var(--brown)';
+    btn.classList.toggle('active', on);
+  });
+  renderHistoricoAnteriores();
+}
+
+function limparBuscaHistorico() {
+  ['hist-busca', 'hist-de', 'hist-ate'].forEach(id => { const e = document.getElementById(id); if (e) e.value = ''; });
+  const u = document.getElementById('hist-unidade'); if (u) u.value = 'ambas';
+  setHistAgrupamento('dia');
+}
+
+// Todas as datas com histórico (logadas + presentes na vitrine), desc.
+function histTodasDatas() {
   const dateSet = new Set(Object.keys(historicoProducao[currentUnit] || {}));
   Object.values(vitrines[currentUnit] || {}).forEach(arr => (arr || []).forEach(slot => {
     const fd = itemFabDate(slot);
     if (fd) dateSet.add(fd);
   }));
-  const dates = Array.from(dateSet).sort((a, b) => b.localeCompare(a)).slice(0, 14);
+  return Array.from(dateSet).sort((a, b) => b.localeCompare(a));
+}
+
+function renderHistoricoAnteriores() {
+  const el = document.getElementById('hist-anteriores');
+  if (!el) return;
+  const resumoEl = document.getElementById('hist-resumo');
+
+  const busca = histNorm((document.getElementById('hist-busca') || {}).value);
+  const de = (document.getElementById('hist-de') || {}).value || '';
+  const ate = (document.getElementById('hist-ate') || {}).value || '';
+  const unidades = histUnidadesFiltro();
+  const temFiltro = !!(busca || de || ate);
+
+  let dates = histTodasDatas();
+  if (de) dates = dates.filter(d => d >= de);
+  if (ate) dates = dates.filter(d => d <= ate);
+  // Sem filtro de data/texto, limita a lista por dia para não pesar.
+  if (!temFiltro && histAgrupamento === 'dia') dates = dates.slice(0, 14);
+
+  const curvaOrder = { A: 0, B: 1, C: 2 };
+  const num = (v, cor) => v > 0 ? `<span style="color:${cor};font-weight:700;">${v}</span>` : '<span style="color:var(--text-light)">0</span>';
+  const matchProd = (p) => !busca || histNorm(p.nome).includes(busca);
+
   if (!dates.length) {
+    if (resumoEl) resumoEl.innerHTML = '';
     el.innerHTML = '<div class="empty-state" style="padding:20px;"><p>Nenhum registro de produção ainda.</p></div>';
     return;
   }
-  const curvaOrder = { A: 0, B: 1, C: 2 };
-  const num = (v, cor) => v > 0 ? `<span style="color:${cor};font-weight:700;">${v}</span>` : '<span style="color:var(--text-light)">0</span>';
-  el.innerHTML = dates.map(date => {
-    const vnData = producaoBreakdownPorData(date, 'vilanova');
-    const mzData = producaoBreakdownPorData(date, 'matriz');
-    const d = new Date(date + 'T12:00:00');
-    const label = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
-    const pids = new Set([...Object.keys(vnData), ...Object.keys(mzData)]);
-    const items = Array.from(pids)
-      .map(pid => ({ vn: vnData[pid], mz: mzData[pid], p: produtos.find(p => p.id === Number(pid)) }))
-      .filter(x => x.p && ((x.vn && (x.vn.produced > 0 || x.vn.obs)) || (x.mz && (x.mz.produced > 0 || x.mz.obs))))
+
+  // Totais gerais para o resumo.
+  let totProd = 0, totVend = 0, totPerda = 0;
+  const produtosVistos = new Set();
+
+  if (histAgrupamento === 'produto') {
+    // ---- Agrupado por produto: soma no período/filtro ----
+    const agg = {}; // prodId -> { p, un: {vilanova:{...}, matriz:{...}}, dias:Set, ultima }
+    dates.forEach(date => {
+      unidades.forEach(un => {
+        const data = producaoBreakdownPorData(date, un.key);
+        Object.keys(data).forEach(pid => {
+          const p = produtos.find(x => x.id === Number(pid));
+          if (!p || !matchProd(p)) return;
+          const d = data[pid];
+          if (!(d.produced > 0 || d.obs)) return;
+          if (!agg[pid]) agg[pid] = { p, un: {}, dias: new Set(), ultima: date };
+          if (!agg[pid].un[un.key]) agg[pid].un[un.key] = { produced: 0, vendido: 0, perda: 0 };
+          const a = agg[pid].un[un.key];
+          a.produced += d.produced; a.vendido += d.vendido; a.perda += d.perda;
+          agg[pid].dias.add(date);
+          if (date > agg[pid].ultima) agg[pid].ultima = date;
+        });
+      });
+    });
+    const items = Object.values(agg)
       .sort((a, b) => (curvaOrder[a.p.curva] ?? 3) - (curvaOrder[b.p.curva] ?? 3) || a.p.nome.localeCompare(b.p.nome));
-    const tempoCel = (d) => {
-      if (!d || d.produced <= 0) return '<span style="color:var(--text-light)">—</span>';
-      return formatTempoVitrine(date, d.exitAt, d.naVitrineAtiva);
-    };
-    const rows = items.map(({ vn, mz, p }) => {
-      const vnq = vn || { produced: 0, vendido: 0, perda: 0 };
-      const mzq = mz || { produced: 0, vendido: 0, perda: 0 };
-      const obs = (vn && vn.obs) || (mz && mz.obs) || '';
+
+    const rows = items.map(it => {
+      produtosVistos.add(it.p.id);
+      const cells = unidades.map(un => {
+        const q = it.un[un.key] || { produced: 0, vendido: 0, perda: 0 };
+        totProd += q.produced; totVend += q.vendido; totPerda += q.perda;
+        return `<td style="text-align:center;font-family:var(--font-mono);font-weight:700;border-left:2px solid var(--border);">${q.produced}</td>
+          <td style="text-align:center;font-family:var(--font-mono);">${num(q.vendido, 'var(--green)')}</td>
+          <td style="text-align:center;font-family:var(--font-mono);">${num(q.perda, 'var(--red)')}</td>`;
+      }).join('');
       return `<tr>
-        <td>${p.nome}</td>
-        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;border-left:2px solid var(--border);">${vnq.produced}</td>
-        <td style="text-align:center;font-family:var(--font-mono);">${num(vnq.vendido, 'var(--green)')}</td>
-        <td style="text-align:center;font-family:var(--font-mono);">${num(vnq.perda, 'var(--red)')}</td>
-        <td style="text-align:center;font-size:12px;color:var(--text-mid);white-space:nowrap;">${tempoCel(vn)}</td>
-        <td style="text-align:center;font-family:var(--font-mono);font-weight:700;border-left:2px solid var(--border);">${mzq.produced}</td>
-        <td style="text-align:center;font-family:var(--font-mono);">${num(mzq.vendido, 'var(--green)')}</td>
-        <td style="text-align:center;font-family:var(--font-mono);">${num(mzq.perda, 'var(--red)')}</td>
-        <td style="text-align:center;font-size:12px;color:var(--text-mid);white-space:nowrap;">${tempoCel(mz)}</td>
-        <td style="color:var(--text-light);font-size:12px;border-left:2px solid var(--border);">${escHtml(obs)}</td>
-        <td style="text-align:center;"><button class="btn btn-ghost btn-sm" onclick="excluirHistoricoProduto(${p.id}, '${date}')" title="Excluir do histórico" style="color:var(--red);">×</button></td>
+        <td><span style="font-weight:600;">${it.p.nome}</span></td>
+        ${cells}
+        <td style="text-align:center;font-family:var(--font-mono);border-left:2px solid var(--border);">${it.dias.size}</td>
+        <td style="text-align:center;font-size:12px;color:var(--text-mid);white-space:nowrap;">${formatFabDate(it.ultima)}</td>
       </tr>`;
     }).join('');
-    if (!rows) return '';
-    return `<div class="sheet-card" style="margin-bottom:16px;">
-      <div style="font-weight:700;font-size:13px;color:var(--brown);padding:12px 16px 0;text-transform:capitalize;">${label}</div>
-      <div class="table-wrap">
-        <table class="sheet-table">
-          <thead>
-            <tr>
-              <th rowspan="2" style="vertical-align:bottom;">Produto</th>
-              <th colspan="4" style="text-align:center;border-left:2px solid var(--border);background:var(--blue-soft);color:var(--blue-ink);">Vila Nova</th>
-              <th colspan="4" style="text-align:center;border-left:2px solid var(--border);background:var(--amber-soft);color:var(--amber-ink);">Matriz</th>
-              <th rowspan="2" style="vertical-align:bottom;border-left:2px solid var(--border);">Obs</th>
-              <th rowspan="2"></th>
-            </tr>
-            <tr>
-              <th style="text-align:center;border-left:2px solid var(--border);">Produção</th>
-              <th style="text-align:center;">Vendas</th>
-              <th style="text-align:center;">Perdas</th>
-              <th style="text-align:center;">Tempo</th>
-              <th style="text-align:center;border-left:2px solid var(--border);">Produção</th>
-              <th style="text-align:center;">Vendas</th>
-              <th style="text-align:center;">Perdas</th>
-              <th style="text-align:center;">Tempo</th>
-            </tr>
-          </thead>
-          <tbody>${rows}</tbody>
-        </table>
-      </div>
-    </div>`;
-  }).filter(Boolean).join('');
+
+    const heads = unidades.map(un =>
+      `<th colspan="3" style="text-align:center;border-left:2px solid var(--border);background:${un.soft};color:${un.ink};">${un.label}</th>`
+    ).join('');
+    const subHeads = unidades.map(() =>
+      `<th style="text-align:center;border-left:2px solid var(--border);">Produção</th>
+       <th style="text-align:center;">Vendas</th>
+       <th style="text-align:center;">Perdas</th>`
+    ).join('');
+
+    el.innerHTML = !rows
+      ? '<div class="empty-state" style="padding:20px;"><p>Nenhum produto encontrado para os filtros.</p></div>'
+      : `<div class="sheet-card">
+          <div class="table-wrap">
+            <table class="sheet-table">
+              <thead>
+                <tr>
+                  <th rowspan="2" style="vertical-align:bottom;">Produto</th>
+                  ${heads}
+                  <th rowspan="2" style="text-align:center;vertical-align:bottom;border-left:2px solid var(--border);">Dias</th>
+                  <th rowspan="2" style="text-align:center;vertical-align:bottom;">Última</th>
+                </tr>
+                <tr>${subHeads}</tr>
+              </thead>
+              <tbody>${rows}</tbody>
+            </table>
+          </div>
+        </div>`;
+  } else {
+    // ---- Agrupado por dia ----
+    const cards = dates.map(date => {
+      const dataPorUn = {};
+      unidades.forEach(un => { dataPorUn[un.key] = producaoBreakdownPorData(date, un.key); });
+      const d = new Date(date + 'T12:00:00');
+      const label = d.toLocaleDateString('pt-BR', { weekday: 'long', day: '2-digit', month: '2-digit', year: 'numeric' });
+      const pids = new Set();
+      unidades.forEach(un => Object.keys(dataPorUn[un.key]).forEach(pid => pids.add(pid)));
+      const items = Array.from(pids)
+        .map(pid => ({ pid: Number(pid), p: produtos.find(p => p.id === Number(pid)) }))
+        .filter(x => x.p && matchProd(x.p) && unidades.some(un => {
+          const q = dataPorUn[un.key][x.pid];
+          return q && (q.produced > 0 || q.obs);
+        }))
+        .sort((a, b) => (curvaOrder[a.p.curva] ?? 3) - (curvaOrder[b.p.curva] ?? 3) || a.p.nome.localeCompare(b.p.nome));
+
+      const tempoCel = (q) => {
+        if (!q || q.produced <= 0) return '<span style="color:var(--text-light)">—</span>';
+        return formatTempoVitrine(date, q.exitAt, q.naVitrineAtiva);
+      };
+      const rows = items.map(({ pid, p }) => {
+        produtosVistos.add(p.id);
+        let obs = '';
+        const cells = unidades.map(un => {
+          const q = dataPorUn[un.key][pid] || { produced: 0, vendido: 0, perda: 0 };
+          if (!obs && q.obs) obs = q.obs;
+          totProd += q.produced; totVend += q.vendido; totPerda += q.perda;
+          return `<td style="text-align:center;font-family:var(--font-mono);font-weight:700;border-left:2px solid var(--border);">${q.produced}</td>
+            <td style="text-align:center;font-family:var(--font-mono);">${num(q.vendido, 'var(--green)')}</td>
+            <td style="text-align:center;font-family:var(--font-mono);">${num(q.perda, 'var(--red)')}</td>
+            <td style="text-align:center;font-size:12px;color:var(--text-mid);white-space:nowrap;">${tempoCel(q)}</td>`;
+        }).join('');
+        return `<tr>
+          <td>${p.nome}</td>
+          ${cells}
+          <td style="color:var(--text-light);font-size:12px;border-left:2px solid var(--border);">${escHtml(obs)}</td>
+          <td style="text-align:center;"><button class="btn btn-ghost btn-sm" onclick="excluirHistoricoProduto(${p.id}, '${date}')" title="Excluir do histórico" style="color:var(--red);">×</button></td>
+        </tr>`;
+      }).join('');
+      if (!rows) return '';
+
+      const heads = unidades.map(un =>
+        `<th colspan="4" style="text-align:center;border-left:2px solid var(--border);background:${un.soft};color:${un.ink};">${un.label}</th>`
+      ).join('');
+      const subHeads = unidades.map(() =>
+        `<th style="text-align:center;border-left:2px solid var(--border);">Produção</th>
+         <th style="text-align:center;">Vendas</th>
+         <th style="text-align:center;">Perdas</th>
+         <th style="text-align:center;">Tempo</th>`
+      ).join('');
+
+      return `<div class="sheet-card" style="margin-bottom:16px;">
+        <div style="font-weight:700;font-size:13px;color:var(--brown);padding:12px 16px 0;text-transform:capitalize;">${label}</div>
+        <div class="table-wrap">
+          <table class="sheet-table">
+            <thead>
+              <tr>
+                <th rowspan="2" style="vertical-align:bottom;">Produto</th>
+                ${heads}
+                <th rowspan="2" style="vertical-align:bottom;border-left:2px solid var(--border);">Obs</th>
+                <th rowspan="2"></th>
+              </tr>
+              <tr>${subHeads}</tr>
+            </thead>
+            <tbody>${rows}</tbody>
+          </table>
+        </div>
+      </div>`;
+    }).filter(Boolean).join('');
+
+    el.innerHTML = cards || '<div class="empty-state" style="padding:20px;"><p>Nenhum registro encontrado para os filtros.</p></div>';
+  }
+
+  // Resumo dos resultados.
+  if (resumoEl) {
+    const partes = [
+      `<strong>${produtosVistos.size}</strong> produto${produtosVistos.size === 1 ? '' : 's'}`,
+      `<strong>${dates.length}</strong> dia${dates.length === 1 ? '' : 's'}`,
+      `Produção <strong>${totProd}</strong>`,
+      `Vendas <strong style="color:var(--green)">${totVend}</strong>`,
+      `Perdas <strong style="color:var(--red)">${totPerda}</strong>`,
+    ];
+    resumoEl.innerHTML = (produtosVistos.size || totProd)
+      ? `<div style="font-size:13px;color:var(--text-mid);display:flex;gap:16px;flex-wrap:wrap;">${partes.map(x => `<span>${x}</span>`).join('')}</div>`
+      : '';
+  }
 }
 
 // ============================================================
