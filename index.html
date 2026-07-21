@@ -1750,8 +1750,8 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
   <div class="unit-switcher" title="Unidade usada na Vitrine e no Pedido de Produção" style="margin-bottom:16px;width:fit-content;">
     <span class="unit-switcher-label">Unidade</span>
-    <button class="unit-btn active" onclick="setUnit('matriz')">Matriz</button>
-    <button class="unit-btn" onclick="setUnit('vilanova')">Vila Nova</button>
+    <button class="unit-btn active" id="unit-btn-matriz" onclick="setUnit('matriz')">Matriz</button>
+    <button class="unit-btn" id="unit-btn-vilanova" onclick="setUnit('vilanova')">Vila Nova</button>
   </div>
 
   <div class="vitrine-filter-tabs" id="vitrine-filter-tabs"></div>
@@ -3582,9 +3582,31 @@ function saveAll() {
   setStorage('ddv_vitrine_tipos', vitrineTipos);
   setStorage('ddv_nextid', nextId);
   refreshFornecedoresDatalist();
+  // Marca (de forma síncrona) que há alterações locais ainda NÃO confirmadas na
+  // nuvem. Essa marca sobrevive a um reload: se a página for recarregada antes
+  // do sync assíncrono terminar (o setTimeout abaixo), o loadFromSupabase sabe
+  // que o localStorage é mais novo que a nuvem e NÃO deve descartá-lo — senão a
+  // vitrine "some" e, como a produção continua registrada, tudo vira venda.
+  setStorage('ddv_sync_pending', true);
   clearTimeout(_sbTimer);
   _sbTimer = setTimeout(syncToSupabase, 900);
 }
+
+// Dispara o sync pendente imediatamente (sem esperar o debounce). Usado quando a
+// página vai ser escondida/fechada, para reduzir a chance de perder a escrita.
+function flushSync() {
+  if (_sbTimer) {
+    clearTimeout(_sbTimer);
+    _sbTimer = null;
+    syncToSupabase();
+  }
+}
+// A troca de aba, o bloqueio do celular e o fechamento disparam 'visibilitychange'
+// (hidden) e 'pagehide' — o momento mais confiável para persistir antes de sair.
+window.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushSync();
+});
+window.addEventListener('pagehide', flushSync);
 
 // Reúne todos os fornecedores já usados (produtos de revenda + insumos) e
 // preenche o <datalist> compartilhado, para o usuário selecionar em vez de digitar.
@@ -3681,6 +3703,37 @@ async function salvarReceitaItens(receita, syncErrors) {
     qtd: item.qtd
   }));
   await runSupabase('salvar itens da ficha', db.from('receita_itens').insert(itensSemUnidadeUso), syncErrors);
+}
+
+// Insere os slots da vitrine tolerando bancos com esquema antigo. Se a tabela
+// vitrine_slots do usuário ainda não tem alguma coluna nova (ex.: prod_day,
+// fab_date), o PostgREST recusa o INSERT inteiro. Como o DELETE que replica a
+// vitrine já rodou antes, um insert falho deixaria a vitrine VAZIA na nuvem — e,
+// como a produção continua registrada, o Histórico passa a contar tudo como
+// venda. Aqui detectamos a coluna que falta, removemos das linhas e tentamos de
+// novo, preservando o máximo de informação possível.
+async function insertVitrineSlots(rows, syncErrors) {
+  const essenciais = ['unit', 'slot', 'prod_id'];
+  let payload = rows;
+  for (let tentativa = 0; tentativa < 8; tentativa++) {
+    const res = await db.from('vitrine_slots').insert(payload);
+    if (!res?.error) return true;
+    const msg = [res.error.message, res.error.details, res.error.hint]
+      .filter(Boolean).join(' ');
+    // PostgREST: "Could not find the 'X' column ..." / Postgres: column "X" ...
+    const m = msg.match(/'([a-z_]+)'\s+column/i) || msg.match(/column\s+"?([a-z_]+)"?/i);
+    const col = m && m[1];
+    if (col && !essenciais.includes(col) && payload.some(r => col in r)) {
+      payload = payload.map(({ [col]: _drop, ...rest }) => rest);
+      console.warn(`vitrine_slots sem a coluna "${col}"; reenviando sem ela.`);
+      continue;
+    }
+    // Não é coluna faltando (ou é essencial): reporta e para.
+    syncErrors.push({ label: 'salvar vitrine', error: res.error });
+    console.error('Supabase: salvar vitrine', res.error);
+    return false;
+  }
+  return false;
 }
 
 async function syncToSupabase() {
@@ -3842,7 +3895,7 @@ async function syncToSupabase() {
         });
       });
     });
-    if (allSlots.length) await runSupabase('salvar vitrine', db.from('vitrine_slots').insert(allSlots), syncErrors);
+    if (allSlots.length) await insertVitrineSlots(allSlots, syncErrors);
     // Cronograma — delete e re-insere por unidade
     await db.from('cronograma').delete().eq('unit', currentUnit);
     const allTasks = [];
@@ -3899,6 +3952,8 @@ async function syncToSupabase() {
         _lastSyncErrorToast = now;
       }
     } else {
+      // Tudo confirmado na nuvem: não há mais alterações locais pendentes.
+      setStorage('ddv_sync_pending', false);
       showToast('Salvo na nuvem ✓', 'success');
     }
   } catch (err) {
@@ -3920,6 +3975,16 @@ async function loadFromSupabase() {
       ...r,
       itens: (r.itens || []).map(item => ({ ...item }))
     }));
+    // Se o último salvamento local ainda não confirmou na nuvem (ex.: a página
+    // foi recarregada dentro dos 900ms do debounce), o localStorage é a versão
+    // mais recente da vitrine. Guardamos essa cópia para não perdê-la ao carregar
+    // uma nuvem desatualizada — o que fazia a vitrine sumir e tudo virar "venda".
+    const syncPendente = getStorage('ddv_sync_pending', false);
+    const vitrinesLocalPendentes = syncPendente
+      ? JSON.parse(JSON.stringify(vitrines || {}))
+      : null;
+    const temItensLocais = vitrinesLocalPendentes && Object.values(vitrinesLocalPendentes)
+      .some(buckets => Object.values(buckets || {}).some(slots => (slots || []).length));
     const [
       { data: prodData },
       { data: ingData },
@@ -4046,26 +4111,34 @@ async function loadFromSupabase() {
     if (dedupeReceitaItens()) {
       console.warn('Itens de ficha duplicados removidos (custo estava sendo somado em dobro).');
     }
-    vitrines = {};
-    // A vitrine real é única e permanente: junta qualquer balde antigo (dias da
-    // semana) no balde único VITRINE_KEY. Cada item preserva o próprio dia de
-    // produção (prod_day, com legado caindo no antigo s.dia) e a data de fab.
-    (slotData || []).forEach(s => {
-      if (!vitrines[s.unit]) vitrines[s.unit] = {};
-      if (!vitrines[s.unit][VITRINE_KEY]) vitrines[s.unit][VITRINE_KEY] = [];
-      const prodDay = s.prod_day || (s.dia && s.dia !== VITRINE_KEY ? s.dia : todayWeekdayKey());
-      vitrines[s.unit][VITRINE_KEY].push({
-        prodId: s.prod_id, qty: s.qty, producedQty: s.produced_qty,
-        minQty: (s.min_qty === undefined || s.min_qty === null) ? null : Number(s.min_qty),
-        unidadeMedida: s.unidade_medida || 'un',
-        entryAt: s.entry_at, status: s.status,
-        // A coluna slot é texto no banco; volta como string ("5") e a vitrine
-        // compara com === contra número (5). Sem converter, o item some da
-        // grade (mas continua no histórico/pedido, que usam prodId).
-        slot: (s.slot === null || s.slot === undefined) ? s.slot : Number(s.slot),
-        prodDay, fabDate: s.fab_date || (s.entry_at ? String(s.entry_at).slice(0, 10) : null)
+    if (temItensLocais) {
+      // Há itens locais ainda não sincronizados: o localStorage é mais novo que a
+      // nuvem, então mantemos a vitrine local. O saveAll() no fim deste load
+      // reagenda o envio, empurrando esses itens para a nuvem.
+      vitrines = vitrinesLocalPendentes;
+      console.warn('Vitrine local não sincronizada preservada; empurrando para a nuvem.');
+    } else {
+      vitrines = {};
+      // A vitrine real é única e permanente: junta qualquer balde antigo (dias da
+      // semana) no balde único VITRINE_KEY. Cada item preserva o próprio dia de
+      // produção (prod_day, com legado caindo no antigo s.dia) e a data de fab.
+      (slotData || []).forEach(s => {
+        if (!vitrines[s.unit]) vitrines[s.unit] = {};
+        if (!vitrines[s.unit][VITRINE_KEY]) vitrines[s.unit][VITRINE_KEY] = [];
+        const prodDay = s.prod_day || (s.dia && s.dia !== VITRINE_KEY ? s.dia : todayWeekdayKey());
+        vitrines[s.unit][VITRINE_KEY].push({
+          prodId: s.prod_id, qty: s.qty, producedQty: s.produced_qty,
+          minQty: (s.min_qty === undefined || s.min_qty === null) ? null : Number(s.min_qty),
+          unidadeMedida: s.unidade_medida || 'un',
+          entryAt: s.entry_at, status: s.status,
+          // A coluna slot é texto no banco; volta como string ("5") e a vitrine
+          // compara com === contra número (5). Sem converter, o item some da
+          // grade (mas continua no histórico/pedido, que usam prodId).
+          slot: (s.slot === null || s.slot === undefined) ? s.slot : Number(s.slot),
+          prodDay, fabDate: s.fab_date || (s.entry_at ? String(s.entry_at).slice(0, 10) : null)
+        });
       });
-    });
+    }
     cronograma = {};
     (cronoData || []).forEach(c => {
       if (!cronograma[c.unit]) cronograma[c.unit] = {};
@@ -4173,11 +4246,23 @@ function showPage(page) {
 
 function setUnit(unit) {
   currentUnit = unit;
-  document.querySelectorAll('.unit-btn').forEach(b => b.classList.remove('active'));
-  event.currentTarget.classList.add('active');
+  // Lembra a unidade escolhida: sem isso, ao recarregar a página o app voltava
+  // sempre para 'matriz' e a vitrine da outra unidade (Vila Nova) aparecia
+  // vazia, como se os itens tivessem sumido / vendido tudo.
+  setStorage('ddv_current_unit', unit);
+  applyUnitButtons(unit);
   renderVitrine();
   renderCronograma();
   renderPedido();
+}
+
+// Reflete a unidade ativa nos botões Matriz / Vila Nova (usado no clique e ao
+// restaurar a unidade salva no carregamento).
+function applyUnitButtons(unit) {
+  const mz = document.getElementById('unit-btn-matriz');
+  const vn = document.getElementById('unit-btn-vilanova');
+  if (mz) mz.classList.toggle('active', unit === 'matriz');
+  if (vn) vn.classList.toggle('active', unit === 'vilanova');
 }
 
 // ============================================================
@@ -9638,6 +9723,13 @@ function initAC(inputEl, getSuggestions, { nextFocusId, onSelect } = {}) {
 // INIT
 // ============================================================
 loadFromSupabase().then(() => {
+  // Restaura a última unidade usada (Matriz / Vila Nova). Sem isso, o app voltava
+  // sempre para 'matriz' no reload e a vitrine da outra unidade parecia vazia.
+  const savedUnit = getStorage('ddv_current_unit', 'matriz');
+  if (savedUnit === 'matriz' || savedUnit === 'vilanova') {
+    currentUnit = savedUnit;
+    applyUnitButtons(savedUnit);
+  }
   renderProdutos();
   renderVitrine();
   renderCMV();
