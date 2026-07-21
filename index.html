@@ -5278,7 +5278,10 @@ function saveSlotLoss() {
   const vitrine = getVitrine();
   const item = vitrine[idx];
   if (!item) return;
-  const qty = parseInt(document.getElementById('slot-loss-qty').value) || 1;
+  // Não deixa registrar perda maior do que a quantidade do slot: senão a perda
+  // "sobra" e o slot inteiro some, dando a impressão de que todos foram perdidos.
+  const disponivel = Math.max(1, Number(item.qty) || 1);
+  const qty = Math.min(Math.max(1, parseInt(document.getElementById('slot-loss-qty').value) || 1), disponivel);
   const tipo = document.getElementById('slot-loss-type').value;
   const obs = document.getElementById('slot-loss-obs').value.trim();
   snapshotVitrine('perda');
@@ -5293,9 +5296,16 @@ function saveSlotLoss() {
     fabDate: itemFabDate(item),
     source: `slot-${currentUnit}-${VITRINE_KEY}-${item.slot}-${Date.now()}`
   });
-  ensureLogged(item);
-  stampHistEntry(item.prodId, itemFabDate(item), { entryAt: item.entryAt, exitAt: nowLocalInputValue() });
-  vitrine.splice(idx, 1);
+  // Só perde a quantidade informada: subtrai do slot e só remove o slot quando
+  // chega a zero (mesma lógica do botão "−").
+  const novaQty = Math.max(0, (Number(item.qty) || 0) - qty);
+  if (novaQty === 0) {
+    ensureLogged(item);
+    stampHistEntry(item.prodId, itemFabDate(item), { entryAt: item.entryAt, exitAt: nowLocalInputValue() });
+    vitrine.splice(idx, 1);
+  } else {
+    item.qty = novaQty;
+  }
   saveAll();
   closeModal('modal-slot-loss');
   renderVitrine();
@@ -8996,12 +9006,15 @@ function producaoBreakdownPorData(date, unit = currentUnit) {
 
   // Itens ainda na vitrine (slots vivos com essa data de fabricação) e a
   // entrada mais antiga na vitrine para o cálculo do tempo.
+  // "Ainda na vitrine" = quantidade ATUAL do slot (qty), não a produzida: assim,
+  // depois de uma perda/venda parcial, o que sobrou no slot é contado certo e o
+  // "vendido" (produzido − perda − na vitrine) fecha a conta.
   const naVitrineByProd = {};
   const liveEntryByProd = {};
   Object.values(vitrines[unit] || {}).forEach(arr => (arr || []).forEach(slot => {
     if (itemFabDate(slot) !== date) return;
     if (!STATUS_TERMINAL.includes(slot.status)) {
-      naVitrineByProd[slot.prodId] = (naVitrineByProd[slot.prodId] || 0) + (Number(slot.producedQty || slot.qty) || 0);
+      naVitrineByProd[slot.prodId] = (naVitrineByProd[slot.prodId] || 0) + (Number(slot.qty) || 0);
     }
     if (slot.entryAt && (!liveEntryByProd[slot.prodId] || slot.entryAt < liveEntryByProd[slot.prodId])) {
       liveEntryByProd[slot.prodId] = slot.entryAt;
