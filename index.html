@@ -3346,11 +3346,28 @@ function productFitsSection(prod, sectionId) {
   return vitrine === 'todas' || vitrine === sectionId;
 }
 
+// A nuvem (Supabase) é a única fonte da verdade. getStorage ainda LÊ o
+// localStorage uma vez no carregamento apenas para MIGRAR dados de quem já usava
+// o app (ex.: histórico de produção) — depois que sobem para a nuvem, as chaves
+// antigas são apagadas por purgeLegacyLocalStorage(). setStorage é no-op: nada
+// novo é gravado no navegador.
 function getStorage(key, def) {
   try { return JSON.parse(localStorage.getItem(key)) || def; } catch { return def; }
 }
-function setStorage(key, val) {
-  localStorage.setItem(key, JSON.stringify(val));
+function setStorage() { /* cloud-only: não persiste no navegador */ }
+
+// Chaves antigas que o app gravava no localStorage. Depois da primeira
+// sincronização bem-sucedida (migração para a nuvem), são removidas para não
+// sobrar nada salvo no navegador.
+const LEGACY_STORAGE_KEYS = [
+  'ddv_produtos', 'ddv_ingredientes', 'ddv_receitas', 'ddv_receitas_backup',
+  'ddv_vitrines', 'ddv_cronograma', 'ddv_perdas', 'ddv_apoio_producao',
+  'ddv_plano_semanal', 'ddv_vitrine_padrao', 'ddv_historico_producao',
+  'ddv_pedido_historico', 'ddv_pedido_custom', 'ddv_categorias',
+  'ddv_vitrine_tipos', 'ddv_nextid', 'ddv_sync_pending'
+];
+function purgeLegacyLocalStorage() {
+  try { LEGACY_STORAGE_KEYS.forEach(k => localStorage.removeItem(k)); } catch {}
 }
 
 const defaultCategorias = ['Bolo','Pão','Torta','Salgado','Doce','Bebida','Outro'];
@@ -3582,7 +3599,7 @@ function saveAll() {
   setStorage('ddv_vitrine_tipos', vitrineTipos);
   setStorage('ddv_nextid', nextId);
   refreshFornecedoresDatalist();
-  markSyncPending();
+  _dirty = true;
   clearTimeout(_sbTimer);
   _sbTimer = setTimeout(syncToSupabase, 900);
 }
@@ -3618,35 +3635,25 @@ const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let _sbTimer;
 let _lastSyncErrorToast = 0;
 // Promessa da sincronização em andamento (evita rodar duas ao mesmo tempo e
-// permite dar "await" no flush antes de recarregar/ler da nuvem).
+// permite dar "await" no flush antes de sair da página).
 let _sbSyncing = null;
+// Há mudanças em memória ainda não confirmadas na nuvem? A verdade é a nuvem;
+// este flag existe só para decidir se vale a pena um flush ao sair da aba.
+let _dirty = false;
+// Só permite gravar na nuvem depois de um carregamento inicial bem-sucedido.
+// Sem localStorage, se o load falhar o estado em memória fica vazio; sincronizar
+// esse vazio APAGARIA a base. Enquanto o load não confirma, nada é enviado.
+let _loadOk = false;
 
-// "Há mudanças locais ainda não confirmadas na nuvem?" — persistido no
-// localStorage para sobreviver ao reload. Sem isso, quando o usuário recarrega
-// antes de o debounce (900ms) enviar a vitrine, o loadFromSupabase reconstrói a
-// vitrine a partir da nuvem (sem os itens novos) e eles "somem" da aba Vitrine —
-// mesmo continuando no Pedido/Histórico, que leem do historicoProducao (local).
-function isSyncPending() {
-  return localStorage.getItem('ddv_sync_pending') === '1';
-}
-function markSyncPending() {
-  localStorage.setItem('ddv_sync_pending', '1');
-}
-function clearSyncPending() {
-  localStorage.removeItem('ddv_sync_pending');
-}
-
-// Envia agora as mudanças pendentes (cancela o debounce). Usado ao sair da
-// página e antes de ler da nuvem, para não perder itens ainda não sincronizados.
+// Envia agora as mudanças pendentes (cancela o debounce). Melhor esforço ao
+// sair/fechar a aba, para reduzir a janela em que uma edição recente ainda não
+// subiu. A verdade continua sendo a nuvem — nada é gravado no navegador.
 function flushSupabase() {
-  if (!isSyncPending()) return _sbSyncing || Promise.resolve();
+  if (!_dirty) return _sbSyncing || Promise.resolve();
   clearTimeout(_sbTimer);
   return syncToSupabase();
 }
 
-// Ao esconder/fechar a aba, tenta enviar o que estiver pendente imediatamente
-// (melhor esforço). Se o envio não terminar a tempo, o próximo load reenvia a
-// partir do localStorage, então nada é perdido de qualquer forma.
 window.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'hidden') flushSupabase();
 });
@@ -3726,6 +3733,8 @@ function syncToSupabase() {
 }
 
 async function _syncToSupabaseOnce() {
+  // Trava de segurança: nunca sobrescreve a nuvem antes de tê-la carregado.
+  if (!_loadOk) return;
   const syncErrors = [];
   try {
     dedupeIngredientesByName();
@@ -3932,6 +3941,22 @@ async function _syncToSupabaseOnce() {
       });
     });
     if (allPadrao.length) await runSupabase('salvar vitrine padrão', db.from('vitrine_padrao').insert(allPadrao), syncErrors);
+    // Histórico de produção — delete e re-insere todas as unidades (o Pedido
+    // edita as duas unidades na mesma tela, então guarda tudo).
+    await runSupabase('limpar histórico de produção', db.from('historico_producao').delete().neq('unit', '__ddv_keep__'), syncErrors);
+    const allHist = [];
+    Object.entries(historicoProducao || {}).forEach(([unit, byDate]) => {
+      Object.entries(byDate || {}).forEach(([data, arr]) => {
+        (arr || []).forEach(h => {
+          if (!h.prodId || !data) return;
+          allHist.push({
+            unit, data, prod_id: h.prodId, qty: Number(h.qty) || 0,
+            obs: h.obs || '', entry_at: h.entryAt || null, exit_at: h.exitAt || null
+          });
+        });
+      });
+    });
+    if (allHist.length) await runSupabase('salvar histórico de produção', db.from('historico_producao').insert(allHist), syncErrors);
     if (syncErrors.length) {
       const first = syncErrors[0];
       const now = Date.now();
@@ -3941,16 +3966,17 @@ async function _syncToSupabaseOnce() {
         _lastSyncErrorToast = now;
       }
     } else {
-      // Só limpa a marca de "pendente" quando TUDO subiu sem erro — assim, se
-      // algo falhou, o próximo load ainda tenta reenviar antes de ler da nuvem.
-      clearSyncPending();
+      // Tudo subiu sem erro: não há mais nada pendente e os dados agora vivem na
+      // nuvem, então apaga qualquer resquício antigo do localStorage.
+      _dirty = false;
+      purgeLegacyLocalStorage();
       showToast('Salvo na nuvem ✓', 'success');
     }
   } catch (err) {
     console.error('Supabase sync error:', err);
     const now = Date.now();
     if (now - _lastSyncErrorToast > 5000) {
-      showToast('Erro ao sincronizar com Supabase. Dados ficaram salvos neste navegador.', 'error');
+      showToast('Erro ao salvar na nuvem. Verifique a conexão e tente de novo.', 'error');
       _lastSyncErrorToast = now;
     }
   }
@@ -3960,12 +3986,10 @@ async function loadFromSupabase() {
   document.body.style.opacity = '0.55';
   document.body.style.pointerEvents = 'none';
   try {
-    // Se a sessão anterior recarregou antes de o debounce enviar as mudanças,
-    // sobe primeiro o que está no localStorage. Assim a vitrine reconstruída da
-    // nuvem já inclui os itens recém-adicionados, em vez de descartá-los.
-    if (isSyncPending()) {
-      try { await flushSupabase(); } catch (e) { console.error('flush pendente falhou', e); }
-    }
+    // Migração: guarda o histórico de produção que porventura ainda esteja só no
+    // localStorage (usuários antigos). Depois de ler a nuvem, as datas que só
+    // existem localmente são preservadas e sobem no saveAll() final.
+    const historicoLocalAntesLoad = JSON.parse(JSON.stringify(historicoProducao || {}));
     const receitasBackup = getStorage('ddv_receitas_backup', []);
     const receitasLocalAntesLoad = (receitas || []).concat(receitasBackup || []).map(r => ({
       ...r,
@@ -3986,6 +4010,7 @@ async function loadFromSupabase() {
       { data: categoriasData },
       { data: vitrineTiposData },
       { data: ingComprasData },
+      { data: histProdData },
     ] = await Promise.all([
       db.from('produtos').select('*').order('nome'),
       db.from('ingredientes').select('*').order('nome'),
@@ -4001,6 +4026,7 @@ async function loadFromSupabase() {
       db.from('categorias').select('*').order('nome'),
       db.from('vitrine_tipos').select('*').order('nome'),
       db.from('ingrediente_compras').select('*').order('created_at'),
+      db.from('historico_producao').select('*'),
     ]);
 
     // Supabase é a fonte da verdade: o estado local sempre reflete a nuvem,
@@ -4151,6 +4177,30 @@ async function loadFromSupabase() {
       if (!vitrinePadrao[r.unit][r.dia]) vitrinePadrao[r.unit][r.dia] = [];
       vitrinePadrao[r.unit][r.dia].push({ slot: r.slot, prodId: r.prod_id, qty: Number(r.qty) || 1 });
     });
+    // Histórico de produção (fonte do Pedido e da aba Histórico). Agora vem da
+    // nuvem, como o resto — antes ficava só no navegador, o que fazia a vitrine
+    // "sumir" no reload enquanto Pedido/Histórico permaneciam.
+    historicoProducao = {};
+    (histProdData || []).forEach(h => {
+      const data = h.data ? String(h.data).slice(0, 10) : null;
+      if (!h.unit || !data || !h.prod_id) return;
+      if (!historicoProducao[h.unit]) historicoProducao[h.unit] = {};
+      if (!historicoProducao[h.unit][data]) historicoProducao[h.unit][data] = [];
+      const reg = { prodId: h.prod_id, qty: Number(h.qty) || 0, obs: h.obs || '' };
+      if (h.entry_at) reg.entryAt = h.entry_at;
+      if (h.exit_at) reg.exitAt = h.exit_at;
+      historicoProducao[h.unit][data].push(reg);
+    });
+    // Migração única: preserva datas de produção que só existiam no localStorage
+    // (usuário antigo) e ainda não estão na nuvem — elas sobem no saveAll() final.
+    Object.entries(historicoLocalAntesLoad || {}).forEach(([unit, byDate]) => {
+      Object.entries(byDate || {}).forEach(([data, arr]) => {
+        const jaTem = historicoProducao[unit] && historicoProducao[unit][data];
+        if (jaTem || !(arr || []).length) return;
+        if (!historicoProducao[unit]) historicoProducao[unit] = {};
+        historicoProducao[unit][data] = arr.map(it => ({ ...it }));
+      });
+    });
     // Sincroniza nextId
     const allIds = [
       ...produtos.map(p => p.id),
@@ -4162,10 +4212,13 @@ async function loadFromSupabase() {
     ].filter(Number.isFinite);
     if (allIds.length) nextId = Math.max(...allIds, nextId);
     categorias = [...new Set([...categorias, ...produtos.map(p => p.categoria).filter(Boolean)])];
+    // Carregou tudo sem erro: a partir daqui é seguro gravar na nuvem.
+    _loadOk = true;
     saveAll();
   } catch (err) {
     console.error('Erro ao carregar Supabase:', err);
-    showToast('Nao foi possivel carregar do Supabase', 'error');
+    _loadOk = false;
+    showToast('Nao foi possivel carregar da nuvem. Recarregue a página para tentar de novo.', 'error');
   } finally {
     document.body.style.opacity = '';
     document.body.style.pointerEvents = '';
