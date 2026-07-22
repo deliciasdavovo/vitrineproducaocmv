@@ -483,6 +483,7 @@ tr:hover td { background: var(--surface-soft); }
 .slot-list-row:hover { border-color: rgba(0,122,255,0.35); background: var(--warm); }
 .slot-list-row.empty { color: var(--text-light); background: var(--surface-soft); }
 .slot-list-row.expired { border-color: rgba(180,69,60,0.28); background: var(--red-soft); }
+.slot-list-row.expiring { border-color: rgba(255,159,10,0.30); background: var(--amber-soft); }
 .slot-list-code,
 .sheet-row-code {
   font-family: var(--font-mono);
@@ -766,6 +767,15 @@ tr:hover td { background: var(--surface-soft); }
 .slot-step.minus:hover { background: var(--red); border-color: var(--red); }
 .slot-foot { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin-top: auto; }
 .slot-time { font-size: 10px; color: var(--text-light); white-space: nowrap; }
+/* Data de fabricação no rodapé do slot, com cor de status de validade:
+   neutro = ok, amarelo = vence hoje, vermelho = fora da validade. */
+.slot-fab {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 10px; font-weight: 600; padding: 1px 6px; border-radius: 5px;
+  background: #EEF0F3; color: var(--text-light); white-space: nowrap;
+}
+.slot-fab.today { background: var(--amber-soft); color: var(--amber-ink); }
+.slot-fab.expired { background: var(--red-soft); color: var(--red-ink); }
 .stock-badge {
   display: inline-flex; align-items: center; gap: 3px;
   font-size: 9px; font-weight: 700; padding: 3px 7px; border-radius: 999px;
@@ -830,6 +840,7 @@ tr:hover td { background: var(--surface-soft); }
 .slot-prod.out { border-color: rgba(180,69,60,0.28); background: var(--red-soft); }
 .slot-prod.sold { border-color: rgba(59,122,72,0.30); background: var(--green-soft); }
 .slot-prod.loss, .slot-prod.expired { border-color: rgba(180,69,60,0.28); background: var(--red-soft); }
+.slot-prod.expiring { border-color: rgba(255,159,10,0.30); background: var(--amber-soft); }
 .slot-prod-main { display: flex; align-items: center; gap: 6px; }
 .slot-prod-name { flex: 1; min-width: 0; font-size: 12.5px; font-weight: 600; color: var(--text); line-height: 1.2; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; word-break: break-word; }
 .slot-prod-badges { display: flex; flex-wrap: wrap; gap: 4px; }
@@ -3097,17 +3108,47 @@ function formatDisplayTime(value) {
   return `${Math.floor(hours / 24)} d ${Math.round(hours % 24)} h`;
 }
 
+// Situação de validade do item, contada por DIA de calendário a partir da data
+// de fabricação + a validade (em dias) do produto:
+//   status 'ok'      → dentro do prazo
+//   status 'today'   → vence hoje (amarelo)
+//   status 'expired' → fora da validade (vermelho)
 function getExpirationInfo(item, prod) {
-  if (item?.status && item.status !== 'em_vitrine') return { expired: false, label: '' };
-  if (!item?.entryAt || !prod?.validade) return { expired: false, label: '' };
-  const start = new Date(item.entryAt);
-  if (Number.isNaN(start.getTime())) return { expired: false, label: '' };
-  const expiresAt = new Date(start.getTime() + Number(prod.validade) * 24 * 60 * 60 * 1000);
-  const expired = Date.now() > expiresAt.getTime();
+  const none = { expired: false, expiresToday: false, status: 'ok', venceLabel: '' };
+  if (item?.status && item.status !== 'em_vitrine') return none;
+  const fab = itemFabDate(item);
+  if (!fab || !prod?.validade) return none;
+  const start = new Date(String(fab).slice(0, 10) + 'T12:00:00');
+  if (Number.isNaN(start.getTime())) return none;
+  // Vencimento = dia de fabricação + validade (dias).
+  const expiresAt = new Date(start.getFullYear(), start.getMonth(), start.getDate() + Number(prod.validade));
+  const hoje = new Date();
+  const hojeDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate());
+  let status = 'ok';
+  if (hojeDia.getTime() > expiresAt.getTime()) status = 'expired';
+  else if (hojeDia.getTime() === expiresAt.getTime()) status = 'today';
   return {
-    expired,
-    label: expired ? 'Fora do prazo' : `Vence ${formatDateTimeShort(expiresAt.toISOString())}`
+    expired: status === 'expired',
+    expiresToday: status === 'today',
+    status,
+    venceLabel: expiresAt.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit' })
   };
+}
+
+// Selo da data de fabricação usado nos slots: mostra "Fab. DD/MM" (+ dias na
+// vitrine) e recebe a cor do status de validade. É a mesma peça na grade e na
+// lista, para o visual ficar consistente e limpo.
+function fabDatePill(item, prod) {
+  const fab = itemFabDate(item);
+  if (!fab) return '';
+  const exp = getExpirationInfo(item, prod);
+  const dias = diasEntreDatas(fab, null);
+  const diasTxt = (dias != null && dias > 0) ? ` · ${dias} d` : '';
+  const cls = exp.status === 'expired' ? 'expired' : (exp.status === 'today' ? 'today' : '');
+  const titulo = exp.status === 'expired' ? 'Fora da validade'
+    : exp.status === 'today' ? 'Vence hoje'
+    : (exp.venceLabel ? `Vence ${exp.venceLabel}` : 'Data de fabricação');
+  return `<span class="slot-fab ${cls}" title="${titulo}">Fab. ${formatFabDate(fab)}${diasTxt}</span>`;
 }
 
 // Rótulo da unidade de medida da vitrine (com plural)
@@ -4721,21 +4762,22 @@ function limparPadraoDoDia() {
 function slotProdRowHTML(item, idx, prod) {
   const expiration = getExpirationInfo(item, prod);
   const stock = getSlotStock(item);
-  const stockClass = !expiration.expired ? (stock.level === 'out' ? 'out' : stock.level === 'low' ? 'low' : '') : '';
+  // Cor do fundo: validade tem prioridade (vermelho fora do prazo, amarelo
+  // vence hoje); só cai para o alerta de estoque quando a validade está ok.
+  const expClass = expiration.status === 'expired' ? 'expired' : (expiration.status === 'today' ? 'expiring' : '');
+  const stockClass = expClass ? '' : (stock.level === 'out' ? 'out' : stock.level === 'low' ? 'low' : '');
   const statusClass = [
     item.status === 'vendeu' ? 'sold' : '',
     (item.status === 'perda' || item.status === 'validade') ? 'loss' : '',
-    expiration.expired ? 'expired' : '',
+    expClass,
     stockClass
   ].filter(Boolean).join(' ');
   const unitLabel = vitrineUnitLabel(item.unidadeMedida, item.qty);
-  const badge = expiration.expired
-    ? '<span class="slot-expired">Fora do prazo</span>'
-    : (stock.label ? `<span class="stock-badge ${stock.level}">${stock.label}</span>` : '');
-  // Tempo de vitrine (dias desde a fabricação). Antes só aparecia na visão de
-  // lista; agora também na grade, para todo item com data conhecida.
-  const diasVitrine = diasEntreDatas(itemFabDate(item), null);
-  const tempoLabel = diasVitrine == null ? '' : labelDiasVitrine(diasVitrine);
+  // Só mostra o alerta de estoque (Repor/Acabou) quando a validade está ok —
+  // assim cada slot carrega um sinal principal, sem poluir.
+  const badge = (expiration.status === 'ok' && stock.label && stock.level !== 'ok')
+    ? `<span class="stock-badge ${stock.level}">${stock.label}</span>` : '';
+  const fabPill = fabDatePill(item, prod);
   return `<div class="slot-prod ${statusClass}" title="Clique para editar" onclick="openSlotModal(${item.slot}, ${idx})" oncontextmenu="openSlotContextMenu(event, ${idx})">
     <div class="slot-prod-main">
       <span class="slot-prod-name" title="${prod.nome}">${prod.nome}</span>
@@ -4747,7 +4789,7 @@ function slotProdRowHTML(item, idx, prod) {
       <button class="slot-step plus" title="Aumentar" onclick="adjustSlotQty(${idx}, 1, event)">+</button>
       <span class="slot-unit">${unitLabel}</span>
     </div>
-    ${tempoLabel ? `<div class="slot-foot"><span class="slot-time">⏱ ${tempoLabel} na vitrine</span></div>` : ''}
+    ${fabPill ? `<div class="slot-foot">${fabPill}</div>` : ''}
   </div>`;
 }
 
@@ -4868,21 +4910,29 @@ function renderVitrineSlotList() {
       const itemRows = entries.map(({ it, i }, pos) => {
         const prod = produtos.find(p => p.id === it.prodId);
         const expiration = getExpirationInfo(it, prod);
-        const diasVitrine = diasEntreDatas(itemFabDate(it), null);
-        const timeLabel = diasVitrine == null ? '&#8212;' : labelDiasVitrine(diasVitrine);
+        const fab = itemFabDate(it);
+        const dias = diasEntreDatas(fab, null);
+        const fabTxt = fab
+          ? `Fab. ${formatFabDate(fab)}${(dias != null && dias > 0) ? ` · ${dias} d` : ''}`
+          : (dias == null ? '&#8212;' : labelDiasVitrine(dias));
+        const validadeTxt = expiration.status === 'expired'
+          ? ' &middot; <span style="color:var(--red-ink);font-weight:700;">fora da validade</span>'
+          : expiration.status === 'today'
+            ? ' &middot; <span style="color:var(--amber-ink);font-weight:700;">vence hoje</span>' : '';
         const statusClass = it.status === 'vendeu' ? 'sold' : (it.status === 'perda' || it.status === 'validade' ? 'loss' : '');
+        const validadeClass = expiration.status === 'expired' ? 'expired' : (expiration.status === 'today' ? 'expiring' : '');
         const stock = getSlotStock(it);
-        const stockBadge = !expiration.expired && stock.label && stock.level !== 'ok'
+        const stockBadge = expiration.status === 'ok' && stock.label && stock.level !== 'ok'
           ? `<span class="stock-badge ${stock.level}" style="margin-left:6px;">${stock.label}</span>` : '';
         const unitLabel = vitrineUnitLabel(it.unidadeMedida, it.qty);
         const codeCell = pos === 0
           ? `<div class="slot-list-code">${num}</div><div class="slot-list-meta" style="font-size:10px;margin-top:2px;">${role}</div>`
           : `<div class="slot-list-meta" style="font-size:10px;">↳</div>`;
-        return `<div class="slot-list-row ${statusClass} ${expiration.expired ? 'expired' : ''}" data-slot-number="${slotNumber}" onclick="openSlotModal(${slotNumber}, ${i})" oncontextmenu="openSlotContextMenu(event, ${i})">
+        return `<div class="slot-list-row ${statusClass} ${validadeClass}" data-slot-number="${slotNumber}" onclick="openSlotModal(${slotNumber}, ${i})" oncontextmenu="openSlotContextMenu(event, ${i})">
         <div>${codeCell}</div>
         <div>
           <div class="slot-list-name">${prod.nome}${stockBadge}</div>
-          <div class="slot-list-meta">${timeLabel}${expiration.expired ? ' &middot; Fora do prazo' : ''}${stock.min !== null ? ` &middot; mín ${stock.min}` : ''}</div>
+          <div class="slot-list-meta">${fabTxt}${validadeTxt}${stock.min !== null ? ` &middot; mín ${stock.min}` : ''}</div>
         </div>
         <div class="slot-list-qty">${it.qty} ${unitLabel}</div>
         <div></div>
