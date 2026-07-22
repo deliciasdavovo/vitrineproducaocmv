@@ -3725,6 +3725,8 @@ const SUPABASE_KEY = 'sb_publishable__QMpYRBGv9q_D1x0WKpaQg_uA9EzrSG';
 const db = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 let _sbTimer;
 let _lastSyncErrorToast = 0;
+// Avisa uma única vez (por sessão) se a tabela historico_producao não existe.
+let _histTableWarned = false;
 // Promessa da sincronização em andamento (evita rodar duas ao mesmo tempo e
 // permite dar "await" no flush antes de recarregar/ler da nuvem).
 let _sbSyncing = null;
@@ -3967,22 +3969,23 @@ async function _syncToSupabaseOnce() {
         tipo: p.tipo, data: p.data, obs: p.obs || '', source: p.source || null
       })));
     }
-    // Vitrine slots — delete e re-insere todas as unidades
-    // (o Pedido de Produção edita a vitrine das duas unidades na mesma tela)
-    for (const unit of Object.keys(vitrines || {})) {
-      await runSupabase('limpar vitrine', db.from('vitrine_slots').delete().eq('unit', unit), syncErrors);
-    }
+    // Vitrine slots — UPSERT por id estável + remove só os que saíram.
+    // ANTES: apagava TODOS os slots e depois inseria. Se a gravação fosse
+    // interrompida no meio (fechar o app, sinal fraco, trocar de aba no
+    // celular), a vitrine ficava VAZIA na nuvem — o item "sumia" e só
+    // "voltava" quando o aparelho reenviava. Era a causa do "some e aparece".
+    // Agora primeiro gravamos (upsert, não destrutivo) e só depois apagamos os
+    // que realmente saíram, então a vitrine nunca fica vazia por engano.
     const allSlots = [];
-    // A vitrine real é um balde único e permanente por unidade (VITRINE_KEY).
-    // Cada item carrega o próprio dia de produção (prod_day/fab_date), que é o
-    // que o Pedido de Produção usa para separar por dia. Salva todas as unidades
-    // (o Pedido edita a vitrine das duas na mesma tela).
+    const keepSlotIds = [];
     Object.entries(vitrines || {}).forEach(([unit, buckets]) => {
       Object.values(buckets || {}).forEach(slots => {
         (slots || []).forEach(s => {
           if (!s.slot || !s.prodId) return;
+          if (!s.id) s.id = ++nextId; // id estável do item, para upsert
+          keepSlotIds.push(s.id);
           allSlots.push({
-            unit, dia: VITRINE_KEY, slot: s.slot, prod_id: s.prodId,
+            id: s.id, unit, dia: VITRINE_KEY, slot: s.slot, prod_id: s.prodId,
             qty: s.qty || 0, produced_qty: Number(s.producedQty || s.qty) || 0,
             min_qty: (s.minQty === undefined || s.minQty === null || s.minQty === '') ? null : s.minQty,
             unidade_medida: s.unidadeMedida || 'un',
@@ -3992,7 +3995,15 @@ async function _syncToSupabaseOnce() {
         });
       });
     });
-    if (allSlots.length) await runSupabase('salvar vitrine', db.from('vitrine_slots').insert(allSlots), syncErrors);
+    if (allSlots.length) {
+      await runSupabase('salvar vitrine', db.from('vitrine_slots').upsert(allSlots), syncErrors);
+      // Remove da nuvem só os itens que não existem mais localmente.
+      await runSupabase('remover itens que saíram da vitrine',
+        db.from('vitrine_slots').delete().not('id', 'in', `(${keepSlotIds.join(',')})`), syncErrors);
+    } else {
+      // Vitrine realmente vazia (usuário removeu tudo): limpa a nuvem.
+      await runSupabase('limpar vitrine', db.from('vitrine_slots').delete().neq('id', -1), syncErrors);
+    }
     // Cronograma — delete e re-insere por unidade
     await db.from('cronograma').delete().eq('unit', currentUnit);
     const allTasks = [];
@@ -4040,27 +4051,35 @@ async function _syncToSupabaseOnce() {
       });
     });
     if (allPadrao.length) await runSupabase('salvar vitrine padrão', db.from('vitrine_padrao').insert(allPadrao), syncErrors);
-    // Histórico de produção (vendidos, tempo de vitrine) — delete e re-insere
-    // TODAS as unidades. Sem isso ele vivia só no localStorage e "sumia" ao
-    // recarregar em outro aparelho ou limpar o navegador.
-    const histDel = await db.from('historico_producao').delete().neq('prod_id', -1);
-    if (histDel?.error) {
-      syncErrors.push({ label: 'salvar histórico de produção (rode o supabase_schema.sql atualizado no Supabase)', error: histDel.error });
-      console.error('Supabase: limpar histórico de produção', histDel.error);
-    } else {
-      const allHist = [];
-      Object.entries(historicoProducao || {}).forEach(([unit, byDate]) => {
-        Object.entries(byDate || {}).forEach(([data, items]) => {
-          (items || []).forEach(it => {
-            if (!it.prodId) return;
-            allHist.push({
-              unit, data, prod_id: it.prodId, qty: Number(it.qty) || 0,
-              obs: it.obs || '', entry_at: it.entryAt || null, exit_at: it.exitAt || null
-            });
+    // Histórico de produção (vendidos, tempo de vitrine). Só grava se houver o
+    // que gravar — assim uma leitura momentaneamente vazia nunca apaga o
+    // histórico da nuvem. Se a tabela ainda não existe no Supabase, isso vira
+    // um AVISO não-fatal: não bloqueia o "salvo na nuvem", senão o app ficava
+    // achando que tem sempre coisa pendente e reenviava tudo a cada load.
+    const allHist = [];
+    Object.entries(historicoProducao || {}).forEach(([unit, byDate]) => {
+      Object.entries(byDate || {}).forEach(([data, items]) => {
+        (items || []).forEach(it => {
+          if (!it.prodId) return;
+          allHist.push({
+            unit, data, prod_id: it.prodId, qty: Number(it.qty) || 0,
+            obs: it.obs || '', entry_at: it.entryAt || null, exit_at: it.exitAt || null
           });
         });
       });
-      if (allHist.length) await runSupabase('salvar histórico de produção', db.from('historico_producao').insert(allHist), syncErrors);
+    });
+    if (allHist.length) {
+      const histDel = await db.from('historico_producao').delete().neq('prod_id', -1);
+      if (histDel?.error) {
+        // Tabela ausente (rode o supabase_schema.sql): avisa uma vez, mas não
+        // trava o sync — o histórico segue salvo localmente enquanto isso.
+        if (!_histTableWarned) {
+          console.warn('Tabela historico_producao indisponível; rode o supabase_schema.sql no Supabase.', histDel.error);
+          _histTableWarned = true;
+        }
+      } else {
+        await runSupabase('salvar histórico de produção', db.from('historico_producao').insert(allHist), syncErrors);
+      }
     }
     if (syncErrors.length) {
       const first = syncErrors[0];
@@ -4262,6 +4281,7 @@ async function loadFromSupabase() {
       if (!vitrines[s.unit][VITRINE_KEY]) vitrines[s.unit][VITRINE_KEY] = [];
       const prodDay = s.prod_day || (s.dia && s.dia !== VITRINE_KEY ? s.dia : todayWeekdayKey());
       vitrines[s.unit][VITRINE_KEY].push({
+        id: s.id, // id estável do item, usado no upsert (não apaga tudo pra regravar)
         prodId: s.prod_id, qty: s.qty, producedQty: s.produced_qty,
         minQty: (s.min_qty === undefined || s.min_qty === null) ? null : Number(s.min_qty),
         unidadeMedida: s.unidade_medida || 'un',
@@ -4343,6 +4363,7 @@ async function loadFromSupabase() {
       ...ingredientes.map(i => i.id),
       ...receitas.map(r => r.id),
       ...perdas.map(p => p.id),
+      ...(slotData || []).map(s => s.id), // ids dos itens da vitrine, p/ não colidir
       ...produtos.flatMap(p => (p.historicoCompras || []).map(h => h.id)),
       ...ingredientes.flatMap(i => (i.historico || []).map(h => h.id))
     ].filter(Number.isFinite);
