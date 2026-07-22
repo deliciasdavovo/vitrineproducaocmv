@@ -3696,6 +3696,34 @@ async function runSupabase(label, query, errors = []) {
   return result?.data;
 }
 
+// Detecta o erro "tabela nao existe / nao esta no cache do schema" do Supabase,
+// para degradar sem alarde quando o esquema ainda nao foi atualizado (o usuario
+// ainda nao rodou o supabase_schema.sql com a tabela nova).
+function isMissingTableError(error, table) {
+  if (!error) return false;
+  const blob = `${error.message || ''} ${error.details || ''} ${error.hint || ''} ${error.code || ''}`.toLowerCase();
+  const name = String(table).toLowerCase();
+  return blob.includes(name) &&
+    (blob.includes('does not exist') || blob.includes('schema cache') ||
+     blob.includes('could not find') || blob.includes('pgrst205') || blob.includes('42p01'));
+}
+
+// A gravacao na nuvem e adiada 900ms (debounce). Se a pagina for escondida ou
+// fechada antes disso, os itens recem-adicionados a vitrine se perdiam ao
+// recarregar (a nuvem e a fonte da verdade e sobrescrevia o que so estava no
+// navegador). Aqui forcamos a sincronizacao pendente na saida.
+function flushSupabaseSync() {
+  if (_sbTimer) {
+    clearTimeout(_sbTimer);
+    _sbTimer = null;
+    syncToSupabase();
+  }
+}
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'hidden') flushSupabaseSync();
+});
+window.addEventListener('pagehide', flushSupabaseSync);
+
 // Dispara uma exclusão imediatamente. IMPORTANTE: o query builder do
 // supabase-js v2 é "lazy" — sem await/.then() a requisição NUNCA é enviada.
 // Antes, vários `db.from(...).delete()` soltos não chegavam ao servidor e os
@@ -3920,6 +3948,43 @@ async function _syncToSupabaseOnce() {
       });
     });
     if (allSlots.length) await runSupabase('salvar vitrine', db.from('vitrine_slots').insert(allSlots), syncErrors);
+    // Histórico de produção — a base do "produzido" (e, por diferença, do
+    // "vendido"). Antes só existia no navegador; ao recarregar, a vitrine vinha
+    // da nuvem mas o histórico local podia não bater, e o cálculo
+    // "vendido = produzido − na vitrine" acusava tudo como vendido. Agora vai
+    // para a nuvem junto com a vitrine, mantendo as duas pontas consistentes.
+    const allHist = [];
+    Object.entries(historicoProducao || {}).forEach(([unit, byDate]) => {
+      Object.entries(byDate || {}).forEach(([data, itens]) => {
+        (itens || []).forEach(it => {
+          if (!it.prodId || !data) return;
+          allHist.push({
+            unit, data, prod_id: it.prodId, qty: Number(it.qty) || 0,
+            obs: it.obs || '', entry_at: it.entryAt || null, exit_at: it.exitAt || null
+          });
+        });
+      });
+    });
+    let histTableMissing = false;
+    for (const unit of Object.keys(historicoProducao || {})) {
+      const del = await db.from('historico_producao').delete().eq('unit', unit);
+      if (del?.error) {
+        if (isMissingTableError(del.error, 'historico_producao')) { histTableMissing = true; break; }
+        syncErrors.push({ label: 'limpar histórico de produção', error: del.error });
+        console.error('Supabase: limpar histórico de produção', del.error);
+      }
+    }
+    if (!histTableMissing && allHist.length) {
+      const insHist = await db.from('historico_producao').insert(allHist);
+      if (insHist?.error) {
+        if (isMissingTableError(insHist.error, 'historico_producao')) {
+          console.warn('Supabase: tabela historico_producao ausente; rode o supabase_schema.sql para salvar o histórico na nuvem.', insHist.error);
+        } else {
+          syncErrors.push({ label: 'salvar histórico de produção', error: insHist.error });
+          console.error('Supabase: salvar histórico de produção', insHist.error);
+        }
+      }
+    }
     // Cronograma — delete e re-insere por unidade
     await db.from('cronograma').delete().eq('unit', currentUnit);
     const allTasks = [];
@@ -4186,6 +4251,32 @@ async function loadFromSupabase() {
       if (!vitrinePadrao[r.unit][r.dia]) vitrinePadrao[r.unit][r.dia] = [];
       vitrinePadrao[r.unit][r.dia].push({ slot: r.slot, prodId: r.prod_id, qty: Number(r.qty) || 1 });
     });
+    // Histórico de produção — a nuvem é a fonte da verdade. Exceção: se a tabela
+    // ainda não existe (schema antigo) ou vem vazia numa base recém-migrada,
+    // preserva o histórico local para o próximo save subir, sem zerar produção
+    // já registrada só no navegador.
+    try {
+      const { data: histData, error: histError } = await db.from('historico_producao').select('*');
+      if (histError) {
+        console.warn('historico_producao indisponível (rode o supabase_schema.sql); mantendo histórico local.', histError);
+      } else {
+        const cloudHist = {};
+        (histData || []).forEach(r => {
+          if (!cloudHist[r.unit]) cloudHist[r.unit] = {};
+          if (!cloudHist[r.unit][r.data]) cloudHist[r.unit][r.data] = [];
+          const reg = { prodId: r.prod_id, qty: Number(r.qty) || 0, obs: r.obs || '' };
+          if (r.entry_at) reg.entryAt = r.entry_at;
+          if (r.exit_at) reg.exitAt = r.exit_at;
+          cloudHist[r.unit][r.data].push(reg);
+        });
+        const temCloud = Object.values(cloudHist).some(byDate => Object.keys(byDate).length);
+        const temLocal = Object.values(historicoProducao || {}).some(byDate => Object.keys(byDate || {}).length);
+        if (temCloud || !temLocal) historicoProducao = cloudHist;
+        else console.warn('historico_producao vazio na nuvem; preservando histórico local para migração.');
+      }
+    } catch (e) {
+      console.warn('Não foi possível carregar historico_producao; mantendo histórico local.', e);
+    }
     // Sincroniza nextId
     const allIds = [
       ...produtos.map(p => p.id),
