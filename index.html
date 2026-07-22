@@ -4061,21 +4061,9 @@ async function loadFromSupabase() {
       itens: (r.itens || []).map(item => ({ ...item }))
     }));
     const [
-      { data: prodData },
-      { data: ingData },
-      { data: recData },
-      { data: recItensData },
-      { data: slotData },
-      { data: cronoData },
-      { data: perdasData },
-      { data: apoioData },
-      { data: planoData },
-      { data: padraoData },
-      { data: comprasData },
-      { data: categoriasData },
-      { data: vitrineTiposData },
-      { data: ingComprasData },
-      histProdRes,
+      prodRes, ingRes, recRes, recItensRes, slotRes, cronoRes, perdasRes,
+      apoioRes, planoRes, padraoRes, comprasRes, categoriasRes, vitrineTiposRes,
+      ingComprasRes, histProdRes,
     ] = await Promise.all([
       db.from('produtos').select('*').order('nome'),
       db.from('ingredientes').select('*').order('nome'),
@@ -4094,10 +4082,46 @@ async function loadFromSupabase() {
       db.from('historico_producao').select('*'),
     ]);
 
-    // Supabase é a fonte da verdade: o estado local sempre reflete a nuvem,
-    // inclusive quando uma tabela volta vazia (ex.: após limpar a base).
-    // Por isso NÃO usamos guardas "if (data?.length)" — senão dados antigos
-    // que ficaram no localStorage ressuscitariam e seriam re-enviados pelo saveAll().
+    // PROTEÇÃO CONTRA "CARREGAR VAZIO POR ENGANO":
+    // No supabase-js, um erro (timeout, permissão/RLS, rede meia-boca) NÃO cai
+    // no catch — ele volta como { data: null, error }. Antes, o app tratava
+    // esse null como "banco vazio", esvaziava a vitrine e ainda salvava o vazio
+    // por cima (local e na nuvem), fazendo os itens "sumirem". Agora, se
+    // QUALQUER tabela principal voltar com erro, abortamos o carregamento:
+    // mantemos os dados deste aparelho e avisamos, em vez de apagar tudo.
+    const tabelasCriticas = [
+      ['produtos', prodRes], ['ingredientes', ingRes], ['receitas', recRes],
+      ['itens de ficha', recItensRes], ['vitrine', slotRes], ['cronograma', cronoRes],
+      ['perdas', perdasRes], ['apoio', apoioRes], ['plano semanal', planoRes],
+      ['vitrine padrão', padraoRes], ['compras', comprasRes], ['categorias', categoriasRes],
+      ['tipos de vitrine', vitrineTiposRes], ['compras de insumos', ingComprasRes],
+    ];
+    const tabelaComErro = tabelasCriticas.find(([, r]) => !r || r.error);
+    if (tabelaComErro) {
+      console.error('Carregamento do Supabase abortado — erro em', tabelaComErro[0], tabelaComErro[1]?.error);
+      showToast('Não consegui carregar da nuvem agora. Seus dados continuam salvos neste aparelho — tente recarregar em instantes.', 'error');
+      return; // não sobrescreve nada; o finally restaura a tela
+    }
+
+    const prodData = prodRes.data;
+    const ingData = ingRes.data;
+    const recData = recRes.data;
+    const recItensData = recItensRes.data;
+    const slotData = slotRes.data;
+    const cronoData = cronoRes.data;
+    const perdasData = perdasRes.data;
+    const apoioData = apoioRes.data;
+    const planoData = planoRes.data;
+    const padraoData = padraoRes.data;
+    const comprasData = comprasRes.data;
+    const categoriasData = categoriasRes.data;
+    const vitrineTiposData = vitrineTiposRes.data;
+    const ingComprasData = ingComprasRes.data;
+
+    // Supabase é a fonte da verdade quando respondeu SEM erro (checado acima):
+    // o estado local reflete a nuvem, inclusive quando uma tabela volta vazia
+    // de verdade (ex.: após limpar a base). Por isso NÃO usamos guardas
+    // "if (data?.length)" aqui — só chegamos neste ponto se o load foi íntegro.
     const comprasPorProduto = {};
     (comprasData || []).forEach(c => {
       if (!comprasPorProduto[c.prod_id]) comprasPorProduto[c.prod_id] = [];
