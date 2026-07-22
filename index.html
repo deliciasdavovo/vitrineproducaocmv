@@ -930,7 +930,7 @@ tr:hover td { background: var(--surface-soft); }
 .pedido-sub { font-size: 12px; color: rgba(255,255,255,0.78); margin-top: 2px; }
 .pedido-item {
   display: grid;
-  grid-template-columns: 1fr 84px 84px 64px;
+  grid-template-columns: 1fr 130px 130px 64px;
   gap: 10px;
   align-items: center;
   padding: 10px 12px;
@@ -948,9 +948,14 @@ tr:hover td { background: var(--surface-soft); }
   border-radius: 6px;
   margin-bottom: 4px;
   display: grid;
-  grid-template-columns: 1fr 84px 84px 64px;
+  grid-template-columns: 1fr 130px 130px 64px;
   gap: 10px;
 }
+.pedido-fazer { font-family: var(--font-mono); font-weight: 800; font-size: 15px; }
+.pedido-fazer.need { color: var(--red); }
+.pedido-fazer.ok { color: var(--green); }
+.pedido-mini { font-size: 10px; color: var(--text-light); white-space: nowrap; }
+.pedido-feito { display: block; max-width: 76px; margin: 4px auto 0; text-align: center; font-weight: 700; }
 .pedido-item:last-child { border-bottom: none; }
 .prod-name { font-weight: 600; }
 .prod-resp { font-size: 11px; color: var(--text-light); }
@@ -1522,7 +1527,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   .receita-item-row { grid-template-columns: 1fr; }
 
   /* Pedido */
-  .pedido-item, .pedido-head { grid-template-columns: 1fr 56px 56px 48px; gap: 6px; }
+  .pedido-item, .pedido-head { grid-template-columns: 1fr 92px 92px 40px; gap: 6px; }
   .pedido-header { padding: 14px 16px; }
   .pedido-title { font-size: 16px; }
 
@@ -2484,7 +2489,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <!-- ===================== PAGE: PEDIDO ===================== -->
 <div class="page" id="page-pedido">
   <h2 class="section-title">Pedido de Produção</h2>
-  <p class="section-sub">Espelha a vitrine da data escolhida — os produtos e quantidades são exatamente os que estão na vitrine naquele dia</p>
+  <p class="section-sub">Parte da Vitrine Padrão do dia, confere o que ainda está na vitrine real e pede para produzir só a diferença — o que vendeu (ou falta) entra como "Fazer"</p>
 
   <div class="week-nav" id="pedido-date-nav">
     <button class="btn btn-ghost btn-sm" onclick="pedidoDateShift(-1)">‹ Dia anterior</button>
@@ -2499,6 +2504,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <div class="pedido-sub" id="pedido-unidade">Matriz e Vila Nova</div>
     </div>
     <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+      <button class="btn btn-gold btn-sm" onclick="lancarSugestaoPedido()">Lançar produção sugerida</button>
       <button class="btn btn-ghost btn-sm" onclick="imprimirPedido()">Imprimir</button>
     </div>
   </div>
@@ -2508,7 +2514,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <span>Produto</span>
       <span style="text-align:center;">Matriz</span>
       <span style="text-align:center;">Vila Nova</span>
-      <span style="text-align:center;">Total</span>
+      <span style="text-align:center;">Fazer</span>
     </div>
     <div id="pedido-list"></div>
     <button class="btn-add-row" onclick="adicionarLinhaPedido()">+ Adicionar produto</button>
@@ -2518,7 +2524,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <!-- ===================== PAGE: HISTÓRICO DE PRODUÇÃO ===================== -->
 <div class="page" id="page-historico">
   <h2 class="section-title">Histórico de Produção</h2>
-  <p class="section-sub">Registro por data — veja quanto de cada produção foi vendido, quanto virou perda e quanto tempo ficou na vitrine. Use o × para excluir um produto do histórico.</p>
+  <p class="section-sub">Registro por data — veja quanto de cada produção foi vendido, quanto virou perda e quanto tempo ficou na vitrine. Use o × para excluir um produto de uma data; na busca agrupada "Por produto", o × exclui o histórico COMPLETO do produto (com verificação dupla).</p>
 
   <div style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:20px;">
     <div class="form-group" style="margin:0;min-width:160px;">
@@ -3252,6 +3258,7 @@ function vendeuTudo(idx) {
   snapshotVitrine('vendeu tudo');
   const prod = produtos.find(p => p.id === vitrine[idx].prodId);
   ensureLogged(vitrine[idx]);
+  stampHistEntry(vitrine[idx].prodId, itemFabDate(vitrine[idx]), { entryAt: vitrine[idx].entryAt, exitAt: nowLocalInputValue() });
   vitrine.splice(idx, 1);
   saveAll();
   renderVitrine();
@@ -3505,6 +3512,7 @@ let receitas = getStorage('ddv_receitas', []);
 // A vitrine real é única e permanente por unidade (não muda por dia da semana).
 let vitrines = getStorage('ddv_vitrines', {});
 migrarVitrineParaBaldeUnico();
+if (pinVitrineFabDates()) setStorage('ddv_vitrines', vitrines);
 
 // Junta qualquer estrutura antiga (vitrines separadas por dia da semana) num
 // único balde permanente por unidade. Cada item preserva seu dia de produção.
@@ -3527,6 +3535,30 @@ function migrarVitrineParaBaldeUnico() {
     });
   });
   if (mudou) setStorage('ddv_vitrines', vitrines);
+}
+
+// Fixa a data de fabricação (fabDate) e o dia de produção (prodDay) de itens
+// antigos que ainda não têm esses campos gravados. Sem isso, itemFabDate()
+// recalculava a data pelo dia da semana a CADA carregamento e o item "mudava
+// de dia" sozinho a cada semana/reload (e sumia do Pedido/Histórico do dia).
+function pinVitrineFabDates() {
+  let mudou = false;
+  Object.values(vitrines || {}).forEach(buckets => {
+    Object.values(buckets || {}).forEach(arr => {
+      (arr || []).forEach(item => {
+        if (!item.fabDate) {
+          item.fabDate = item.entryAt ? String(item.entryAt).slice(0, 10)
+            : (item.prodDay ? fabDateForDay(item.prodDay) : todayISO());
+          mudou = true;
+        }
+        if (!item.prodDay) {
+          item.prodDay = weekdayKeyFromISO(item.fabDate);
+          mudou = true;
+        }
+      });
+    });
+  });
+  return mudou;
 }
 // cronograma[unit][day] = [{hora, tarefa, resp, prodId, qty}]
 let cronograma = getStorage('ddv_cronograma', {});
@@ -3967,6 +3999,28 @@ async function _syncToSupabaseOnce() {
       });
     });
     if (allPadrao.length) await runSupabase('salvar vitrine padrão', db.from('vitrine_padrao').insert(allPadrao), syncErrors);
+    // Histórico de produção (vendidos, tempo de vitrine) — delete e re-insere
+    // TODAS as unidades. Sem isso ele vivia só no localStorage e "sumia" ao
+    // recarregar em outro aparelho ou limpar o navegador.
+    const histDel = await db.from('historico_producao').delete().neq('prod_id', -1);
+    if (histDel?.error) {
+      syncErrors.push({ label: 'salvar histórico de produção (rode o supabase_schema.sql atualizado no Supabase)', error: histDel.error });
+      console.error('Supabase: limpar histórico de produção', histDel.error);
+    } else {
+      const allHist = [];
+      Object.entries(historicoProducao || {}).forEach(([unit, byDate]) => {
+        Object.entries(byDate || {}).forEach(([data, items]) => {
+          (items || []).forEach(it => {
+            if (!it.prodId) return;
+            allHist.push({
+              unit, data, prod_id: it.prodId, qty: Number(it.qty) || 0,
+              obs: it.obs || '', entry_at: it.entryAt || null, exit_at: it.exitAt || null
+            });
+          });
+        });
+      });
+      if (allHist.length) await runSupabase('salvar histórico de produção', db.from('historico_producao').insert(allHist), syncErrors);
+    }
     if (syncErrors.length) {
       const first = syncErrors[0];
       const now = Date.now();
@@ -4021,6 +4075,7 @@ async function loadFromSupabase() {
       { data: categoriasData },
       { data: vitrineTiposData },
       { data: ingComprasData },
+      histProdRes,
     ] = await Promise.all([
       db.from('produtos').select('*').order('nome'),
       db.from('ingredientes').select('*').order('nome'),
@@ -4036,6 +4091,7 @@ async function loadFromSupabase() {
       db.from('categorias').select('*').order('nome'),
       db.from('vitrine_tipos').select('*').order('nome'),
       db.from('ingrediente_compras').select('*').order('created_at'),
+      db.from('historico_producao').select('*'),
     ]);
 
     // Supabase é a fonte da verdade: o estado local sempre reflete a nuvem,
@@ -4152,6 +4208,36 @@ async function loadFromSupabase() {
         prodDay, fabDate: s.fab_date || (s.entry_at ? String(s.entry_at).slice(0, 10) : null)
       });
     });
+    // Fixa a data de fabricação de itens que vieram sem fab_date, para o item
+    // não "mudar de dia" a cada carregamento (o saveAll no fim persiste).
+    pinVitrineFabDates();
+    // Histórico de produção (vendidos, tempo de vitrine) agora vem da nuvem.
+    // Se a tabela ainda não existe no Supabase, mantém o histórico local deste
+    // navegador em vez de apagá-lo.
+    if (histProdRes && !histProdRes.error) {
+      historicoProducao = {};
+      (histProdRes.data || []).forEach(h => {
+        if (!h.unit || !h.data) return;
+        if (!historicoProducao[h.unit]) historicoProducao[h.unit] = {};
+        if (!historicoProducao[h.unit][h.data]) historicoProducao[h.unit][h.data] = [];
+        const arr = historicoProducao[h.unit][h.data];
+        const ex = arr.find(it => it.prodId === h.prod_id);
+        if (ex) {
+          // Linha duplicada na nuvem (sync interrompido): mescla em vez de empilhar
+          ex.qty = Math.max(Number(ex.qty) || 0, Number(h.qty) || 0);
+          ex.obs = ex.obs || h.obs || '';
+          if (h.entry_at && (!ex.entryAt || h.entry_at < ex.entryAt)) ex.entryAt = h.entry_at;
+          if (h.exit_at && (!ex.exitAt || h.exit_at > ex.exitAt)) ex.exitAt = h.exit_at;
+        } else {
+          arr.push({
+            prodId: h.prod_id, qty: Number(h.qty) || 0, obs: h.obs || '',
+            entryAt: h.entry_at || null, exitAt: h.exit_at || null
+          });
+        }
+      });
+    } else if (histProdRes?.error) {
+      console.warn('Tabela historico_producao indisponível; usando histórico local. Rode o supabase_schema.sql no Supabase.', histProdRes.error);
+    }
     cronograma = {};
     (cronoData || []).forEach(c => {
       if (!cronograma[c.unit]) cronograma[c.unit] = {};
@@ -4647,7 +4733,12 @@ function renderVitrine() {
   const removedClosedSlots = vitrine.filter(item => item.status && item.status !== 'em_vitrine').length;
   if (removedClosedSlots) {
     for (let i = vitrine.length - 1; i >= 0; i--) {
-      if (vitrine[i].status && vitrine[i].status !== 'em_vitrine') vitrine.splice(i, 1);
+      if (vitrine[i].status && vitrine[i].status !== 'em_vitrine') {
+        // Garante o registro (com hora de saída) antes de tirar o item da grade
+        ensureLogged(vitrine[i]);
+        stampHistEntry(vitrine[i].prodId, itemFabDate(vitrine[i]), { entryAt: vitrine[i].entryAt, exitAt: nowLocalInputValue() });
+        vitrine.splice(i, 1);
+      }
     }
     saveAll();
   }
@@ -5217,7 +5308,12 @@ function removeSlot(idx, e) {
 function removeSlotByProd(prodId) {
   const vitrine = getVitrine();
   const idx = vitrine.findIndex(v => v.prodId === prodId);
-  if (idx >= 0) vitrine.splice(idx, 1);
+  if (idx >= 0) {
+    const item = vitrine[idx];
+    ensureLogged(item);
+    stampHistEntry(item.prodId, itemFabDate(item), { entryAt: item.entryAt, exitAt: nowLocalInputValue() });
+    vitrine.splice(idx, 1);
+  }
   saveAll();
   renderVitrine();
 }
@@ -8844,6 +8940,28 @@ function addProdToVitrineDay(prod, qty, day, unit = currentUnit, fabDateOverride
   return false;
 }
 
+// Quantidade-alvo por produto no desenho da Vitrine Padrão do dia da semana.
+function padraoAlvoByProd(day, unit) {
+  const byProd = {};
+  ((vitrinePadrao[unit] || {})[day] || []).forEach(s => {
+    if (s.prodId) byProd[s.prodId] = (byProd[s.prodId] || 0) + (Number(s.qty) || 0);
+  });
+  return byProd;
+}
+
+// O que está fisicamente na vitrine AGORA (ainda não vendido), por produto —
+// independente do dia de fabricação: sobras de dias anteriores contam como
+// "já tem na vitrine" e reduzem o que precisa ser produzido.
+function naVitrineAgoraByProd(unit) {
+  const byProd = {};
+  Object.values(vitrines[unit] || {}).forEach(arr => (arr || []).forEach(slot => {
+    if (STATUS_TERMINAL.includes(slot.status)) return;
+    const q = Number(slot.qty) || 0;
+    if (q > 0) byProd[slot.prodId] = (byProd[slot.prodId] || 0) + q;
+  }));
+  return byProd;
+}
+
 function renderPedido() {
   ensurePedidoDate();
   const dateInput = document.getElementById('pedido-date');
@@ -8855,13 +8973,25 @@ function renderPedido() {
     `${wd.charAt(0).toUpperCase()}${wd.slice(1)} · ${dObj.toLocaleDateString('pt-BR')}`;
   document.getElementById('pedido-unidade').textContent = 'Matriz e Vila Nova';
 
-  // Fonte da verdade: a própria vitrine da data selecionada, por unidade
-  const byUnit = {};
-  planoUnits.forEach(u => { byUnit[u.id] = producaoPorDataUnit(currentPedidoDate, u.id); });
+  // O pedido nasce da Vitrine Padrão do dia e bate com a vitrine real:
+  // Fazer = padrão − o que ainda está na vitrine (vendeu => pede outro).
+  // "Feito" mostra o que já foi lançado como produzido na data (editável).
+  const day = weekdayFromDate(currentPedidoDate);
+  const info = {};
+  planoUnits.forEach(u => {
+    info[u.id] = {
+      alvo: padraoAlvoByProd(day, u.id),
+      naVitrine: naVitrineAgoraByProd(u.id),
+      feito: producaoPorDataUnit(currentPedidoDate, u.id)
+    };
+  });
 
-  // União dos produtos presentes em qualquer unidade
+  // União: produtos no padrão do dia OU com produção lançada na data
   const prodIds = new Set();
-  planoUnits.forEach(u => Object.keys(byUnit[u.id]).forEach(pid => prodIds.add(Number(pid))));
+  planoUnits.forEach(u => {
+    Object.keys(info[u.id].alvo).forEach(pid => prodIds.add(Number(pid)));
+    Object.keys(info[u.id].feito).forEach(pid => prodIds.add(Number(pid)));
+  });
 
   const curvaOrder = { A: 0, B: 1, C: 2 };
   const rows = [...prodIds]
@@ -8872,28 +9002,65 @@ function renderPedido() {
   const list = document.getElementById('pedido-list');
   if (!rows.length) {
     list.innerHTML = `<div class="empty-state" style="padding:30px;">
-      <p>Nenhum produto na vitrine de ${dObj.toLocaleDateString('pt-BR')}.<br>
-      Adicione produtos na aba Vitrine ou clique em "+ Adicionar produto".</p>
+      <p>Nenhum produto no padrão de ${wd}.<br>
+      Monte a Vitrine Padrão do dia ou clique em "+ Adicionar produto".</p>
     </div>`;
     return;
   }
 
   list.innerHTML = rows.map(({ pid, p }) => {
     const cols = planoUnits.map(u => {
-      const qty = Number(byUnit[u.id][pid]?.produced) || 0;
-      return `<input type="number" min="0" class="sheet-input" style="text-align:center;font-weight:700;" value="${qty}"
-        onchange="setPedidoQty(${p.id}, parseInt(this.value)||0, '${u.id}')" title="Quantidade a produzir — ${u.label}">`;
+      const alvo = info[u.id].alvo[pid] || 0;
+      const naVit = info[u.id].naVitrine[pid] || 0;
+      const feito = Number(info[u.id].feito[pid]?.produced) || 0;
+      const fazer = Math.max(0, alvo - naVit);
+      return `<div style="text-align:center;">
+        <div class="pedido-fazer ${fazer > 0 ? 'need' : 'ok'}" title="Quanto produzir para completar o padrão — ${u.label}">${fazer > 0 ? `Fazer ${fazer}` : 'OK ✓'}</div>
+        <div class="pedido-mini">padrão ${alvo} · na vitrine ${naVit}</div>
+        <input type="number" min="0" class="sheet-input pedido-feito" value="${feito}"
+          onchange="setPedidoQty(${pid}, parseInt(this.value)||0, '${u.id}')" title="Produzido em ${dObj.toLocaleDateString('pt-BR')} — ${u.label}">
+      </div>`;
     }).join('');
-    const total = planoUnits.reduce((s, u) => s + (Number(byUnit[u.id][pid]?.produced) || 0), 0);
+    const totalFazer = planoUnits.reduce((s, u) =>
+      s + Math.max(0, (info[u.id].alvo[pid] || 0) - (info[u.id].naVitrine[pid] || 0)), 0);
     return `<div class="pedido-item">
       <div>
         <div class="prod-name">${p.nome}${p.curva ? ` <span class="badge badge-${p.curva.toLowerCase()}">${p.curva}</span>` : ''}</div>
         <div class="prod-resp">${p.resp || p.categoria || ''}</div>
       </div>
       ${cols}
-      <div style="text-align:center;font-family:var(--font-mono);font-weight:700;">${total}</div>
+      <div style="text-align:center;font-family:var(--font-mono);font-weight:700;">${totalFazer}</div>
     </div>`;
   }).join('');
+}
+
+// Lança na vitrine real tudo o que o pedido sugere ("Fazer"), nas duas
+// unidades, com a data do pedido como fabricação. Cada lançamento entra no
+// histórico de produção como nos demais caminhos.
+function lancarSugestaoPedido() {
+  ensurePedidoDate();
+  const day = weekdayFromDate(currentPedidoDate);
+  const pendentes = [];
+  planoUnits.forEach(u => {
+    const alvo = padraoAlvoByProd(day, u.id);
+    const naVit = naVitrineAgoraByProd(u.id);
+    Object.keys(alvo).forEach(pid => {
+      const fazer = Math.max(0, alvo[pid] - (naVit[pid] || 0));
+      const prod = produtos.find(p => p.id === Number(pid));
+      if (fazer > 0 && prod) pendentes.push({ prod, qty: fazer, unit: u.id });
+    });
+  });
+  if (!pendentes.length) {
+    showToast('Nada a produzir — a vitrine já bate com o padrão do dia ✓', 'success');
+    return;
+  }
+  const totalItens = pendentes.reduce((s, x) => s + x.qty, 0);
+  if (!confirm(`Lançar a produção sugerida na vitrine?\n\n${pendentes.length} produto(s) · ${totalItens} item(ns) no total, com fabricação em ${new Date(currentPedidoDate + 'T12:00:00').toLocaleDateString('pt-BR')}.`)) return;
+  pendentes.forEach(x => addProdToVitrineDay(x.prod, x.qty, day, x.unit, currentPedidoDate));
+  saveAll();
+  renderPedido();
+  renderVitrine();
+  showToast('Produção lançada na vitrine ✓', 'success');
 }
 
 function imprimirPedido() {
@@ -9055,7 +9222,9 @@ function producaoBreakdownPorData(date, unit = currentUnit) {
       produced, perda, naVitrine, vendido,
       obs: byProd[pid].obs,
       entryAt: hist.entryAt || liveEntryByProd[prodId] || null,
-      exitAt: hist.exitAt || null,
+      // Sem hora de saída gravada e sem itens vivos na vitrine: assume que saiu
+      // no mesmo dia da fabricação, para o tempo nunca aparecer como "—".
+      exitAt: hist.exitAt || (naVitrine > 0 ? null : `${date}T12:00`),
       naVitrineAtiva: naVitrine > 0
     };
   });
@@ -9089,8 +9258,9 @@ function formatTempoVitrine(fabDate, exitAt, aindaNaVitrine) {
   if (!aindaNaVitrine && !exitAt) return '—';
   const dias = diasEntreDatas(fabDate, fim);
   if (dias == null) return '—';
-  const label = labelDiasVitrine(dias);
-  return aindaNaVitrine ? `${label} · na vitrine` : label;
+  if (aindaNaVitrine) return `${labelDiasVitrine(dias)} · na vitrine`;
+  // Item que saiu no mesmo dia: "mesmo dia" lê melhor que "hoje" em datas passadas
+  return dias === 0 ? 'mesmo dia' : labelDiasVitrine(dias);
 }
 
 // Remove um produto do histórico de produção de uma data (e os itens
@@ -9114,6 +9284,52 @@ function excluirHistoricoProduto(prodId, date) {
   renderHistorico();
   renderVitrine();
   showToast('Produto removido do histórico', 'success');
+}
+
+// Apaga o histórico COMPLETO de um produto (todas as datas, nas duas unidades),
+// com verificação dupla: confirmação + digitar EXCLUIR. Também remove os itens
+// do produto que ainda estiverem na vitrine, senão eles re-registrariam a
+// produção e o histórico "voltaria" sozinho.
+function excluirHistoricoProdutoCompleto(prodId) {
+  const prod = produtos.find(p => p.id === prodId);
+  const nome = prod ? prod.nome : 'produto';
+  const dias = new Set();
+  Object.values(historicoProducao || {}).forEach(byDate => {
+    Object.entries(byDate || {}).forEach(([d, arr]) => {
+      if ((arr || []).some(it => it.prodId === prodId)) dias.add(d);
+    });
+  });
+  let naVitrine = 0;
+  Object.values(vitrines || {}).forEach(buckets => Object.values(buckets || {}).forEach(arr => {
+    (arr || []).forEach(item => { if (item.prodId === prodId) naVitrine++; });
+  }));
+
+  // 1ª verificação
+  if (!confirm(`Excluir TODO o histórico de "${nome}"?\n\n• ${dias.size} dia(s) de registro serão apagados (nas duas unidades)` +
+    (naVitrine ? `\n• ${naVitrine} item(ns) deste produto ainda na vitrine também serão removidos` : '') +
+    `\n\nEssa ação NÃO pode ser desfeita.`)) return;
+  // 2ª verificação
+  const resp = prompt(`Verificação dupla: para apagar o histórico completo de "${nome}", digite EXCLUIR`);
+  if ((resp || '').trim().toUpperCase() !== 'EXCLUIR') {
+    showToast('Exclusão cancelada — verificação não confirmada', 'error');
+    return;
+  }
+
+  Object.keys(historicoProducao || {}).forEach(unit => {
+    Object.keys(historicoProducao[unit] || {}).forEach(d => {
+      historicoProducao[unit][d] = historicoProducao[unit][d].filter(it => it.prodId !== prodId);
+      if (!historicoProducao[unit][d].length) delete historicoProducao[unit][d];
+    });
+  });
+  Object.values(vitrines || {}).forEach(buckets => Object.values(buckets || {}).forEach(arr => {
+    for (let i = arr.length - 1; i >= 0; i--) {
+      if (arr[i].prodId === prodId) arr.splice(i, 1);
+    }
+  }));
+  saveAll();
+  renderHistorico();
+  renderVitrine();
+  showToast(`Histórico completo de "${nome}" excluído`, 'success');
 }
 
 function renderHistorico() {
@@ -9308,6 +9524,7 @@ function renderHistoricoAnteriores() {
         ${cells}
         <td style="text-align:center;font-family:var(--font-mono);border-left:2px solid var(--border);">${it.dias.size}</td>
         <td style="text-align:center;font-size:12px;color:var(--text-mid);white-space:nowrap;">${formatFabDate(it.ultima)}</td>
+        <td style="text-align:center;"><button class="btn btn-ghost btn-sm" onclick="excluirHistoricoProdutoCompleto(${it.p.id})" title="Excluir o histórico COMPLETO deste produto (verificação dupla)" style="color:var(--red);">×</button></td>
       </tr>`;
     }).join('');
 
@@ -9331,6 +9548,7 @@ function renderHistoricoAnteriores() {
                   ${heads}
                   <th rowspan="2" style="text-align:center;vertical-align:bottom;border-left:2px solid var(--border);">Dias</th>
                   <th rowspan="2" style="text-align:center;vertical-align:bottom;">Última</th>
+                  <th rowspan="2" style="text-align:center;vertical-align:bottom;" title="Excluir o histórico completo do produto">×</th>
                 </tr>
                 <tr>${subHeads}</tr>
               </thead>
