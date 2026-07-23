@@ -3243,10 +3243,12 @@ function baixaVenda(idx) {
   if (!item) return;
   snapshotVitrine('venda');
   const prod = produtos.find(p => p.id === item.prodId);
+  const fab = itemFabDate(item);
+  ensureLogged(item);
+  logVenda(item.prodId, 1, fab); // venda explícita de 1 unidade
   const novaQty = Math.max(0, (Number(item.qty) || 0) - 1);
   if (novaQty === 0) {
-    ensureLogged(item);
-    stampHistEntry(item.prodId, itemFabDate(item), { entryAt: item.entryAt, exitAt: nowLocalInputValue() });
+    stampHistEntry(item.prodId, fab, { entryAt: item.entryAt, exitAt: nowLocalInputValue() });
     vitrine.splice(idx, 1);
     saveAll();
     renderVitrine();
@@ -3295,11 +3297,14 @@ function baixaPerda(idx) {
 
 function vendeuTudo(idx) {
   const vitrine = getVitrine();
-  if (!vitrine[idx]) return;
+  const item = vitrine[idx];
+  if (!item) return;
   snapshotVitrine('vendeu tudo');
-  const prod = produtos.find(p => p.id === vitrine[idx].prodId);
-  ensureLogged(vitrine[idx]);
-  stampHistEntry(vitrine[idx].prodId, itemFabDate(vitrine[idx]), { entryAt: vitrine[idx].entryAt, exitAt: nowLocalInputValue() });
+  const prod = produtos.find(p => p.id === item.prodId);
+  const fab = itemFabDate(item);
+  ensureLogged(item);
+  logVenda(item.prodId, Number(item.qty) || 0, fab); // vende todo o restante
+  stampHistEntry(item.prodId, fab, { entryAt: item.entryAt, exitAt: nowLocalInputValue() });
   vitrine.splice(idx, 1);
   saveAll();
   renderVitrine();
@@ -4063,7 +4068,8 @@ async function _syncToSupabaseOnce() {
           if (!it.prodId) return;
           allHist.push({
             unit, data, prod_id: it.prodId, qty: Number(it.qty) || 0,
-            obs: it.obs || '', entry_at: it.entryAt || null, exit_at: it.exitAt || null
+            obs: it.obs || '', entry_at: it.entryAt || null, exit_at: it.exitAt || null,
+            vendido: (it.vendido === undefined || it.vendido === null) ? null : (Number(it.vendido) || 0)
           });
         });
       });
@@ -4078,7 +4084,20 @@ async function _syncToSupabaseOnce() {
           _histTableWarned = true;
         }
       } else {
-        await runSupabase('salvar histórico de produção', db.from('historico_producao').insert(allHist), syncErrors);
+        const insertHist = await db.from('historico_producao').insert(allHist);
+        if (insertHist?.error) {
+          // Coluna "vendido" ainda não existe no banco: regrava sem ela (o
+          // histórico continua salvo; a venda explícita persiste localmente até
+          // rodarem o supabase_schema.sql atualizado).
+          const detalhe = `${insertHist.error.message || ''}${insertHist.error.details || ''}${insertHist.error.hint || ''}`;
+          if (/vendido/.test(detalhe)) {
+            const semVendido = allHist.map(({ vendido, ...rest }) => rest);
+            await runSupabase('salvar histórico de produção', db.from('historico_producao').insert(semVendido), syncErrors);
+          } else {
+            syncErrors.push({ label: 'salvar histórico de produção', error: insertHist.error });
+            console.error('Supabase: salvar histórico de produção', insertHist.error);
+          }
+        }
       }
     }
     if (syncErrors.length) {
@@ -4307,16 +4326,19 @@ async function loadFromSupabase() {
         if (!historicoProducao[h.unit][h.data]) historicoProducao[h.unit][h.data] = [];
         const arr = historicoProducao[h.unit][h.data];
         const ex = arr.find(it => it.prodId === h.prod_id);
+        const vendidoNuvem = (h.vendido === undefined || h.vendido === null) ? undefined : Number(h.vendido) || 0;
         if (ex) {
           // Linha duplicada na nuvem (sync interrompido): mescla em vez de empilhar
           ex.qty = Math.max(Number(ex.qty) || 0, Number(h.qty) || 0);
           ex.obs = ex.obs || h.obs || '';
           if (h.entry_at && (!ex.entryAt || h.entry_at < ex.entryAt)) ex.entryAt = h.entry_at;
           if (h.exit_at && (!ex.exitAt || h.exit_at > ex.exitAt)) ex.exitAt = h.exit_at;
+          if (vendidoNuvem !== undefined) ex.vendido = Math.max(Number(ex.vendido) || 0, vendidoNuvem);
         } else {
           arr.push({
             prodId: h.prod_id, qty: Number(h.qty) || 0, obs: h.obs || '',
-            entryAt: h.entry_at || null, exitAt: h.exit_at || null
+            entryAt: h.entry_at || null, exitAt: h.exit_at || null,
+            ...(vendidoNuvem !== undefined ? { vendido: vendidoNuvem } : {})
           });
         }
       });
@@ -5448,8 +5470,10 @@ function markContextSlotSold() {
   const item = vitrine[contextItemIdx];
   if (!item) return;
   snapshotVitrine('vendeu tudo');
+  const fab = itemFabDate(item);
   ensureLogged(item);
-  stampHistEntry(item.prodId, itemFabDate(item), { entryAt: item.entryAt, exitAt: nowLocalInputValue() });
+  logVenda(item.prodId, Number(item.qty) || 0, fab); // vende todo o restante
+  stampHistEntry(item.prodId, fab, { entryAt: item.entryAt, exitAt: nowLocalInputValue() });
   burstHeartsAtSlot(item.slot);
   vitrine.splice(contextItemIdx, 1);
   saveAll();
@@ -9222,8 +9246,25 @@ function logProducao(prodId, delta, date, unit = currentUnit) {
   if (ex) {
     ex.qty = Math.max(0, (Number(ex.qty) || 0) + delta);
   } else if (delta > 0) {
-    arr.push({ prodId, qty: delta, obs: '' });
+    // vendido: 0 marca este registro como "venda explícita" (só conta o que
+    // for marcado). Registros antigos, sem esse campo, mantêm a estimativa.
+    arr.push({ prodId, qty: delta, obs: '', vendido: 0 });
   }
+}
+
+// Registra uma VENDA explícita — só conta o que o usuário marca como vendido.
+// A venda é atribuída à DATA DE FABRICAÇÃO do item, para bater com a produção
+// daquele dia no Histórico. Antes a venda era ADIVINHADA por subtração
+// (produzido − perda − o que restou na vitrine), o que fazia qualquer item que
+// sumisse da vitrine ser contado como vendido. Agora é explícito.
+function logVenda(prodId, qty, date, unit = currentUnit) {
+  if (!prodId || !date || !qty) return;
+  if (!historicoProducao[unit]) historicoProducao[unit] = {};
+  if (!historicoProducao[unit][date]) historicoProducao[unit][date] = [];
+  const arr = historicoProducao[unit][date];
+  let ex = arr.find(it => it.prodId === prodId);
+  if (!ex) { ex = { prodId, qty: 0, obs: '', vendido: 0 }; arr.push(ex); }
+  ex.vendido = (Number(ex.vendido) || 0) + (Number(qty) || 0);
 }
 
 // Garante que a produção de um item esteja gravada no histórico antes de ele
@@ -9311,8 +9352,13 @@ function producaoBreakdownPorData(date, unit = currentUnit) {
     const produced = Number(byProd[pid].qty) || 0;
     const perda = perdaByProd[prodId] || 0;
     const naVitrine = naVitrineByProd[prodId] || 0;
-    const vendido = Math.max(0, produced - perda - naVitrine);
     const hist = histArr.find(it => it.prodId === prodId) || {};
+    // Venda EXPLÍCITA: só o que foi marcado como vendido (campo "vendido").
+    // Registros antigos, sem esse campo, mantêm a estimativa antiga por
+    // subtração — para não zerar o histórico que já existe.
+    const vendido = (hist.vendido !== undefined && hist.vendido !== null)
+      ? Number(hist.vendido) || 0
+      : Math.max(0, produced - perda - naVitrine);
     result[pid] = {
       produced, perda, naVitrine, vendido,
       obs: byProd[pid].obs,
