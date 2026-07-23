@@ -4304,7 +4304,11 @@ async function loadFromSupabase() {
         prodId: s.prod_id, qty: s.qty, producedQty: s.produced_qty,
         minQty: (s.min_qty === undefined || s.min_qty === null) ? null : Number(s.min_qty),
         unidadeMedida: s.unidade_medida || 'un',
-        entryAt: s.entry_at, status: s.status,
+        entryAt: s.entry_at,
+        // Se está na tabela de slots, ESTÁ na vitrine. Venda/perda removem o
+        // item (splice), então nada deve carregar status "terminal" — normaliza
+        // para em_vitrine, para nunca ser removido sozinho na renderização.
+        status: 'em_vitrine',
         // A coluna slot é texto no banco; volta como string ("5") e a vitrine
         // compara com === contra número (5). Sem converter, o item some da
         // grade (mas continua no histórico/pedido, que usam prodId).
@@ -4839,18 +4843,10 @@ function slotProdRowHTML(item, idx, prod) {
 function renderVitrine() {
   const layout = vitrineLayouts[currentUnit];
   const vitrine = getVitrine();
-  const removedClosedSlots = vitrine.filter(item => item.status && item.status !== 'em_vitrine').length;
-  if (removedClosedSlots) {
-    for (let i = vitrine.length - 1; i >= 0; i--) {
-      if (vitrine[i].status && vitrine[i].status !== 'em_vitrine') {
-        // Garante o registro (com hora de saída) antes de tirar o item da grade
-        ensureLogged(vitrine[i]);
-        stampHistEntry(vitrine[i].prodId, itemFabDate(vitrine[i]), { entryAt: vitrine[i].entryAt, exitAt: nowLocalInputValue() });
-        vitrine.splice(i, 1);
-      }
-    }
-    saveAll();
-  }
+  // Um item só sai da vitrine por VENDA ou PERDA — ações explícitas do usuário,
+  // que já removem o item na hora. NÃO removemos nada automaticamente aqui.
+  // Antes, este ponto apagava qualquer item com status "terminal" toda vez que
+  // desenhava a vitrine, o que fazia itens "sumirem" sem venda nem perda.
   document.getElementById('vitrine-unidade-label').textContent =
     `${getLayoutSummary()} — clique em um espaço para adicionar produto`;
 
