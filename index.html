@@ -1678,7 +1678,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   <div class="sidebar-brand">
     <span class="sidebar-brand-name">Delícias da Vovó</span>
     <span class="sidebar-brand-sub">Gestão de Vitrines</span>
-    <span class="sidebar-brand-sub" style="opacity:.65;font-size:10px;letter-spacing:.3px;">versão 24/07 · v8</span>
+    <span class="sidebar-brand-sub" style="opacity:.65;font-size:10px;letter-spacing:.3px;">versão 24/07 · v9</span>
   </div>
 
   <div class="sidebar-section">
@@ -3787,6 +3787,44 @@ async function runSupabase(label, query, errors = []) {
   return result?.data;
 }
 
+// Detecta, no texto de erro do Supabase/PostgREST, o nome de uma coluna que
+// NÃO existe na tabela (ex.: a nuvem está numa versão antiga do schema). Cobre
+// tanto o erro do cache do PostgREST ("Could not find the 'fab_date' column")
+// quanto o do Postgres ("column \"fab_date\" ... does not exist").
+function colunaAusenteNoErro(error) {
+  const txt = `${error?.message || ''} ${error?.details || ''} ${error?.hint || ''}`;
+  const m = txt.match(/Could not find the '([^']+)' column/i) ||
+            txt.match(/column "([^"]+)"[^"]*does not exist/i) ||
+            txt.match(/'([^']+)' column of/i);
+  return m ? m[1] : null;
+}
+
+// Upsert que sobrevive a colunas ausentes na nuvem: se a tabela do Supabase
+// estiver desatualizada e faltar uma coluna, remove essa coluna de TODAS as
+// linhas e tenta de novo (repete para várias colunas), em vez de perder a
+// gravação inteira. Sem isso, uma única coluna nova bloqueava o "salvar
+// vitrine" e NADA da vitrine era salvo na nuvem. As colunas removidas viram
+// avisos; o dado segue salvo localmente até rodarem o supabase_schema.sql.
+async function upsertResiliente(label, table, rows, errors = []) {
+  let linhas = rows;
+  const removidas = [];
+  for (let tentativa = 0; tentativa < 8; tentativa++) {
+    const result = await db.from(table).upsert(linhas);
+    if (!result?.error) return result?.data;
+    const col = colunaAusenteNoErro(result.error);
+    if (!col || !(col in (linhas[0] || {}))) {
+      // Erro que não é "coluna ausente" (ou já removida): reporta e desiste.
+      errors.push({ label, error: result.error });
+      console.error(`Supabase: ${label}`, result.error);
+      return;
+    }
+    removidas.push(col);
+    linhas = linhas.map(({ [col]: _omit, ...resto }) => resto);
+    console.warn(`Supabase: coluna "${col}" ausente em ${table}; regravando sem ela. Rode o supabase_schema.sql para tê-la.`, result.error);
+  }
+  errors.push({ label, error: { message: `colunas ausentes na nuvem: ${removidas.join(', ')}` } });
+}
+
 // Dispara uma exclusão imediatamente. IMPORTANTE: o query builder do
 // supabase-js v2 é "lazy" — sem await/.then() a requisição NUNCA é enviada.
 // Antes, vários `db.from(...).delete()` soltos não chegavam ao servidor e os
@@ -4022,7 +4060,7 @@ async function _syncToSupabaseOnce() {
     // sozinhos". O upsert (adicionar/atualizar) roda sempre, sem risco.
     const podeRemoverVitrine = !_loadingFromCloud && _vitrineLoadedOk;
     if (allSlots.length) {
-      await runSupabase('salvar vitrine', db.from('vitrine_slots').upsert(allSlots), syncErrors);
+      await upsertResiliente('salvar vitrine', 'vitrine_slots', allSlots, syncErrors);
       if (podeRemoverVitrine) {
         // Remove da nuvem só os itens que não existem mais localmente.
         await runSupabase('remover itens que saíram da vitrine',
