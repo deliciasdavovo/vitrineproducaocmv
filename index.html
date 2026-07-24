@@ -1678,6 +1678,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
   <div class="sidebar-brand">
     <span class="sidebar-brand-name">Delícias da Vovó</span>
     <span class="sidebar-brand-sub">Gestão de Vitrines</span>
+    <span class="sidebar-brand-sub" style="opacity:.65;font-size:10px;letter-spacing:.3px;">versão 24/07 · v8</span>
   </div>
 
   <div class="sidebar-section">
@@ -3732,6 +3733,16 @@ let _sbTimer;
 let _lastSyncErrorToast = 0;
 // Avisa uma única vez (por sessão) se a tabela historico_producao não existe.
 let _histTableWarned = false;
+// Verdadeiro enquanto o app está CARREGANDO da nuvem. Enquanto isso, nenhuma
+// sincronização pode APAGAR itens da vitrine (só adicionar), para a abertura
+// nunca esvaziar a vitrine na nuvem.
+let _loadingFromCloud = false;
+// Só vira true depois de um carregamento da nuvem BEM-SUCEDIDO. Enquanto for
+// false (primeiro load ainda não concluído, ou load que falhou/abortou), os
+// dados em memória podem estar incompletos — então a sincronização NÃO pode
+// remover itens da vitrine na nuvem. Assim um item nunca "some" por causa de
+// um estado local incompleto; ele só sai por venda/perda depois de um load ok.
+let _vitrineLoadedOk = false;
 // Promessa da sincronização em andamento (evita rodar duas ao mesmo tempo e
 // permite dar "await" no flush antes de recarregar/ler da nuvem).
 let _sbSyncing = null;
@@ -4000,13 +4011,25 @@ async function _syncToSupabaseOnce() {
         });
       });
     });
+    // Durante a ABERTURA do app (_loadingFromCloud), a sincronização só ADICIONA
+    // itens (upsert) e NUNCA apaga nada da vitrine. Sem isso, se os dados locais
+    // estivessem vazios no instante da abertura, a sincronização apagava a
+    // vitrine da nuvem — e ela abria vazia. Remoções só valem em ações do
+    // usuário (venda/perda), fora do carregamento.
+    // Só é seguro REMOVER slots da nuvem quando (a) não estamos carregando e
+    // (b) já houve um load bem-sucedido — senão o estado em memória pode estar
+    // incompleto e apagaríamos itens bons. Sem isso, os itens "saíam da vitrine
+    // sozinhos". O upsert (adicionar/atualizar) roda sempre, sem risco.
+    const podeRemoverVitrine = !_loadingFromCloud && _vitrineLoadedOk;
     if (allSlots.length) {
       await runSupabase('salvar vitrine', db.from('vitrine_slots').upsert(allSlots), syncErrors);
-      // Remove da nuvem só os itens que não existem mais localmente.
-      await runSupabase('remover itens que saíram da vitrine',
-        db.from('vitrine_slots').delete().not('id', 'in', `(${keepSlotIds.join(',')})`), syncErrors);
-    } else {
-      // Vitrine realmente vazia (usuário removeu tudo): limpa a nuvem.
+      if (podeRemoverVitrine) {
+        // Remove da nuvem só os itens que não existem mais localmente.
+        await runSupabase('remover itens que saíram da vitrine',
+          db.from('vitrine_slots').delete().not('id', 'in', `(${keepSlotIds.join(',')})`), syncErrors);
+      }
+    } else if (podeRemoverVitrine) {
+      // Vitrine realmente vazia por ação do usuário (removeu tudo): limpa a nuvem.
       await runSupabase('limpar vitrine', db.from('vitrine_slots').delete().neq('id', -1), syncErrors);
     }
     // Cronograma — delete e re-insere por unidade
@@ -4127,6 +4150,7 @@ async function _syncToSupabaseOnce() {
 async function loadFromSupabase() {
   document.body.style.opacity = '0.55';
   document.body.style.pointerEvents = 'none';
+  _loadingFromCloud = true; // durante o load, nenhuma sync apaga a vitrine
   try {
     // Se a sessão anterior recarregou antes de o debounce enviar as mudanças,
     // sobe primeiro o que está no localStorage. Assim a vitrine reconstruída da
@@ -4395,11 +4419,15 @@ async function loadFromSupabase() {
     ].filter(Number.isFinite);
     if (allIds.length) nextId = Math.max(...allIds, nextId);
     categorias = [...new Set([...categorias, ...produtos.map(p => p.categoria).filter(Boolean)])];
+    // Chegou aqui = carregou tudo sem erro nem abort. A partir de agora é seguro
+    // a sincronização remover slots (venda/perda), pois a memória reflete a nuvem.
+    _vitrineLoadedOk = true;
     saveAll();
   } catch (err) {
     console.error('Erro ao carregar Supabase:', err);
     showToast('Nao foi possivel carregar do Supabase', 'error');
   } finally {
+    _loadingFromCloud = false;
     document.body.style.opacity = '';
     document.body.style.pointerEvents = '';
   }
