@@ -2320,7 +2320,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 <!-- ===================== PAGE: FORNECEDORES ===================== -->
 <div class="page" id="page-fornecedores">
   <h2 class="section-title">Fornecedores</h2>
-  <p class="section-sub">Histórico completo de compras por fornecedor. Compare valores e descubra o melhor fornecedor de cada produto ou insumo. As compras registradas no histórico dos produtos de revenda e dos insumos aparecem aqui automaticamente.</p>
+  <p class="section-sub">Acompanhe a mudança de preço de cada item numa planilha só: preço atual x anterior, quanto variou e qual o fornecedor mais barato. Linhas em vermelho subiram de preço, em verde caíram. As compras registradas no histórico dos produtos de revenda e dos insumos aparecem aqui automaticamente.</p>
 
   <div class="stats-row" id="forn-stats-row">
     <div class="stat-card"><div class="stat-value" id="forn-stat-qtd">0</div><div class="stat-label">Fornecedores</div></div>
@@ -2331,8 +2331,8 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
 
   <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center;justify-content:space-between;margin-bottom:16px;">
     <div class="toggle-row" id="forn-tabs" style="flex-wrap:wrap;margin:0;">
-      <button class="toggle-btn active" id="forn-tab-forn" onclick="setFornecedorView('fornecedor')">Por fornecedor</button>
-      <button class="toggle-btn" id="forn-tab-item" onclick="setFornecedorView('item')">Por produto / insumo</button>
+      <button class="toggle-btn active" id="forn-tab-item" onclick="setFornecedorView('item')">Preços por item</button>
+      <button class="toggle-btn" id="forn-tab-forn" onclick="setFornecedorView('fornecedor')">Por fornecedor</button>
       <button class="toggle-btn" id="forn-tab-compra" onclick="setFornecedorView('compra')">Por compra</button>
     </div>
     <button class="btn btn-primary" id="btn-resumo-variacoes" onclick="openResumoVariacoes()" style="white-space:nowrap;">📊 Resumo de variações</button>
@@ -6926,10 +6926,10 @@ function syncRevendaFromHistorico(prod) {
 // ============================================================
 // FORNECEDORES — histórico de compras agregado por fornecedor / item
 // ============================================================
-let currentFornecedorView = 'fornecedor';
+let currentFornecedorView = 'item';
 let fornTipoFiltro = 'todos';
 // Ordenação memorizada por visão (cada visão tem suas próprias opções).
-const fornSortState = { fornecedor: 'total_desc', item: 'nome_asc', compra: 'recente' };
+const fornSortState = { fornecedor: 'total_desc', item: 'variacao_desc', compra: 'recente' };
 
 const FORN_SORT_OPCOES = {
   fornecedor: [
@@ -6940,11 +6940,12 @@ const FORN_SORT_OPCOES = {
     { v: 'nome_asc', t: 'Nome (A–Z)' },
   ],
   item: [
+    { v: 'variacao_desc', t: 'Maior aumento de preço' },
+    { v: 'variacao_asc', t: 'Maior queda de preço' },
     { v: 'nome_asc', t: 'Nome (A–Z)' },
-    { v: 'preco_asc', t: 'Menor preço médio' },
-    { v: 'preco_desc', t: 'Maior preço médio' },
+    { v: 'preco_asc', t: 'Menor preço atual' },
+    { v: 'preco_desc', t: 'Maior preço atual' },
     { v: 'fornecedores_desc', t: 'Mais fornecedores' },
-    { v: 'compras_desc', t: 'Mais compras' },
   ],
   compra: [
     { v: 'recente', t: 'Mais recentes' },
@@ -7140,73 +7141,99 @@ function renderFornecedorPorFornecedor(compras, sort) {
   '</div></div>';
 }
 
-// Visão "Por produto/insumo": tabela plana única, agrupada por item comparando fornecedores.
+// Visão "Por produto/insumo": planilha com UMA linha por item, focada em
+// enxergar rapidamente a mudança de preço (atual vs anterior) e quem é o
+// fornecedor mais barato. A linha ganha um leve tom vermelho/verde conforme
+// o preço subiu ou caiu na última compra.
 function renderFornecedorPorItem(compras, sort) {
   const grupos = {};
   compras.forEach(c => { (grupos[c.itemId] = grupos[c.itemId] || []).push(c); });
 
-  // Pré-calcula métricas de cada item para permitir ordenação.
-  const cards = Object.keys(grupos).map(id => {
+  // Métricas por item (uma linha por item).
+  const linhasItem = Object.keys(grupos).map(id => {
     const lista = grupos[id];
     const item = lista[0];
-    const porForn = {};
-    lista.forEach(c => { (porForn[c.fornecedor] = porForn[c.fornecedor] || []).push(c); });
-    const linhas = Object.keys(porForn).map(forn => {
-      const cs = porForn[forn].slice().sort((a, b) => (b.data || '').localeCompare(a.data || ''));
-      const unitVals = cs.map(c => c.custoUnit).filter(v => v > 0);
-      const medio = unitVals.length ? unitVals.reduce((s, v) => s + v, 0) / unitVals.length : 0;
-      const menor = unitVals.length ? Math.min(...unitVals) : 0;
-      // Variação: última compra deste fornecedor vs a anterior dele para este item.
-      let varUnit = null, varPct = null;
-      if (cs.length > 1 && cs[0].custoUnit > 0 && cs[1].custoUnit > 0) {
-        varUnit = cs[0].custoUnit - cs[1].custoUnit;
-        varPct = (varUnit / cs[1].custoUnit) * 100;
+    // Ordem cronológica (mais antiga → mais recente).
+    const ord = lista.slice().sort((a, b) => (a.data || '').localeCompare(b.data || ''));
+    // Só compras com preço unitário válido servem para comparar preço.
+    const validas = ord.filter(c => c.custoUnit > 0);
+
+    // Fornecedor / preço da última compra (mesmo sem preço unitário, usa a mais recente).
+    const ultima = ord[ord.length - 1];
+    let fornecedorAtual = ultima.fornecedor, ultimaData = ultima.data;
+    let precoAtual = null, precoAnterior = null, varUnit = null, varPct = null;
+    if (validas.length) {
+      const atual = validas[validas.length - 1];
+      fornecedorAtual = atual.fornecedor;
+      ultimaData = atual.data;
+      precoAtual = atual.custoUnit;
+      if (validas.length > 1) {
+        precoAnterior = validas[validas.length - 2].custoUnit;
+        varUnit = precoAtual - precoAnterior;
+        varPct = precoAnterior > 0 ? (varUnit / precoAnterior) * 100 : null;
       }
-      return { forn, nCompras: cs.length, ultima: cs[0].data, ultimoUnit: cs[0].custoUnit, medio, menor, varUnit, varPct };
+    }
+
+    // Fornecedor mais barato (menor preço médio por unidade).
+    const porForn = {};
+    validas.forEach(c => { (porForn[c.fornecedor] = porForn[c.fornecedor] || []).push(c.custoUnit); });
+    const nForn = new Set(lista.map(c => c.fornecedor)).size;
+    let melhorForn = null, menorMedio = null;
+    Object.keys(porForn).forEach(f => {
+      const vals = porForn[f];
+      const avg = vals.reduce((s, v) => s + v, 0) / vals.length;
+      if (menorMedio == null || avg < menorMedio) { menorMedio = avg; melhorForn = f; }
     });
-    const comPreco = linhas.filter(l => l.medio > 0);
-    const melhorMedio = comPreco.length ? Math.min(...comPreco.map(l => l.medio)) : null;
-    linhas.sort((a, b) => (a.medio || Infinity) - (b.medio || Infinity));
-    return { item, lista, linhas, melhorMedio };
+
+    return { item, fornecedorAtual, ultimaData, precoAtual, precoAnterior, varUnit, varPct,
+             melhorForn, menorMedio, nForn, nCompras: lista.length };
   });
 
-  cards.sort((a, b) => {
+  linhasItem.sort((a, b) => {
     switch (sort) {
-      case 'preco_asc': return (a.melhorMedio ?? Infinity) - (b.melhorMedio ?? Infinity);
-      case 'preco_desc': return (b.melhorMedio ?? -1) - (a.melhorMedio ?? -1);
-      case 'fornecedores_desc': return b.linhas.length - a.linhas.length;
-      case 'compras_desc': return b.lista.length - a.lista.length;
+      case 'variacao_desc': return (b.varPct ?? -Infinity) - (a.varPct ?? -Infinity);
+      case 'variacao_asc': return (a.varPct ?? Infinity) - (b.varPct ?? Infinity);
+      case 'preco_asc': return (a.precoAtual ?? Infinity) - (b.precoAtual ?? Infinity);
+      case 'preco_desc': return (b.precoAtual ?? -1) - (a.precoAtual ?? -1);
+      case 'fornecedores_desc': return b.nForn - a.nForn;
       default: return a.item.item.localeCompare(b.item.item, 'pt-BR'); // nome_asc
     }
   });
 
-  const body = cards.map(({ item, lista, linhas, melhorMedio }) => {
-    const melhorLinha = melhorMedio != null ? linhas.find(l => l.medio === melhorMedio) : null;
-    const resumoMelhor = melhorLinha
-      ? '<span style="color:var(--green);font-weight:700;">★ Melhor: ' + escHtml(melhorLinha.forn) + ' · ' + fmtPrecoGrande(melhorLinha.medio, item.unidade) + '</span>'
-      : '<span style="color:var(--text-light);">sem preço unitário registrado</span>';
-    const tituloItem = itemLink(item.itemId, item.item) + ' ' + tipoBadge(item.tipo);
-    const resumo = linhas.length + ' fornecedor(es) · ' + lista.length + ' compras · ' + resumoMelhor;
+  const mono = 'text-align:right;font-family:var(--font-mono);';
+  const rows = linhasItem.map(d => {
+    const u = d.item.unidade;
+    // Tom da linha conforme a última variação de preço.
+    let tint = '';
+    if (d.varPct != null && d.varPct > 0.5) tint = 'background:rgba(255,59,48,0.06);';
+    else if (d.varPct != null && d.varPct < -0.5) tint = 'background:rgba(52,199,89,0.09);';
 
-    const rows = linhas.map(l => {
-      const isMelhor = melhorMedio != null && l.medio === melhorMedio;
-      return '<tr style="' + (isMelhor ? 'background:#F0FDF4;' : '') + '">' +
-        '<td>' + escHtml(l.forn) + (isMelhor ? ' <span style="font-size:10px;color:var(--green);font-weight:700;">★ MELHOR</span>' : '') + '</td>' +
-        '<td style="text-align:right;font-family:var(--font-mono);">' + l.nCompras + '</td>' +
-        '<td>' + fmtDataCompra(l.ultima) + '</td>' +
-        '<td style="text-align:right;font-family:var(--font-mono);">' + (l.ultimoUnit ? fmtPrecoGrande(l.ultimoUnit, item.unidade) : '-') + '</td>' +
-        '<td style="text-align:right;font-family:var(--font-mono);font-weight:700;">' + (l.medio ? fmtPrecoGrande(l.medio, item.unidade) : '-') + '</td>' +
-        '<td style="text-align:right;font-family:var(--font-mono);">' + (l.menor ? fmtPrecoGrande(l.menor, item.unidade) : '-') + '</td>' +
-        '<td style="text-align:right;font-family:var(--font-mono);">' + variacaoBadge(l.varUnit, l.varPct, item.unidade) + '</td>' +
-      '</tr>';
-    }).join('');
-    return fornGrupoRow(7, tituloItem, resumo) + rows;
+    const melhorCel = (d.melhorForn && d.menorMedio != null)
+      ? '<span style="color:var(--green);font-weight:700;">★</span> ' + fmtPrecoGrande(d.menorMedio, u) +
+        '<span style="display:block;font-size:10.5px;color:var(--text-light);font-family:var(--font-sans);">' + escHtml(d.melhorForn) + (d.nForn > 1 ? ' · ' + d.nForn + ' forn.' : '') + '</span>'
+      : '<span style="color:var(--text-light);">—</span>';
+
+    return '<tr style="' + tint + '">' +
+      '<td style="padding:8px 10px;">' + itemLink(d.item.itemId, d.item.item) + ' ' + tipoBadge(d.item.tipo) + '</td>' +
+      '<td style="padding:8px 10px;">' + escHtml(d.fornecedorAtual) + '</td>' +
+      '<td style="padding:8px 10px;white-space:nowrap;">' + fmtDataCompra(d.ultimaData) + '</td>' +
+      '<td style="' + mono + 'padding:8px 10px;font-weight:700;">' + (d.precoAtual != null ? fmtPrecoGrande(d.precoAtual, u) : '-') + '</td>' +
+      '<td style="' + mono + 'padding:8px 10px;color:var(--text-light);">' + (d.precoAnterior != null ? fmtPrecoGrande(d.precoAnterior, u) : '-') + '</td>' +
+      '<td style="' + mono + 'padding:8px 10px;">' + variacaoBadge(d.varUnit, d.varPct, u) + '</td>' +
+      '<td style="' + mono + 'padding:8px 10px;">' + melhorCel + '</td>' +
+    '</tr>';
   }).join('');
 
-  return '<div class="sheet-card"><div class="table-wrap">' +
+  const legenda = '<div style="display:flex;flex-wrap:wrap;gap:14px;align-items:center;padding:8px 4px 12px;font-size:11.5px;color:var(--text-light);font-family:var(--font-sans);">' +
+    '<span><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:rgba(255,59,48,0.22);vertical-align:-1px;"></span> subiu de preço</span>' +
+    '<span><span style="display:inline-block;width:11px;height:11px;border-radius:3px;background:rgba(52,199,89,0.3);vertical-align:-1px;"></span> caiu de preço</span>' +
+    '<span><span style="color:var(--green);font-weight:700;">★</span> fornecedor mais barato · clique no item para ver o histórico</span>' +
+  '</div>';
+
+  return legenda + '<div class="sheet-card"><div class="table-wrap">' +
     '<table class="sheet-table"><thead><tr>' +
-      '<th>Fornecedor</th><th style="text-align:right;">Compras</th><th>Última</th><th style="text-align:right;">Último /un</th><th style="text-align:right;">Médio /un</th><th style="text-align:right;">Menor /un</th><th style="text-align:right;">Variação</th>' +
-    '</tr></thead><tbody>' + body + '</tbody></table>' +
+      '<th>Item</th><th>Fornecedor atual</th><th>Última compra</th><th style="text-align:right;">Preço atual /un</th><th style="text-align:right;">Preço anterior /un</th><th style="text-align:right;">Variação</th><th style="text-align:right;">Melhor preço /un</th>' +
+    '</tr></thead><tbody>' + rows + '</tbody></table>' +
   '</div></div>';
 }
 
