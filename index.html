@@ -3633,6 +3633,19 @@ nextId = Math.max(
   ...perdas.map(p => p.id || 0)
 );
 
+// Gera um id novo praticamente livre de colisão ENTRE APARELHOS DIFERENTES,
+// combinando o relógio com um componente aleatório. Usado nos itens da
+// vitrine porque, antes, o id só era atribuído (a partir do contador local
+// nextId) na hora de sincronizar — dois celulares/tablets usados ao mesmo
+// tempo, sem um ter recarregado a página depois do outro, podiam gerar o
+// MESMO id para itens diferentes adicionados na vitrine. O upsert por id
+// então sobrescrevia um item com o outro silenciosamente na nuvem (sem
+// nenhum erro), e o item "sumia". Relógio+aleatório praticamente nunca repete
+// entre aparelhos, mesmo que eles nunca tenham trocado dados entre si.
+function novoIdVitrineSlot() {
+  return Date.now() * 1000 + Math.floor(Math.random() * 1000);
+}
+
 // Migracao: garantir que todos os produtos tenham tipo e historico de revenda
 produtos = produtos.map(p => {
   const produto = {
@@ -4036,7 +4049,7 @@ async function _syncToSupabaseOnce() {
       Object.values(buckets || {}).forEach(slots => {
         (slots || []).forEach(s => {
           if (!s.slot || !s.prodId) return;
-          if (!s.id) s.id = ++nextId; // id estável do item, para upsert
+          if (!s.id) s.id = novoIdVitrineSlot(); // id estável do item, para upsert (sem colidir entre aparelhos)
           keepSlotIds.push(s.id);
           allSlots.push({
             id: s.id, unit, dia: VITRINE_KEY, slot: s.slot, prod_id: s.prodId,
@@ -4445,13 +4458,14 @@ async function loadFromSupabase() {
       if (!vitrinePadrao[r.unit][r.dia]) vitrinePadrao[r.unit][r.dia] = [];
       vitrinePadrao[r.unit][r.dia].push({ slot: r.slot, prodId: r.prod_id, qty: Number(r.qty) || 1 });
     });
-    // Sincroniza nextId
+    // Sincroniza nextId (ids dos itens da vitrine ficam de fora: eles agora
+    // usam novoIdVitrineSlot() e não dependem de nextId; incluí-los aqui só
+    // inflaria nextId para o valor gigante do relógio à toa).
     const allIds = [
       ...produtos.map(p => p.id),
       ...ingredientes.map(i => i.id),
       ...receitas.map(r => r.id),
       ...perdas.map(p => p.id),
-      ...(slotData || []).map(s => s.id), // ids dos itens da vitrine, p/ não colidir
       ...produtos.flatMap(p => (p.historicoCompras || []).map(h => h.id)),
       ...ingredientes.flatMap(i => (i.historico || []).map(h => h.id))
     ].filter(Number.isFinite);
