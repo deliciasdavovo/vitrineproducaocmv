@@ -2816,6 +2816,14 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
       <div class="form-group"><label>Unidade do rendimento</label><input type="text" id="rec-unidade" value="un." placeholder="ex: un., fatias, potes"></div>
       <div class="form-group"><label>Peso por unidade (g) <span style="font-size:11px;color:var(--text-light);">se vende por kg</span></label><input type="number" id="rec-peso-por-unidade" min="0" step="0.1" placeholder="ex: 30"></div>
     </div>
+    <div class="vitrine-section-label" style="margin-top:10px;">Colar ingredientes por texto</div>
+    <div class="form-row full">
+      <div class="form-group">
+        <label>Cole a lista e clique em Interpretar <span style="font-size:11px;color:var(--text-light);">ex: 500g farinha, 3 ovos, 200ml leite</span></label>
+        <textarea id="rec-texto" rows="3" placeholder="500g farinha&#10;3 ovos&#10;200ml leite" style="width:100%;resize:vertical;"></textarea>
+      </div>
+    </div>
+    <button class="btn btn-ghost btn-sm" type="button" onclick="preencherReceitaPorTexto()" style="margin-bottom:8px;">✨ Interpretar texto</button>
     <div class="vitrine-section-label" style="margin-top:10px;">Ingredientes da receita</div>
     <div id="receita-itens"></div>
     <button class="btn btn-ghost btn-sm" onclick="addReceitaItem()" style="margin-top:8px;">+ Ingrediente na receita</button>
@@ -8879,6 +8887,8 @@ function openReceitaModal(receita = null) {
   document.getElementById('rec-unidade').value = receita ? (receita.unidade || 'un.') : 'un.';
   document.getElementById('rec-peso-por-unidade').value = receita?.pesoPorUnidade || '';
   document.getElementById('modal-receita-title').textContent = receita ? 'Editar Receita' : 'Nova Receita';
+  const txtEl = document.getElementById('rec-texto');
+  if (txtEl) txtEl.value = '';
   document.getElementById('receita-itens').innerHTML = '';
 
   const itens = receita?.itens?.length ? receita.itens : [{ ingId: ingredientes[0]?.id || '', qtd: '' }];
@@ -8892,14 +8902,15 @@ function addReceitaItem(item = {}) {
   row.className = 'form-row receita-item-row';
   row.innerHTML = `
     <div class="form-group"><label>Ingrediente</label>
-      <select class="rec-ing" onchange="updateReceitaModalUsoOptions(this)">${ingredientes.map(ing => `<option value="${ing.id}">${ing.nome} (${ing.unidade})</option>`).join('')}</select>
+      <select class="rec-ing" onchange="updateReceitaModalUsoOptions(this)"><option value="">— selecione —</option>${ingredientes.map(ing => `<option value="${ing.id}">${ing.nome} (${ing.unidade})</option>`).join('')}</select>
     </div>
     <div class="form-group"><label>Quantidade usada</label><input type="number" class="rec-qtd" min="0" step="0.001" placeholder="ex: 250"></div>
     <div class="form-group"><label>Unidade</label><select class="rec-uso-unidade"></select></div>
     <button class="btn btn-ghost btn-sm" type="button" onclick="this.parentElement.remove()" style="align-self:end;">×</button>
   `;
   wrap.appendChild(row);
-  row.querySelector('.rec-ing').value = item.ingId || ingredientes[0]?.id || '';
+  // item.blank => linha em branco (ingrediente não identificado no texto), aguardando escolha manual.
+  row.querySelector('.rec-ing').value = item.blank ? '' : (item.ingId || ingredientes[0]?.id || '');
   row.querySelector('.rec-qtd').value = item.qtd || '';
   updateReceitaModalUsoOptions(row.querySelector('.rec-ing'), item.usoUnidade);
 }
@@ -8910,6 +8921,109 @@ function updateReceitaModalUsoOptions(select, selected = '') {
   if (!usageSelect) return;
   const ing = ingredientes.find(i => i.id === parseInt(select.value));
   usageSelect.innerHTML = getUsoUnidadeOptions(ing, selected || usageSelect.value);
+}
+
+// ---- Cadastro de receita por texto (interpretador offline) ----
+
+// Normaliza texto p/ comparação: minúsculo, sem acento, sem plural simples.
+function normalizarNomeInsumo(str) {
+  return (str || '')
+    .toLowerCase()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .replace(/s$/, '');
+}
+
+// Converte a quantidade do texto para a unidade-base do sistema (g/ml/un).
+// Retorna { qtd, unidade } já na base, reaproveitando a regra kg->g / l->ml.
+function normalizarUnidadeTexto(qtd, unidadeTxt) {
+  const u = (unidadeTxt || '').toLowerCase();
+  if (u === 'kg') return { qtd: qtd * 1000, unidade: 'g' };
+  if (u === 'g' || u === 'gr' || u === 'grama' || u === 'gramas') return { qtd, unidade: 'g' };
+  if (u === 'l' || u === 'lt' || u === 'litro' || u === 'litros') return { qtd: qtd * 1000, unidade: 'ml' };
+  if (u === 'ml') return { qtd, unidade: 'ml' };
+  if (u === 'duzia' || u === 'duzias' || u === 'dz') return { qtd: qtd * 12, unidade: 'un' };
+  // un, unidade(s), ou sem unidade => contagem
+  return { qtd, unidade: 'un' };
+}
+
+// Interpreta texto livre (linhas e/ou vírgulas) em uma lista de
+// { nome, qtd, unidade, raw }. Aceita "500g farinha" e "farinha 500g".
+function parseLinhasTexto(texto) {
+  // Quebra por linha/; e por vírgula — exceto vírgula decimal (entre dígitos, ex.: 1,5kg).
+  const partes = (texto || '')
+    .split(/[\n;]+|(?<!\d),(?!\d)/)
+    .map(s => (s || '').trim())
+    .filter(Boolean);
+  const numUni = '(\\d+(?:[.,]\\d+)?)\\s*(kg|g|gr|gramas?|l|lt|litros?|ml|un|unidades?|duzias?|dz)?';
+  const reInicio = new RegExp('^' + numUni + '\\s+(.+)$', 'i');
+  const reFim = new RegExp('^(.+?)\\s+' + numUni + '$', 'i');
+  const itens = [];
+  partes.forEach(raw => {
+    let nome = '', qtdStr = '', uniStr = '';
+    let m = raw.match(reInicio);
+    if (m) { qtdStr = m[1]; uniStr = m[2] || ''; nome = m[3]; }
+    else if ((m = raw.match(reFim))) { nome = m[1]; qtdStr = m[2]; uniStr = m[3] || ''; }
+    else { nome = raw; }
+    nome = nome.trim();
+    if (!nome) return;
+    const qtdNum = qtdStr ? parseFloat(qtdStr.replace(',', '.')) : 0;
+    const conv = normalizarUnidadeTexto(qtdNum || 0, uniStr);
+    itens.push({ nome, qtd: conv.qtd, unidade: conv.unidade, raw });
+  });
+  return itens;
+}
+
+// Casa um nome de texto com um insumo existente (exato normalizado, depois parcial).
+function matchIngrediente(nome) {
+  const alvo = normalizarNomeInsumo(nome);
+  if (!alvo) return null;
+  let ing = ingredientes.find(i => normalizarNomeInsumo(i.nome) === alvo);
+  if (ing) return ing;
+  ing = ingredientes.find(i => {
+    const n = normalizarNomeInsumo(i.nome);
+    return n && (n.includes(alvo) || alvo.includes(n));
+  });
+  return ing || null;
+}
+
+// Lê o textarea do modal, interpreta e preenche as linhas de ingredientes.
+// Ingredientes não reconhecidos viram linha em branco + aviso (não cria insumo).
+function preencherReceitaPorTexto() {
+  const txtEl = document.getElementById('rec-texto');
+  const texto = (txtEl?.value || '').trim();
+  if (!texto) return showToast('Cole a lista de ingredientes no campo de texto', 'error');
+
+  const itens = parseLinhasTexto(texto);
+  if (!itens.length) return showToast('Não consegui interpretar nenhum ingrediente', 'error');
+
+  const wrap = document.getElementById('receita-itens');
+  // Remove linhas vazias atuais (sem ingrediente selecionado e sem quantidade) antes de preencher.
+  Array.from(wrap.querySelectorAll('.receita-item-row')).forEach(row => {
+    const ing = row.querySelector('.rec-ing')?.value;
+    const qtd = parseFloat(row.querySelector('.rec-qtd')?.value);
+    if (!ing && !(qtd > 0)) row.remove();
+  });
+
+  const naoIdentificados = [];
+  itens.forEach(item => {
+    const ing = matchIngrediente(item.nome);
+    if (ing) {
+      addReceitaItem({ ingId: ing.id, qtd: item.qtd });
+    } else {
+      naoIdentificados.push(item.nome);
+      addReceitaItem({ blank: true, qtd: item.qtd });
+    }
+  });
+
+  if (txtEl) txtEl.value = '';
+  if (naoIdentificados.length) {
+    showToast('Não identificados: ' + naoIdentificados.join(', ') + ' — escolha o insumo nas linhas em branco', 'error');
+  } else {
+    showToast(itens.length + ' ingrediente(s) interpretado(s)', 'success');
+  }
 }
 
 function saveReceita() {
