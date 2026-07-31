@@ -7941,7 +7941,7 @@ function renderReceitaGrouped() {
               <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th><th>Custo insumo</th>
               <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo ficha</th><th>CMV</th><th></th>
             </tr></thead>
-            <tbody>${linhas.map(r => renderReceitaRow(r, true)).join('')}</tbody>
+            <tbody id="ficha-prod-${prodId}" data-prod-id="${prodId}">${linhas.map(r => renderReceitaRow(r, true)).join('')}</tbody>
           </table>
         </div>
         <div class="sheet-actions">
@@ -7995,7 +7995,7 @@ function renderReceitaByCategory() {
                 <th>Produto</th><th>Ingrediente</th><th>Qtd. usada</th><th>Custo insumo</th>
                 <th>Rendimento</th><th>Unid.</th><th>g/un</th><th>Custo ficha</th><th>CMV</th><th></th>
               </tr></thead>
-              <tbody>${linhas.map(r => renderReceitaRow(r, true)).join('')}</tbody>
+              <tbody id="ficha-prod-${prodId}" data-prod-id="${prodId}">${linhas.map(r => renderReceitaRow(r, true)).join('')}</tbody>
             </table>
           </div>
           <div class="sheet-actions">
@@ -9931,8 +9931,14 @@ function sheetNavFromEl(e, el) {
     focusSheetCell(tbodyId, rowIndex, colIndex + 1);
   } else if (lastRow) {
     const adder = sheetRowAdders[tbodyId];
+    // Fichas técnicas agrupadas (por produto/categoria): cada tbody guarda o
+    // produto em data-prod-id, então a nova linha é criada para aquele produto.
+    const prodId = tbody.dataset ? tbody.dataset.prodId : null;
     if (adder) {
       adder();
+      focusSheetCell(tbodyId, rowIndex + 1, 0);
+    } else if (prodId) {
+      addReceitaRow(parseInt(prodId));
       focusSheetCell(tbodyId, rowIndex + 1, 0);
     } else {
       focusSheetCell(tbodyId, rowIndex, colIndex);
