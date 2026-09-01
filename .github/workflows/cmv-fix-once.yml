@@ -6,8 +6,7 @@ on:
       - main
     paths:
       - '.github/workflows/cmv-fix-once.yml'
-      - '.github/scripts/cmv_fix.py'
-      - '.github/scripts/prepare_cmv_fix.py'
+      - '.github/scripts/cmv_followup.py'
 
 permissions:
   contents: write
@@ -19,10 +18,8 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Apply CMV fix
-        run: |
-          python3 .github/scripts/prepare_cmv_fix.py
-          python3 .github/scripts/cmv_fix.py
+      - name: Connect CMV autocomplete
+        run: python3 .github/scripts/cmv_followup.py
 
       - name: Commit patched index
         run: |
@@ -33,5 +30,5 @@ jobs:
             echo "No index changes"
             exit 0
           fi
-          git commit -m "Fix CMV purchase entry and technical sheets"
+          git commit -m "Connect CMV purchase autocomplete"
           git push
