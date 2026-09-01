@@ -2076,7 +2076,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
           </thead>
           <tbody>
             <tr class="quick-entry-row" aria-label="Entrada rapida de insumo">
-              <td><input class="sheet-input" id="quick-insumo-nome" autocomplete="off" placeholder="Insumo existente ou novo" onkeydown="handleQuickInsumoKey(event)" style="min-width:130px;"></td>
+              <td><input class="sheet-input" id="quick-insumo-nome" list="quick-insumo-list" autocomplete="off" placeholder="Insumo existente ou novo" oninput="applyQuickInsumoExistingMeta(this.value)" onkeydown="handleQuickInsumoKey(event)" style="min-width:130px;"></td>
               <td>
                 <select class="sheet-select" id="quick-insumo-unidade" onkeydown="handleQuickInsumoKey(event)">
                   <option value="g">g</option>
@@ -2084,7 +2084,7 @@ body.fill-dragging, body.fill-dragging * { cursor: crosshair !important; user-se
                   <option value="un">un</option>
                 </select>
               </td>
-              <td><input class="sheet-input" id="quick-insumo-fornecedor" autocomplete="off" placeholder="Fornecedor" onkeydown="handleQuickInsumoKey(event)" style="min-width:110px;"></td>
+              <td><input class="sheet-input" id="quick-insumo-fornecedor" list="fornecedores-list" autocomplete="off" placeholder="Fornecedor" onkeydown="handleQuickInsumoKey(event)" style="min-width:110px;"></td>
               <td><input class="sheet-input" id="quick-insumo-data" type="date" onkeydown="handleQuickInsumoKey(event)" style="min-width:120px;"></td>
               <td><input class="sheet-input" id="quick-insumo-qtd" type="number" min="0" step="0.001" placeholder="Qtd. compra" onkeydown="handleQuickInsumoKey(event)" style="min-width:80px;"></td>
               <td><input class="sheet-input" id="quick-insumo-custo" type="text" inputmode="decimal" oninput="maskMoney(this)" placeholder="Custo compra" onkeydown="handleQuickInsumoKey(event)" style="min-width:80px;"></td>
